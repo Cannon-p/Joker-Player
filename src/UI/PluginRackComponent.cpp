@@ -1,0 +1,416 @@
+#include "PluginRackComponent.h"
+#include "CustomLookAndFeel.h"
+#include "../Player/PlayerEngine.h"
+#include "../Trace.h"
+
+namespace
+{
+juce::String shorten (const juce::String& text, int maxChars)
+{
+    if (text.length() <= maxChars)
+        return text;
+
+    return text.substring (0, juce::jmax (0, maxChars - 1)) + "\u2026";
+}
+} // namespace
+
+//==============================================================================
+PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
+    : engine (engineRef)
+{
+    aur::traceStep ("PluginRackComponent ctor start");
+    title.setFont (aur::Theme::uiFont (16.0f).boldened());
+    title.setColour (juce::Label::textColourId, aur::Theme::text());
+    addAndMakeVisible (title);
+
+    countLabel.setFont (aur::Theme::uiFont (12.0f));
+    countLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    addAndMakeVisible (countLabel);
+
+    latencyLabel.setFont (aur::Theme::uiFont (12.0f));
+    latencyLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    latencyLabel.setJustificationType (juce::Justification::centredRight);
+    addAndMakeVisible (latencyLabel);
+
+    addButton.onClick = [this]
+    {
+        if (onAddPluginClicked)
+            onAddPluginClicked (pathCombo.getSelectedItemIndex());
+    };
+    addAndMakeVisible (addButton);
+
+    pathLabel.setFont (aur::Theme::uiFont (11.0f));
+    pathLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    addAndMakeVisible (pathLabel);
+
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+        pathCombo.addItem (juce::String (p + 1) + "\u53F7\u8DEF\u5F84", p + 1);
+
+    pathCombo.setSelectedItemIndex (0, juce::dontSendNotification);
+    addAndMakeVisible (pathCombo);
+
+    viewport.setViewedComponent (&rowContainer, false);
+    viewport.setScrollBarsShown (true, false);
+    viewport.setScrollBarThickness (8);
+    addAndMakeVisible (viewport);
+
+    mixSlider.setRange (0.0, 1.0, 0.01);
+    mixSlider.setValue (1.0, juce::dontSendNotification);
+    mixSlider.onValueChange = [this]
+    {
+        engine.setMix ((float) mixSlider.getValue());
+    };
+    addAndMakeVisible (mixSlider);
+
+    mixLabel.setFont (aur::Theme::uiFont (12.0f));
+    mixLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    mixLabel.setJustificationType (juce::Justification::centred);
+    addAndMakeVisible (mixLabel);
+
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+        engine.getChain (p).addChangeListener (this);
+
+    rebuildRows();
+
+    startTimer (250);
+    aur::traceStep ("PluginRackComponent ctor done");
+}
+
+PluginRackComponent::~PluginRackComponent()
+{
+    stopTimer();
+
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+        engine.getChain (p).removeChangeListener (this);
+}
+
+void PluginRackComponent::requestAddPlugin (int path)
+{
+    pathCombo.setSelectedItemIndex (juce::jlimit (0, PlayerEngine::numPaths - 1, path),
+                                    juce::dontSendNotification);
+
+    if (onAddPluginClicked)
+        onAddPluginClicked (path);
+}
+
+//==============================================================================
+void PluginRackComponent::paint (juce::Graphics& g)
+{
+    g.fillAll (juce::Colour (0xff141922));
+}
+
+//==============================================================================
+void PluginRackComponent::resized()
+{
+    auto b = getLocalBounds().reduced (12);
+
+    auto header = b.removeFromTop (26);
+    title.setBounds (header.removeFromLeft (header.getWidth() * 0.5));
+    latencyLabel.setBounds (header.removeFromRight (b.getWidth() * 0.28).reduced (0, 2));
+    countLabel.setBounds (header.reduced (4, 2));
+
+    auto footer = b.removeFromBottom (140);
+    auto footerTop = footer.removeFromTop (32);
+
+    mixLabel.setBounds (footerTop.removeFromTop (14));
+    mixSlider.setBounds (footerTop.removeFromLeft (70).withY (footerTop.getY() - 12).withHeight (48));
+
+    auto addRow = footer.removeFromTop (40);
+    addButton.setBounds (addRow.removeFromRight (addRow.getWidth() * 0.55).reduced (2, 4));
+    pathLabel.setBounds (addRow.removeFromLeft (46).withTrimmedBottom (2));
+    pathCombo.setBounds (addRow.reduced (2, 8));
+
+    viewport.setBounds (b);
+
+    // Layout the rows inside the viewport.
+    int total = 0;
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+    {
+        total += 34;                              // path header
+        total += engine.getChain (p).getNumSlots() * 70;   // plugin rows
+    }
+
+    auto containerBounds = juce::Rectangle<int> (0, 0, viewport.getWidth() - 8,
+                                                 juce::jmax (viewport.getHeight(), total + 8));
+    rowContainer.setBounds (containerBounds);
+
+    int y = 4;
+
+    for (auto* child : rowContainer.getChildren())
+    {
+        const int h = (dynamic_cast<PathHeader*> (child) != nullptr) ? 30 : 62;
+        child->setBounds (4, y, containerBounds.getWidth() - 8, h);
+        y += h + 4;
+    }
+}
+
+//==============================================================================
+void PluginRackComponent::rebuildRows()
+{
+    rowContainer.removeAllChildren();
+
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+    {
+        auto& chain = engine.getChain (p);
+
+        rowContainer.addAndMakeVisible (new PathHeader (*this, p));
+
+        for (int i = 0; i < chain.getNumSlots(); ++i)
+            rowContainer.addAndMakeVisible (new RackRow (*this, p, i));
+    }
+
+    int count = 0;
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+        count += engine.getChain (p).getNumSlots();
+
+    countLabel.setText (juce::String (count) + " \u4E2A\u63D2\u4EF6", juce::dontSendNotification);
+
+    resized();
+}
+
+//==============================================================================
+void PluginRackComponent::changeListenerCallback (juce::ChangeBroadcaster* source)
+{
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+    {
+        if (source == &engine.getChain (p))
+        {
+            rebuildRows();
+            return;
+        }
+    }
+}
+
+void PluginRackComponent::timerCallback()
+{
+    const double rate = engine.getSampleRate();
+    const double latencyMs = rate > 0.0 ? (double) engine.getCurrentLatencySamples() * 1000.0 / rate
+                                        : 0.0;
+
+    latencyLabel.setText (juce::String::formatted ("\u94FE\u5EF6\u8FDF %.1f ms", latencyMs),
+                          juce::dontSendNotification);
+}
+
+//==============================================================================
+// A window hosting a plug-in's own editor. Closing it hides (not destroys) the
+// window so that the editor state is preserved for when it is reopened.
+class PluginEditorWindow : public juce::DocumentWindow
+{
+public:
+    PluginEditorWindow (const juce::String& name, juce::Colour backgroundColour, int requiredButtons)
+        : juce::DocumentWindow (name, backgroundColour, requiredButtons)
+    {
+    }
+
+    void closeButtonPressed() override
+    {
+        setVisible (false);
+    }
+};
+
+//==============================================================================
+void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
+{
+    auto& chain = engine.getChain (pathIndex);
+    auto* slot = chain.getSlot (slotIndex);
+
+    if (slot == nullptr)
+        return;
+
+    auto* editor = slot->instance->createEditorIfNeeded();
+
+    if (editor == nullptr)
+    {
+        juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon,
+                                                "\u8BE5\u63D2\u4EF6",
+                                                "\u8BE5\u63D2\u4EF6\u6CA1\u6709\u53EF\u7528\u7684\u56FE\u5F62\u754C\u9762\u3002");
+        return;
+    }
+
+    if (slot->editorWindow == nullptr)
+    {
+        auto* window = new PluginEditorWindow (slot->description.name,
+                                               aur::Theme::bg(),
+                                               juce::DocumentWindow::allButtons);
+
+        window->setUsingNativeTitleBar (true);
+        window->setContentOwned (editor, true);
+        window->setResizable (true, true);
+        window->setResizeLimits (220, 140, 4096, 4096);
+        window->centreWithSize (juce::jmax (editor->getWidth(), 360),
+                                juce::jmax (editor->getHeight(), 220));
+        window->setVisible (true);
+
+        slot->editorWindow.reset (window);
+    }
+    else
+    {
+        slot->editorWindow->setVisible (true);
+        slot->editorWindow->toFront (true);
+    }
+}
+
+//==============================================================================
+PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int pathIndex_)
+    : owner (ownerRef), pathIndex (pathIndex_)
+{
+    title.setText (juce::String (pathIndex + 1) + "\u53F7\u8DEF\u5F84",
+                   juce::dontSendNotification);
+    title.setFont (aur::Theme::uiFont (12.5f).boldened());
+    title.setColour (juce::Label::textColourId, aur::Theme::text());
+    addAndMakeVisible (title);
+
+    enable.setToggleState (owner.engine.isPathEnabled (pathIndex), juce::dontSendNotification);
+    enable.onClick = [this]
+    {
+        owner.engine.setPathEnabled (pathIndex, enable.getToggleState());
+    };
+    addAndMakeVisible (enable);
+
+    volume.setRange (0.0, 2.0, 0.01);
+    volume.setValue (owner.engine.getPathVolume (pathIndex), juce::dontSendNotification);
+    volume.onValueChange = [this]
+    {
+        owner.engine.setPathVolume (pathIndex, (float) volume.getValue());
+    };
+    addAndMakeVisible (volume);
+
+    addButton.setTooltip ("\u6D4F\u89C8\u5DF2\u626B\u63CF\u7684\u63D2\u4EF6\u5E76\u6DFB\u52A0\u5230\u8BE5\u8DEF\u5F84");
+    addButton.onClick = [this]
+    {
+        owner.requestAddPlugin (pathIndex);
+    };
+    addAndMakeVisible (addButton);
+
+    setInterceptsMouseClicks (true, true);
+}
+
+void PluginRackComponent::PathHeader::paint (juce::Graphics& g)
+{
+    const auto b = getLocalBounds().toFloat().reduced (1.0f);
+
+    const bool on = owner.engine.isPathEnabled (pathIndex);
+
+    g.setColour (on ? juce::Colour (0xff20283a) : juce::Colour (0xff171b24));
+    g.fillRoundedRectangle (b, 8.0f);
+
+    g.setColour (on ? aur::Theme::accent() : juce::Colour (0xff39414f));
+    g.fillRoundedRectangle (b.withWidth (3.0f), 1.5f);
+}
+
+void PluginRackComponent::PathHeader::resized()
+{
+    auto b = getLocalBounds().reduced (8, 4);
+    b.removeFromLeft (2);
+
+    auto volArea = b.removeFromRight (b.getWidth() * 0.34);
+    volume.setBounds (volArea.reduced (0, 6));
+
+    auto toggleArea = b.removeFromRight (54);
+    enable.setBounds (toggleArea.reduced (2, 6));
+
+    auto addArea = b.removeFromRight (28);
+    addButton.setBounds (addArea.reduced (4, 7));
+
+    title.setBounds (b.reduced (0, 2));
+}
+
+//==============================================================================
+PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIndex_, int slotIndex_)
+    : owner (ownerRef), pathIndex (pathIndex_), slotIndex (slotIndex_)
+{
+    auto& chain = owner.engine.getChain (pathIndex);
+    auto* slot = chain.getSlot (slotIndex);
+    jassert (slot != nullptr);
+
+    bypass.setToggleState (slot != nullptr && slot->enabled, juce::dontSendNotification);
+    bypass.onClick = [this]
+    {
+        owner.engine.getChain (pathIndex).setEnabled (slotIndex, bypass.getToggleState());
+    };
+    addAndMakeVisible (bypass);
+
+    guiButton.onClick = [this]
+    {
+        owner.openEditor (pathIndex, slotIndex);
+    };
+    addAndMakeVisible (guiButton);
+
+    removeButton.onClick = [this]
+    {
+        owner.engine.getChain (pathIndex).remove (slotIndex);
+    };
+    addAndMakeVisible (removeButton);
+
+    setInterceptsMouseClicks (true, true);
+}
+
+void PluginRackComponent::RackRow::paint (juce::Graphics& g)
+{
+    const auto b = getLocalBounds().toFloat().reduced (1.0f);
+    const auto* slot = owner.engine.getChain (pathIndex).getSlot (slotIndex);
+
+    const bool isEnabled = slot != nullptr && slot->enabled;
+
+    // Panel background.
+    g.setColour (isEnabled ? juce::Colour (0xff1d2330) : juce::Colour (0xff171b24));
+    g.fillRoundedRectangle (b, 10.0f);
+
+    // Bypass / enabled indicator.
+    if (isEnabled)
+    {
+        g.setColour (aur::Theme::accent());
+        g.fillRoundedRectangle (b.withWidth (3.0f), 1.5f);
+    }
+    else
+    {
+        g.setColour (juce::Colour (0xff39414f));
+        g.fillRoundedRectangle (b.withWidth (3.0f), 1.5f);
+    }
+
+    if (slot == nullptr)
+        return;
+
+    // Order chip.
+    auto left = b.reduced (14, 0);
+    auto chip = left.removeFromLeft (26.0f).withTrimmedTop (b.getHeight() * 0.5f - 11.0f);
+    chip.setHeight (22.0f);
+    g.setColour (isEnabled ? aur::Theme::accentSoft() : juce::Colour (0xff2a3140));
+    g.fillRoundedRectangle (chip, 6.0f);
+    g.setColour (isEnabled ? aur::Theme::accent() : aur::Theme::textDim());
+    g.setFont (aur::Theme::uiFont (11.0f).boldened());
+    g.drawText (juce::String (slotIndex + 1), chip, juce::Justification::centred);
+
+    // Name + meta.
+    auto text = left.reduced (6, 0).withTrimmedRight (6);
+    auto nameBox = text.removeFromTop (text.getHeight() * 0.55f);
+    auto metaBox = text;
+
+    const auto nameColour = isEnabled ? aur::Theme::text() : aur::Theme::textDim();
+
+    g.setColour (nameColour);
+    g.setFont (aur::Theme::uiFont (13.5f));
+    g.drawText (shorten (slot->description.name, 26), nameBox.reduced (0, 2),
+                juce::Justification::centredLeft);
+
+    g.setColour (aur::Theme::textDim());
+    g.setFont (aur::Theme::uiFont (11.0f));
+    const auto vendor = shorten (slot->description.manufacturerName, 20);
+    g.drawText (vendor.isEmpty() ? slot->description.pluginFormatName
+                                 : vendor + " \u00B7 " + slot->description.pluginFormatName,
+                metaBox.reduced (0, 2), juce::Justification::centredLeft);
+}
+
+void PluginRackComponent::RackRow::resized()
+{
+    auto b = getLocalBounds().reduced (14, 8);
+
+    // Reserve space for the left chip.
+    b.removeFromLeft (26);
+
+    auto buttons = b.removeFromRight (210).reduced (0, 6);
+
+    removeButton.setBounds (buttons.removeFromRight (32).reduced (4, 12));
+    guiButton.setBounds (buttons.removeFromRight (56).reduced (4, 10));
+    bypass.setBounds (buttons.reduced (2, 8));
+}
