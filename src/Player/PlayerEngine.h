@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <JuceHeader.h>
 
@@ -14,14 +14,15 @@
         (wav / aiff / flac / ogg / mp3 ...)
       * host up to three VST3 effect paths in realtime:
 
-            input ──► path 1 ──►──────────────────────────────► sum
-            input ──► path 2 ──►──────────────────────────────► sum
-            path1 ──► path 3 ──►──────────────────────────────► sum
+            input 鈹€鈹€鈻?path 1 鈹€鈹€鈻衡攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈻?sum
+            input 鈹€鈹€鈻?path 2 鈹€鈹€鈻衡攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈻?sum
+            path1 鈹€鈹€鈻?path 3 鈹€鈹€鈻衡攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈻?sum
 
         paths 1 and 2 run in parallel (both fed the dry input); path 3 is fed
         by path 1's output. The three path outputs are latency-aligned and
         summed, then scaled individually. Each path can be enabled/disabled
         and has its own volume. Default: only path 1 is enabled.
+        All plugin processing happens synchronously on the audio thread.
       * automatic latency compensation: every path output (and the dry signal
         used by the dry/wet mix) is delayed by (maxLatency - pathLatency) so
         all contributions stay sample-aligned.
@@ -110,7 +111,6 @@ public:
 
 private:
     class LatencyCompensator;
-    class PathWorker;
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
@@ -138,11 +138,7 @@ private:
     std::vector<juce::AudioBuffer<float>> pathBuffers;
     std::vector<std::unique_ptr<LatencyCompensator>> alignComps;
     juce::AudioBuffer<float> alignedSum;
-
-    // One processing thread per path; paths 1 & 2 run concurrently, path 3
-    // waits for path 1's output.
-    std::vector<std::unique_ptr<PathWorker>> workers;
-    std::vector<juce::MidiBuffer> workerMidiBuffers;
+    std::vector<juce::MidiBuffer> midiBuffers;
 
     std::atomic<float> mix { 1.0f };
     std::atomic<float> volume { 1.0f };

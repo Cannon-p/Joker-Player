@@ -1,4 +1,4 @@
-#include "PlayerEngine.h"
+﻿#include "PlayerEngine.h"
 #include "../Trace.h"
 
 //==============================================================================
@@ -102,83 +102,6 @@ private:
 };
 
 //==============================================================================
-/**
-    Runs one path's plugin chain on its own thread.
-
-    The audio thread publishes a job (chain + output buffer) and waits for
-    completion; paths 1 and 2 are submitted together so the OS can run them on
-    different cores, and path 3 is only submitted after path 1 is finished
-    (because it is fed by path 1's output).
-*/
-class PlayerEngine::PathWorker : public juce::Thread
-{
-public:
-    explicit PathWorker (const juce::String& threadName)
-        : juce::Thread (threadName)
-    {
-        startThread (juce::Thread::Priority::highest);
-    }
-
-    ~PathWorker() override
-    {
-        // There is normally no in-flight job here because the audio thread
-        // always waits for completion, but make sure the thread exits.
-        stopThread (5000);
-    }
-
-    /** Publishes a job and returns immediately. Audio thread only. */
-    void submit (PluginChain& chain,
-                 juce::AudioBuffer<float>& buffer,
-                 juce::MidiBuffer& midi)
-    {
-        job.chain = &chain;
-        job.buffer = &buffer;
-        job.midi = &midi;
-        go.signal();
-    }
-
-    /** Blocks until the current job has been processed. Audio thread only. */
-    void waitForCompletion()
-    {
-        done.wait();
-    }
-
-private:
-    void run() override
-    {
-        while (! threadShouldExit())
-        {
-            // Wake frequently so stopThread() can terminate the thread even if
-            // no job is ever submitted.
-            if (! go.wait (50))
-                continue;
-
-            if (threadShouldExit())
-                break;
-
-            if (auto* chain = job.chain)
-            {
-                job.midi->clear();
-                chain->processBlock (*job.buffer, *job.midi);
-            }
-
-            done.signal();
-        }
-    }
-
-    juce::WaitableEvent go, done;
-
-    struct Job
-    {
-        PluginChain* chain = nullptr;
-        juce::AudioBuffer<float>* buffer = nullptr;
-        juce::MidiBuffer* midi = nullptr;
-    } job;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PathWorker)
-};
-
-//==============================================================================
 PlayerEngine::PlayerEngine()
 {
     aur::traceStep ("PlayerEngine ctor start");
@@ -191,14 +114,9 @@ PlayerEngine::PlayerEngine()
     for (int p = 0; p < numPaths; ++p)
     {
         alignComps.emplace_back (std::make_unique<LatencyCompensator>());
+        midiBuffers.emplace_back ();
         pathEnabled[p] = (p == 0);
         pathVolume[p] = 1.0f;
-    }
-
-    for (int p = 0; p < numPaths; ++p)
-    {
-        workers.emplace_back (std::make_unique<PathWorker> ("Joker Worker " + juce::String (p + 1)));
-        workerMidiBuffers.emplace_back ();
     }
 
     deviceManager.addChangeListener (this);
@@ -337,17 +255,17 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
                           numChannels,
                           numSamples);
 
-    // --- 4) feed the paths and run them on the worker threads ------------------
-    // The audio thread copies the input into each path's private buffer
-    // (synchronously, before any worker reads it), then hands the buffer to the
-    // path's worker. Paths 1 and 2 are submitted together so they run in
-    // parallel; path 3 waits for path 1's output.
+    // --- 4) run the two parallel paths (1 and 2) on the dry input --------------
+    // All processing happens synchronously on the audio thread. There is no
+    // other thread involved (no worker round-trip per block), which keeps the
+    // callback latency minimal.
     if (enabled[0])
     {
         for (int ch = 0; ch < numChannels; ++ch)
             pathBuffers[0].copyFrom (ch, 0, *bufferToFill.buffer, ch, startSample, numSamples);
 
-        workers[0]->submit (chains[0], pathBuffers[0], workerMidiBuffers[0]);
+        midiBuffers[0].clear();
+        chains[0].processBlock (pathBuffers[0], midiBuffers[0]);
     }
 
     if (enabled[1])
@@ -355,17 +273,16 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
         for (int ch = 0; ch < numChannels; ++ch)
             pathBuffers[1].copyFrom (ch, 0, *bufferToFill.buffer, ch, startSample, numSamples);
 
-        workers[1]->submit (chains[1], pathBuffers[1], workerMidiBuffers[1]);
+        midiBuffers[1].clear();
+        chains[1].processBlock (pathBuffers[1], midiBuffers[1]);
     }
 
-    // path 3 needs path 1's OUTPUT, so wait for path 1 before preparing it.
-    if (enabled[0])
-        workers[0]->waitForCompletion();
-
+    // --- 5) path 3 is fed by path 1's OUTPUT -----------------------------------
     if (enabled[2])
     {
         if (enabled[0])
         {
+            // path 1's processed output is path 3's input
             for (int ch = 0; ch < numChannels; ++ch)
                 pathBuffers[2].copyFrom (ch, 0, pathBuffers[0], ch, 0, numSamples);
         }
@@ -376,15 +293,9 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
                 pathBuffers[2].copyFrom (ch, 0, *bufferToFill.buffer, ch, startSample, numSamples);
         }
 
-        workers[2]->submit (chains[2], pathBuffers[2], workerMidiBuffers[2]);
+        midiBuffers[2].clear();
+        chains[2].processBlock (pathBuffers[2], midiBuffers[2]);
     }
-
-    // Wait for whatever is still running (path 2, and path 3 if enabled).
-    if (enabled[1])
-        workers[1]->waitForCompletion();
-
-    if (enabled[2])
-        workers[2]->waitForCompletion();
 
     // --- 6) align every enabled path and sum with per-path volume ---------------
     alignedSum.clear();
@@ -525,7 +436,7 @@ juce::String PlayerEngine::addPluginFromDescription (const juce::PluginDescripti
 
     if (instance == nullptr)
         return error.isNotEmpty() ? error
-                                  : juce::String ("无法载入插件: ") + description.name;
+                                  : juce::String ("鏃犳硶杞藉叆鎻掍欢: ") + description.name;
 
     chains[(size_t) path].add (std::move (instance), description);
     return {};

@@ -67,3 +67,7 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# release archives / runtime artifacts
+*.zip
+aur_trace.txt
