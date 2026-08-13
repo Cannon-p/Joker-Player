@@ -35,19 +35,9 @@ PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
     addButton.onClick = [this]
     {
         if (onAddPluginClicked)
-            onAddPluginClicked (pathCombo.getSelectedItemIndex());
+            onAddPluginClicked (0);
     };
     addAndMakeVisible (addButton);
-
-    pathLabel.setFont (aur::Theme::uiFont (11.0f));
-    pathLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
-    addAndMakeVisible (pathLabel);
-
-    for (int p = 0; p < PlayerEngine::numPaths; ++p)
-        pathCombo.addItem (juce::String (p + 1) + "\u53F7\u8DEF\u5F84", p + 1);
-
-    pathCombo.setSelectedItemIndex (0, juce::dontSendNotification);
-    addAndMakeVisible (pathCombo);
 
     viewport.setViewedComponent (&rowContainer, false);
     viewport.setScrollBarsShown (true, false);
@@ -62,9 +52,9 @@ PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
     };
     addAndMakeVisible (mixSlider);
 
-    mixLabel.setFont (aur::Theme::uiFont (12.0f));
+    mixLabel.setFont (aur::Theme::uiFont (15.0f));
     mixLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
-    mixLabel.setJustificationType (juce::Justification::centred);
+    mixLabel.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (mixLabel);
 
     for (int p = 0; p < PlayerEngine::numPaths; ++p)
@@ -86,9 +76,6 @@ PluginRackComponent::~PluginRackComponent()
 
 void PluginRackComponent::requestAddPlugin (int path)
 {
-    pathCombo.setSelectedItemIndex (juce::jlimit (0, PlayerEngine::numPaths - 1, path),
-                                    juce::dontSendNotification);
-
     if (onAddPluginClicked)
         onAddPluginClicked (path);
 }
@@ -110,15 +97,14 @@ void PluginRackComponent::resized()
     countLabel.setBounds (header.reduced (4, 2));
 
     auto footer = b.removeFromBottom (140);
-    auto footerTop = footer.removeFromTop (32);
-
-    mixLabel.setBounds (footerTop.removeFromTop (14));
-    mixSlider.setBounds (footerTop.removeFromLeft (70).withY (footerTop.getY() - 12).withHeight (48));
 
     auto addRow = footer.removeFromTop (40);
-    addButton.setBounds (addRow.removeFromRight (addRow.getWidth() * 0.55).reduced (2, 4));
-    pathLabel.setBounds (addRow.removeFromLeft (46).withTrimmedBottom (2));
-    pathCombo.setBounds (addRow.reduced (2, 8));
+    addButton.setBounds (addRow.reduced (2, 4));
+
+    auto mixArea = footer.removeFromTop (78);
+    mixSlider.setBounds (mixArea.removeFromLeft (72).reduced (2, 12));
+    auto labelBox = mixArea.removeFromLeft (72);
+    mixLabel.setBounds (labelBox.withTrimmedTop ((labelBox.getHeight() - 20) / 2).withHeight (20));
 
     viewport.setBounds (b);
 
@@ -309,8 +295,8 @@ void PluginRackComponent::PathHeader::resized()
     auto toggleArea = b.removeFromRight (54);
     enable.setBounds (toggleArea.reduced (2, 6));
 
-    auto addArea = b.removeFromRight (28);
-    addButton.setBounds (addArea.reduced (4, 7));
+    auto addArea = b.removeFromRight (74);
+    addButton.setBounds (addArea.reduced (4, 2));
 
     title.setBounds (b.reduced (0, 2));
 }
@@ -335,6 +321,9 @@ PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIn
         owner.openEditor (pathIndex, slotIndex);
     };
     addAndMakeVisible (guiButton);
+
+    removeButton.setColour (juce::TextButton::textColourOffId, juce::Colour (0xffff5f6b));
+    removeButton.setColour (juce::TextButton::textColourOnId, juce::Colour (0xffff5f6b));
 
     removeButton.onClick = [this]
     {
@@ -410,7 +399,7 @@ void PluginRackComponent::RackRow::resized()
 
     auto buttons = b.removeFromRight (210).reduced (0, 6);
 
-    removeButton.setBounds (buttons.removeFromRight (32).reduced (4, 12));
+    removeButton.setBounds (buttons.removeFromRight (32).reduced (4, 8));
     guiButton.setBounds (buttons.removeFromRight (56).reduced (4, 10));
     bypass.setBounds (buttons.reduced (2, 8));
 }

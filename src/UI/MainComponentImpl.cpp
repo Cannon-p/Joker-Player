@@ -19,6 +19,94 @@ juce::String formatClock (double seconds)
 } // namespace
 
 //==============================================================================
+MainComponent::WaveformBar::WaveformBar()
+{
+    formatManager.registerBasicFormats();
+    thumbnail.addChangeListener (this);
+}
+void MainComponent::WaveformBar::setFile (const juce::File& file)
+{
+    thumbnail.setSource (new juce::FileInputSource (file));
+    position = 0.0;
+    repaint();
+}
+
+void MainComponent::WaveformBar::clear()
+{
+    thumbnail.clear();
+    position = 0.0;
+    repaint();
+}
+
+void MainComponent::WaveformBar::setPosition01 (double newPosition)
+{
+    position = juce::jlimit (0.0, 1.0, newPosition);
+    repaint();
+}
+
+void MainComponent::WaveformBar::changeListenerCallback (juce::ChangeBroadcaster*)
+{
+    repaint();
+}
+
+void MainComponent::WaveformBar::paint (juce::Graphics& g)
+{
+    const auto area = getLocalBounds().toFloat();
+    const float corner = juce::jmin (5.0f, area.getHeight() * 0.5f);
+
+    g.setColour (aur::Theme::inputBg());
+    g.fillRoundedRectangle (area, corner);
+
+    const double total = thumbnail.getTotalLength();
+
+    if (total > 0.0)
+    {
+        const int playedW = (int) std::lround (area.getWidth() * (float) position);
+
+        g.saveState();
+        if (playedW > 0)
+            g.reduceClipRegion (juce::Rectangle<int> (area.getX(), area.getY(),
+                                                      playedW, area.getHeight()));
+        g.setColour (aur::Theme::accent());
+        thumbnail.drawChannels (g, area.toNearestInt(), 0.0, total, 1.0f);
+        g.restoreState();
+
+        g.saveState();
+        if (playedW < (int) area.getWidth())
+            g.reduceClipRegion (juce::Rectangle<int> (area.getX() + playedW, area.getY(),
+                                                      (int) area.getWidth() - playedW,
+                                                      (int) area.getHeight()));
+        g.setColour (aur::Theme::textDim().withAlpha (0.55f));
+        thumbnail.drawChannels (g, area.toNearestInt(), 0.0, total, 1.0f);
+        g.restoreState();
+
+        // playhead
+        g.setColour (aur::Theme::text());
+        g.drawLine (area.getX() + (float) playedW, area.getY(),
+                    area.getX() + (float) playedW, area.getBottom(), 1.5f);
+    }
+    else
+    {
+        // placeholder baseline
+        g.setColour (aur::Theme::border());
+        g.drawHorizontalLine ((int) area.getCentreY(),
+                              (int) area.getX() + 2, (int) area.getRight() - 2);
+    }
+}
+
+void MainComponent::WaveformBar::mouseDown (const juce::MouseEvent& e)
+{
+    if (onSeek != nullptr && getWidth() > 0)
+        onSeek (juce::jlimit (0.0, 1.0, (double) e.getPosition().getX() / (double) getWidth()));
+}
+
+void MainComponent::WaveformBar::mouseDrag (const juce::MouseEvent& e)
+{
+    if (onSeek != nullptr && getWidth() > 0)
+        onSeek (juce::jlimit (0.0, 1.0, (double) e.getPosition().getX() / (double) getWidth()));
+}
+
+//==============================================================================
 MainComponent::MainComponent()
     : rack (engine)
 {
@@ -28,17 +116,12 @@ MainComponent::MainComponent()
     setLookAndFeel (&aur::CustomLookAndFeel::instance());
 
     // --- header ---
-    appTitle.setFont (aur::Theme::uiFont (20.0f).boldened());
+    appTitle.setFont (aur::Theme::uiFont (24.0f).boldened());
     appTitle.setColour (juce::Label::textColourId, aur::Theme::text());
     appTitle.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (appTitle);
 
-    appSubtitle.setFont (aur::Theme::uiFont (11.5f));
-    appSubtitle.setColour (juce::Label::textColourId, aur::Theme::textDim());
-    appSubtitle.setJustificationType (juce::Justification::centredLeft);
-    addAndMakeVisible (appSubtitle);
-
-    deviceLabel.setFont (aur::Theme::uiFont (12.0f));
+    deviceLabel.setFont (aur::Theme::uiFont (15.0f));
     deviceLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
     deviceLabel.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (deviceLabel);
@@ -70,16 +153,12 @@ MainComponent::MainComponent()
     timeLabel.setJustificationType (juce::Justification::centredRight);
     addAndMakeVisible (timeLabel);
 
-    progressSlider.setRange (0.0, 1.0, 0.0001);
-    progressSlider.setValue (0.0, juce::dontSendNotification);
-    progressSlider.onValueChange = [this]
+    waveformBar.onSeek = [this] (double fraction)
     {
-        if (isSeeking)
-            engine.setPosition (progressSlider.getValue() * engine.getLengthInSeconds());
+        if (engine.hasTrack())
+            engine.setPosition (fraction * engine.getLengthInSeconds());
     };
-    progressSlider.onDragStart = [this] { isSeeking = true; };
-    progressSlider.onDragEnd = [this] { isSeeking = false; };
-    addAndMakeVisible (progressSlider);
+    addAndMakeVisible (waveformBar);
 
     // --- playlist ---
     playlist.onTrackDoubleClicked = [this] (int index) { playTrack (index); };
@@ -163,7 +242,7 @@ void MainComponent::paint (juce::Graphics& g)
 
     // Subtle header underline.
     g.setColour (aur::Theme::border().withAlpha (0.6f));
-    g.fillRect (0.0f, 56.0f, (float) getWidth(), 1.0f);
+    g.fillRect (0.0f, 64.0f, (float) getWidth(), 1.0f);
 }
 
 //==============================================================================
@@ -172,34 +251,37 @@ void MainComponent::resized()
     auto b = getLocalBounds();
 
     // --- header ---
-    auto header = b.removeFromTop (56).reduced (18, 0);
+    auto header = b.removeFromTop (64).reduced (18, 0);
 
     auto titleArea = header.removeFromLeft (240);
-    appTitle.setBounds (titleArea.removeFromTop (24));
-    appSubtitle.setBounds (titleArea);
+    appTitle.setBounds (titleArea.removeFromBottom (40));
 
     auto right = header.removeFromRight (300);
-    volumeSlider.setBounds (right.removeFromLeft (150).withTrimmedTop (16));
-    deviceLabel.setBounds (right.removeFromLeft (46).withTrimmedTop (18));
-    deviceCombo.setBounds (right.reduced (0, 12));
+    deviceLabel.setBounds (right.removeFromLeft (72).withTrimmedTop (22).withHeight (20));
+    deviceCombo.setBounds (right.reduced (0, 16));
 
     // --- footer / transport ---
     auto footer = b.removeFromBottom (64);
 
     const int btnSize = 38;
     const int bigSize = 46;
+    const int gap = 12;
 
     const int centreX = footer.getCentreX();
     const int centreY = footer.getCentreY();
 
-    prevButton.setBounds (centreX - btnSize * 1.5f - 20, centreY - btnSize / 2,
+    const int groupWidth = btnSize * 3 + bigSize + gap * 3;
+    const int startX = centreX - groupWidth / 2;
+
+    prevButton.setBounds (startX, centreY - btnSize / 2, btnSize, btnSize);
+    stopButton.setBounds (startX + btnSize + gap, centreY - btnSize / 2,
                           btnSize, btnSize);
-    stopButton.setBounds (centreX - btnSize / 2 - 5, centreY - btnSize / 2,
-                          btnSize, btnSize);
-    playButton.setBounds (centreX + btnSize / 2 + 5 - bigSize * 0.5f,
-                          centreY - bigSize / 2, bigSize, bigSize);
-    nextButton.setBounds (centreX + btnSize * 1.5f + 10, centreY - btnSize / 2,
-                          btnSize, btnSize);
+    playButton.setBounds (startX + 2 * (btnSize + gap), centreY - bigSize / 2,
+                          bigSize, bigSize);
+    nextButton.setBounds (startX + 2 * (btnSize + gap) + bigSize + gap,
+                          centreY - btnSize / 2, btnSize, btnSize);
+    volumeSlider.setBounds (nextButton.getRight() + 20, centreY - 4,
+                            footer.getRight() - nextButton.getRight() - 20 - 18, 8);
 
     // --- main content ---
     auto mainArea = b.reduced (18, 12);
@@ -213,8 +295,8 @@ void MainComponent::resized()
     trackMeta.setBounds (card.removeFromTop (26).reduced (8, 2));
 
     auto timeArea = card.removeFromTop (24);
-    timeLabel.setBounds (timeArea.removeFromRight (timeArea.getWidth() / 3).reduced (0, 2));
-    progressSlider.setBounds (timeArea.reduced (4, 4));
+    timeLabel.setBounds (timeArea.removeFromRight (70).reduced (0, 2));
+    waveformBar.setBounds (timeArea.reduced (2, 4));
 
     // playlist
     playlist.setBounds (leftColumn.reduced (0, 6));
@@ -251,7 +333,7 @@ void MainComponent::timerCallback()
         const double pos = engine.getPositionInSeconds();
 
         if (len > 0.0)
-            progressSlider.setValue (juce::jlimit (0.0, 1.0, pos / len), juce::dontSendNotification);
+            waveformBar.setPosition01 (juce::jlimit (0.0, 1.0, pos / len));
 
         timeLabel.setText (formatClock (pos) + " / " + formatClock (len),
                            juce::dontSendNotification);
@@ -287,6 +369,8 @@ void MainComponent::playTrack (int index)
     playingIndex = index;
     playlist.setPlayingIndex (index);
     playlist.setTrackLength (index, engine.getLengthInSeconds());
+
+    waveformBar.setFile (playlist.getTrack (index).file);
 
     engine.play();
     updateNowPlaying();
@@ -406,7 +490,7 @@ void MainComponent::updateNowPlaying()
         trackName.setText ("\u672A\u52A0\u8F7D\u66F2\u76EE", juce::dontSendNotification);
         trackMeta.setText ("\u6253\u5F00\u6587\u4EF6\u3001\u62D6\u5165\u97F3\u9891\uFF0C\u6216\u53CC\u51FB\u64AD\u653E\u5217\u8868\u4E2D\u7684\u66F2\u76EE\u3002", juce::dontSendNotification);
         timeLabel.setText ("--:-- / --:--", juce::dontSendNotification);
-        progressSlider.setValue (0.0, juce::dontSendNotification);
+        waveformBar.clear();
         return;
     }
 

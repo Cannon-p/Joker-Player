@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 class PlayerEngine;
+class FilteredPluginTableModel;
 
 //==============================================================================
 /**
@@ -38,10 +39,7 @@ private:
         void resized() override;
 
     private:
-        void addSelectedPlugin();
-        void scanDefaultFolders();
-        void chooseAndScanFolder();
-
+        void addPlugin (const juce::PluginDescription&);
         static juce::AudioPluginFormat* findVst3Format (const juce::AudioPluginFormatManager&);
         static juce::StringArray getDefaultScanFolders();
 
@@ -51,13 +49,12 @@ private:
         std::function<int()> getTargetPath;
 
         juce::Label title { {}, "插件管理器" };
-        juce::TextButton scanDefaultButton { "扫描默认目录" };
-        juce::TextButton browseButton { "选择目录…" };
-        juce::TextButton addSelectedButton { "＋ 添加所选插件" };
+        juce::TextEditor searchBox;
         juce::TextButton doneButton { "完成" };
         juce::Label statusLabel;
 
         std::unique_ptr<juce::PluginListComponent> pluginList;
+        FilteredPluginTableModel* filteredModel = nullptr;
         std::unique_ptr<juce::PropertiesFile> properties;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ContentComponent)

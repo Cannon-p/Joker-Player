@@ -169,6 +169,36 @@ juce::Label* aur::CustomLookAndFeel::createComboBoxTextBox (juce::ComboBox&)
     return label;
 }
 
+juce::Font aur::CustomLookAndFeel::getTextButtonFont (juce::TextButton& button, int buttonHeight)
+{
+    const auto text = button.getButtonText();
+
+    if (text == "插件管理")
+        return aur::Theme::uiFont ((float) buttonHeight * 0.45f);
+
+    if (text == "界面")
+        return aur::Theme::uiFont (15.0f);
+
+    if (text == "扫描选项")
+        return aur::Theme::uiFont ((float) buttonHeight * 0.65f);
+
+    if (text == "＋ 添加所选插件")
+        return aur::Theme::uiFont ((float) buttonHeight * 0.35f);
+
+    if (text == "添加插件")
+        return aur::Theme::uiFont (13.0f);
+
+    if (text == "×")
+        return aur::Theme::uiFont (13.0f);
+
+    return aur::Theme::uiFont ((float) buttonHeight * 0.55f);
+}
+
+juce::Font aur::CustomLookAndFeel::getComboBoxFont (juce::ComboBox& box)
+{
+    return aur::Theme::uiFont ((float) box.getHeight() * 0.5f);
+}
+
 //==============================================================================
 void aur::CustomLookAndFeel::drawPopupMenuBackground (juce::Graphics& g, int width, int height)
 {

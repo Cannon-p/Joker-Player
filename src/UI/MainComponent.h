@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 
+#include "CustomLookAndFeel.h"
 #include "../Player/PlayerEngine.h"
 #include "PlaylistComponent.h"
 #include "PluginBrowserDialog.h"
@@ -20,6 +21,30 @@ public:
     void timerCallback() override;
 
 private:
+    /** A seekable progress bar that renders the audio waveform of the loaded
+        track, with the played portion highlighted in the accent colour. */
+    class WaveformBar : public juce::Component, private juce::ChangeListener
+    {
+    public:
+        WaveformBar();
+
+        void setFile (const juce::File& file);
+        void clear();
+        void setPosition01 (double position);
+
+        std::function<void (double)> onSeek;
+
+    private:
+        void changeListenerCallback (juce::ChangeBroadcaster*) override;
+        void paint (juce::Graphics&) override;
+        void mouseDown (const juce::MouseEvent&) override;
+        void mouseDrag (const juce::MouseEvent&) override;
+
+        juce::AudioFormatManager formatManager;
+        juce::AudioThumbnailCache thumbnailCache { 5 };
+        juce::AudioThumbnail thumbnail { 512, formatManager, thumbnailCache };
+        double position = 0.0;    };
+
     class TransportButton : public juce::TextButton
     {
     public:
@@ -48,7 +73,6 @@ private:
 
     // --- header ---
     juce::Label appTitle { {}, "Joker Player" };
-    juce::Label appSubtitle { {}, "多格式播放器 · 实时 VST 效果" };
     juce::Label deviceLabel { {}, "输出设备" };
     juce::ComboBox deviceCombo;
     juce::Slider volumeSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
@@ -57,7 +81,7 @@ private:
     juce::Label trackName { {}, "未加载曲目" };
     juce::Label trackMeta;
     juce::Label timeLabel { {}, "--:-- / --:--" };
-    juce::Slider progressSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
+    WaveformBar waveformBar;
 
     // --- playlist ---
     PlaylistComponent playlist;

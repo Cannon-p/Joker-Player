@@ -26,7 +26,8 @@ struct Theme
     /** Returns the UI typeface (with CJK support where available). */
     static juce::Font uiFont (float height)
     {
-        return juce::Font ("Microsoft YaHei UI", height, juce::Font::plain);
+        constexpr float scale = 1.2f;
+        return juce::Font ("Microsoft YaHei UI", height * scale, juce::Font::plain);
     }
 };
 
@@ -51,6 +52,9 @@ public:
     void drawComboBox (juce::Graphics&, int width, int height, bool isDown,
                        int buttonX, int buttonY, int buttonW, int buttonH,
                        juce::ComboBox&) override;
+
+    juce::Font getTextButtonFont (juce::TextButton&, int buttonHeight) override;
+    juce::Font getComboBoxFont (juce::ComboBox&) override;
 
     juce::Label* createComboBoxTextBox (juce::ComboBox&) override;
 

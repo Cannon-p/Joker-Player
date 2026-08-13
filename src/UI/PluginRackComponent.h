@@ -27,7 +27,7 @@ public:
         clicks "add". */
     std::function<void (int path)> onAddPluginClicked;
 
-    int getTargetPathIndex() const { return pathCombo.getSelectedItemIndex(); }
+    int getTargetPathIndex() const { return 0; }
 
     /** Sets the target-path combo to `path` (0..2) and opens the add dialog. */
     void requestAddPlugin (int path);
@@ -69,7 +69,7 @@ private:
         juce::Label title;
         juce::ToggleButton enable { "启用" };
         juce::Slider volume { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
-        juce::TextButton addButton { "\uFF0B" };
+        juce::TextButton addButton { "添加插件" };
     };
 
     void rebuildRows();
@@ -82,9 +82,7 @@ private:
     juce::Label title { {}, "效果链" };
     juce::Label countLabel;
     juce::Label latencyLabel;
-    juce::TextButton addButton { "＋  添加效果" };
-    juce::Label pathLabel { {}, "目标路径" };
-    juce::ComboBox pathCombo;
+    juce::TextButton addButton { "插件管理" };
 
     juce::Viewport viewport;
     juce::Component rowContainer;
