@@ -114,6 +114,8 @@ MainComponent::MainComponent()
     setSize (1180, 760);
 
     setLookAndFeel (&aur::CustomLookAndFeel::instance());
+    setWantsKeyboardFocus (true);
+    addKeyListener (this);
 
     // --- header ---
     appTitle.setFont (aur::Theme::uiFont (24.0f).boldened());
@@ -173,27 +175,7 @@ MainComponent::MainComponent()
     prevButton.onClick = [this] { playPrevious(); };
     addAndMakeVisible (prevButton);
 
-    playButton.onClick = [this]
-    {
-        if (! engine.hasTrack())
-        {
-            if (playlist.getNumTracks() > 0)
-                playTrack (0);
-            return;
-        }
-
-        if (engine.isPlaying())
-        {
-            engine.pause();
-        }
-        else
-        {
-            if (engine.hasStreamFinished())
-                engine.restartFromStart();
-
-            engine.play();
-        }
-    };
+    playButton.onClick = [this] { togglePlayPause(); };
     addAndMakeVisible (playButton);
 
     stopButton.onClick = [this]
@@ -220,6 +202,7 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
     stopTimer();
+    removeKeyListener (this);
 
     // Persist the playlist for next launch.
     playlist.saveToFile (engine.getPluginManager().getDataDirectory()
@@ -377,6 +360,30 @@ void MainComponent::playTrack (int index)
     updateTransportUi();
 }
 
+void MainComponent::togglePlayPause()
+{
+    if (! engine.hasTrack())
+    {
+        if (playlist.getNumTracks() > 0)
+            playTrack (0);
+        return;
+    }
+
+    if (engine.isPlaying())
+    {
+        engine.pause();
+    }
+    else
+    {
+        if (engine.hasStreamFinished())
+            engine.restartFromStart();
+
+        engine.play();
+    }
+
+    updateTransportUi();
+}
+
 void MainComponent::playNext()
 {
     if (playlist.getNumTracks() == 0)
@@ -399,6 +406,24 @@ void MainComponent::playPrevious()
 
     const int target = playingIndex < 0 ? 0 : (playingIndex - 1 + playlist.getNumTracks()) % playlist.getNumTracks();
     playTrack (target);
+}
+
+//==============================================================================
+bool MainComponent::keyPressed (const juce::KeyPress& key, juce::Component*)
+{
+    if (key == juce::KeyPress::spaceKey)
+    {
+        // Don't hijack space while the user is typing (e.g. the plug-in
+        // browser's search box has keyboard focus).
+        if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
+            if (dynamic_cast<juce::TextEditor*> (focused) != nullptr)
+                return false;
+
+        togglePlayPause();
+        return true;
+    }
+
+    return false;
 }
 
 //==============================================================================

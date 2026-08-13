@@ -155,6 +155,25 @@ void PluginChain::remove (int index)
     sendChangeMessage();
 }
 
+void PluginChain::move (int fromIndex, int toIndex)
+{
+    if (fromIndex == toIndex)
+        return;
+
+    {
+        const juce::ScopedLock sl (lock);
+
+        if (fromIndex < 0 || fromIndex >= getNumSlots() || toIndex < 0 || toIndex >= getNumSlots())
+            return;
+
+        auto slot = std::move (slots[(size_t) fromIndex]);
+        slots.erase (slots.begin() + fromIndex);
+        slots.insert (slots.begin() + toIndex, std::move (slot));
+    }
+
+    sendChangeMessage();
+}
+
 void PluginChain::clear()
 {
     std::vector<std::unique_ptr<Slot>> removed;

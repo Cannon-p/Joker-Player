@@ -34,8 +34,7 @@ PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
 
     addButton.onClick = [this]
     {
-        if (onAddPluginClicked)
-            onAddPluginClicked (0);
+        requestAddPlugin (0);
     };
     addAndMakeVisible (addButton);
 
@@ -76,8 +75,10 @@ PluginRackComponent::~PluginRackComponent()
 
 void PluginRackComponent::requestAddPlugin (int path)
 {
+    targetPath = juce::jlimit (0, PlayerEngine::numPaths - 1, path);
+
     if (onAddPluginClicked)
-        onAddPluginClicked (path);
+        onAddPluginClicked (targetPath);
 }
 
 //==============================================================================
@@ -193,6 +194,154 @@ public:
         setVisible (false);
     }
 };
+
+void PluginRackComponent::RackRow::mouseDown (const juce::MouseEvent& e)
+{
+    const auto rel = e.getEventRelativeTo (&owner.rowContainer);
+    owner.beginRowDrag (pathIndex, slotIndex, rel.getPosition().y);
+}
+
+void PluginRackComponent::RackRow::mouseDrag (const juce::MouseEvent& e)
+{
+    const auto rel = e.getEventRelativeTo (&owner.rowContainer);
+    owner.updateRowDrag (rel.getPosition().y);
+}
+
+void PluginRackComponent::RackRow::mouseUp (const juce::MouseEvent&)
+{
+    owner.endRowDrag();
+}
+
+//==============================================================================
+void PluginRackComponent::beginRowDrag (int pathIndex, int slotIndex, int mouseY)
+{
+    dragPath = pathIndex;
+    dragSlot = slotIndex;
+    dropSlot = slotIndex;
+
+    if (dropIndicator == nullptr)
+    {
+        dropIndicator = std::make_unique<DropIndicator>();
+        rowContainer.addAndMakeVisible (dropIndicator.get());
+    }
+
+    updateRowDrag (mouseY);
+}
+
+void PluginRackComponent::updateRowDrag (int mouseY)
+{
+    if (dragPath < 0)
+        return;
+
+    dropSlot = getDropSlotForY (mouseY);
+    updateDropIndicator();
+    repaint();
+}
+
+void PluginRackComponent::endRowDrag()
+{
+    if (dragPath >= 0 && dragSlot >= 0 && dropSlot >= 0)
+    {
+        // dropSlot is a gap index (0..N). Convert to the final slot index the
+        // dragged row would occupy after it is removed.
+        int to = dropSlot;
+
+        if (dropSlot > dragSlot)
+            --to;
+
+        if (to != dragSlot)
+            engine.getChain (dragPath).move (dragSlot, to);
+    }
+
+    dragPath = -1;
+    dragSlot = -1;
+    dropSlot = -1;
+
+    rowContainer.removeChildComponent (dropIndicator.get());
+    dropIndicator = nullptr;
+}
+
+int PluginRackComponent::getDropSlotForY (int mouseY) const
+{
+    if (dragPath < 0)
+        return -1;
+
+    const int numSlots = engine.getChain (dragPath).getNumSlots();
+
+    // Map the mouse Y to the gap above/below each plugin row of the dragged path.
+    int slot = 0;
+    int y = 4;
+
+    for (auto* child : rowContainer.getChildren())
+    {
+        const int h = (dynamic_cast<const PathHeader*> (child) != nullptr) ? 30 : 62;
+
+        if (auto* row = dynamic_cast<RackRow*> (child))
+        {
+            if (row->getPathIndex() == dragPath)
+            {
+                // This row occupies [y, y+h); the gap above it maps to slot.
+                if (mouseY <= y + h / 2)
+                    return slot;
+
+                ++slot;
+            }
+        }
+
+        y += h + 4;
+    }
+
+    return numSlots;
+}
+
+void PluginRackComponent::updateDropIndicator()
+{
+    if (dropIndicator == nullptr)
+        return;
+
+    const int numSlots = engine.getChain (dragPath).getNumSlots();
+    const int target = juce::jlimit (0, numSlots, dropSlot);
+
+    // Compute the vertical position of the drop gap.
+    int slot = 0;
+    int y = 4;
+
+    for (auto* child : rowContainer.getChildren())
+    {
+        const int h = (dynamic_cast<const PathHeader*> (child) != nullptr) ? 30 : 62;
+
+        if (auto* row = dynamic_cast<RackRow*> (child))
+        {
+            if (row->getPathIndex() == dragPath)
+            {
+                if (slot == target)
+                {
+                    dropIndicator->setBounds (8, y - 2, rowContainer.getWidth() - 16, 4);
+                    return;
+                }
+
+                ++slot;
+            }
+        }
+
+        y += h + 4;
+    }
+
+    dropIndicator->setBounds (8, y - 2, rowContainer.getWidth() - 16, 4);
+}
+
+//==============================================================================
+PluginRackComponent::DropIndicator::DropIndicator()
+{
+    setInterceptsMouseClicks (false, false);
+}
+
+void PluginRackComponent::DropIndicator::paint (juce::Graphics& g)
+{
+    auto b = getLocalBounds().toFloat();
+    g.setColour (aur::Theme::accent());
+    g.fillRoundedRectangle (b, 2.0f);
+}
 
 //==============================================================================
 void PluginRackComponent::openEditor (int pathIndex, int slotIndex)

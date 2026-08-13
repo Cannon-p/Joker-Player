@@ -41,6 +41,9 @@ public:
     /** Removes a plug-in from the chain. Message thread only. */
     void remove (int index);
 
+    /** Moves a plug-in to a new position in the chain. Message thread only. */
+    void move (int fromIndex, int toIndex);
+
     /** Removes all plug-ins. Message thread only. */
     void clear();
 

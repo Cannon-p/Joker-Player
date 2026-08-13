@@ -27,7 +27,7 @@ public:
         clicks "add". */
     std::function<void (int path)> onAddPluginClicked;
 
-    int getTargetPathIndex() const { return 0; }
+    int getTargetPathIndex() const { return targetPath; }
 
     /** Sets the target-path combo to `path` (0..2) and opens the add dialog. */
     void requestAddPlugin (int path);
@@ -43,6 +43,12 @@ private:
 
         void paint (juce::Graphics&) override;
         void resized() override;
+        void mouseDown (const juce::MouseEvent&) override;
+        void mouseDrag (const juce::MouseEvent&) override;
+        void mouseUp (const juce::MouseEvent&) override;
+
+        int getPathIndex() const { return pathIndex; }
+        int getSlotIndex() const { return slotIndex; }
 
     private:
         PluginRackComponent& owner;
@@ -72,12 +78,36 @@ private:
         juce::TextButton addButton { "添加插件" };
     };
 
+    /** A thin accent line shown between rows during a drag, marking where the
+        dragged plug-in row would land. */
+    class DropIndicator : public juce::Component
+    {
+    public:
+        DropIndicator();
+        void paint (juce::Graphics&) override;
+    };
+
     void rebuildRows();
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void timerCallback() override;
     void openEditor (int pathIndex, int slotIndex);
 
+    // Drag & drop reordering of plug-in rows.
+    void beginRowDrag (int pathIndex, int slotIndex, int mouseY);
+    void updateRowDrag (int mouseY);
+    void endRowDrag();
+    int getDropSlotForY (int mouseY) const;
+    void updateDropIndicator();
+
     PlayerEngine& engine;
+
+    // Drag state: -1 when inactive.
+    int dragPath = -1;
+    int dragSlot = -1;
+    int dropSlot = -1;
+
+    // Path the next "add plug-in" action targets (set by requestAddPlugin).
+    int targetPath = 0;
 
     juce::Label title { {}, "效果链" };
     juce::Label countLabel;
@@ -86,6 +116,7 @@ private:
 
     juce::Viewport viewport;
     juce::Component rowContainer;
+    std::unique_ptr<DropIndicator> dropIndicator;
 
     juce::Slider mixSlider { juce::Slider::RotaryVerticalDrag, juce::Slider::TextBoxBelow };
     juce::Label mixLabel { {}, "干湿比" };

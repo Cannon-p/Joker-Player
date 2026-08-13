@@ -10,7 +10,7 @@
 
 //==============================================================================
 /** The main application window content. */
-class MainComponent : public juce::Component, public juce::Timer
+class MainComponent : public juce::Component, public juce::Timer, private juce::KeyListener
 {
 public:
     MainComponent();
@@ -19,6 +19,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     void timerCallback() override;
+    bool keyPressed (const juce::KeyPress&, juce::Component*) override;
 
 private:
     /** A seekable progress bar that renders the audio waveform of the loaded
@@ -62,6 +63,7 @@ private:
     void playTrack (int index);
     void playNext();
     void playPrevious();
+    void togglePlayPause();
     void openPluginBrowser();
 
     void refreshDeviceList();
