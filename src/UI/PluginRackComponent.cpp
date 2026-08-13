@@ -12,6 +12,11 @@ juce::String shorten (const juce::String& text, int maxChars)
 
     return text.substring (0, juce::jmax (0, maxChars - 1)) + "\u2026";
 }
+
+bool isBusPath (int path)
+{
+    return path == PlayerEngine::busPath;
+}
 } // namespace
 
 //==============================================================================
@@ -59,6 +64,8 @@ PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
     for (int p = 0; p < PlayerEngine::numPaths; ++p)
         engine.getChain (p).addChangeListener (this);
 
+    engine.getBusChain().addChangeListener (this);
+
     rebuildRows();
 
     startTimer (250);
@@ -71,14 +78,22 @@ PluginRackComponent::~PluginRackComponent()
 
     for (int p = 0; p < PlayerEngine::numPaths; ++p)
         engine.getChain (p).removeChangeListener (this);
+
+    engine.getBusChain().removeChangeListener (this);
 }
 
 void PluginRackComponent::requestAddPlugin (int path)
 {
-    targetPath = juce::jlimit (0, PlayerEngine::numPaths - 1, path);
+    targetPath = juce::jlimit (0, PlayerEngine::busPath, path);
 
     if (onAddPluginClicked)
         onAddPluginClicked (targetPath);
+}
+
+PluginChain& PluginRackComponent::chainFor (int pathIndex) const
+{
+    return (pathIndex == PlayerEngine::busPath) ? engine.getBusChain()
+                                                : engine.getChain (pathIndex);
 }
 
 //==============================================================================
@@ -117,6 +132,9 @@ void PluginRackComponent::resized()
         total += engine.getChain (p).getNumSlots() * 70;   // plugin rows
     }
 
+    total += 34;                                  // bus header
+    total += engine.getBusChain().getNumSlots() * 70;
+
     auto containerBounds = juce::Rectangle<int> (0, 0, viewport.getWidth() - 8,
                                                  juce::jmax (viewport.getHeight(), total + 8));
     rowContainer.setBounds (containerBounds);
@@ -146,9 +164,21 @@ void PluginRackComponent::rebuildRows()
             rowContainer.addAndMakeVisible (new RackRow (*this, p, i));
     }
 
+    // Master bus section (sits after the three paths).
+    {
+        auto& chain = engine.getBusChain();
+
+        rowContainer.addAndMakeVisible (new PathHeader (*this, PlayerEngine::busPath));
+
+        for (int i = 0; i < chain.getNumSlots(); ++i)
+            rowContainer.addAndMakeVisible (new RackRow (*this, PlayerEngine::busPath, i));
+    }
+
     int count = 0;
     for (int p = 0; p < PlayerEngine::numPaths; ++p)
         count += engine.getChain (p).getNumSlots();
+
+    count += engine.getBusChain().getNumSlots();
 
     countLabel.setText (juce::String (count) + " \u4E2A\u63D2\u4EF6", juce::dontSendNotification);
 
@@ -165,6 +195,12 @@ void PluginRackComponent::changeListenerCallback (juce::ChangeBroadcaster* sourc
             rebuildRows();
             return;
         }
+    }
+
+    if (source == &engine.getBusChain())
+    {
+        rebuildRows();
+        return;
     }
 }
 
@@ -250,7 +286,7 @@ void PluginRackComponent::endRowDrag()
             --to;
 
         if (to != dragSlot)
-            engine.getChain (dragPath).move (dragSlot, to);
+            chainFor (dragPath).move (dragSlot, to);
     }
 
     dragPath = -1;
@@ -266,7 +302,7 @@ int PluginRackComponent::getDropSlotForY (int mouseY) const
     if (dragPath < 0)
         return -1;
 
-    const int numSlots = engine.getChain (dragPath).getNumSlots();
+    const int numSlots = chainFor (dragPath).getNumSlots();
 
     // Map the mouse Y to the gap above/below each plugin row of the dragged path.
     int slot = 0;
@@ -299,7 +335,7 @@ void PluginRackComponent::updateDropIndicator()
     if (dropIndicator == nullptr)
         return;
 
-    const int numSlots = engine.getChain (dragPath).getNumSlots();
+    const int numSlots = chainFor (dragPath).getNumSlots();
     const int target = juce::jlimit (0, numSlots, dropSlot);
 
     // Compute the vertical position of the drop gap.
@@ -346,7 +382,7 @@ void PluginRackComponent::DropIndicator::paint (juce::Graphics& g)
 //==============================================================================
 void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
 {
-    auto& chain = engine.getChain (pathIndex);
+    auto& chain = chainFor (pathIndex);
     auto* slot = chain.getSlot (slotIndex);
 
     if (slot == nullptr)
@@ -389,28 +425,42 @@ void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
 PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int pathIndex_)
     : owner (ownerRef), pathIndex (pathIndex_)
 {
-    title.setText (juce::String (pathIndex + 1) + "\u53F7\u8DEF\u5F84",
+    const bool bus = isBusPath (pathIndex);
+
+    title.setText (bus ? "\u603B\u7EBF"
+                       : juce::String (pathIndex + 1) + "\u53F7\u8DEF\u5F84",
                    juce::dontSendNotification);
     title.setFont (aur::Theme::uiFont (12.5f).boldened());
     title.setColour (juce::Label::textColourId, aur::Theme::text());
     addAndMakeVisible (title);
 
-    enable.setToggleState (owner.engine.isPathEnabled (pathIndex), juce::dontSendNotification);
-    enable.onClick = [this]
+    enable.setToggleState (bus ? owner.engine.isBusEnabled()
+                               : owner.engine.isPathEnabled (pathIndex),
+                           juce::dontSendNotification);
+    enable.onClick = [this, bus]
     {
-        owner.engine.setPathEnabled (pathIndex, enable.getToggleState());
+        if (bus)
+            owner.engine.setBusEnabled (enable.getToggleState());
+        else
+            owner.engine.setPathEnabled (pathIndex, enable.getToggleState());
     };
     addAndMakeVisible (enable);
 
     volume.setRange (0.0, 2.0, 0.01);
-    volume.setValue (owner.engine.getPathVolume (pathIndex), juce::dontSendNotification);
-    volume.onValueChange = [this]
+    volume.setValue (bus ? owner.engine.getBusVolume()
+                         : owner.engine.getPathVolume (pathIndex),
+                     juce::dontSendNotification);
+    volume.onValueChange = [this, bus]
     {
-        owner.engine.setPathVolume (pathIndex, (float) volume.getValue());
+        if (bus)
+            owner.engine.setBusVolume ((float) volume.getValue());
+        else
+            owner.engine.setPathVolume (pathIndex, (float) volume.getValue());
     };
     addAndMakeVisible (volume);
 
-    addButton.setTooltip ("\u6D4F\u89C8\u5DF2\u626B\u63CF\u7684\u63D2\u4EF6\u5E76\u6DFB\u52A0\u5230\u8BE5\u8DEF\u5F84");
+    addButton.setTooltip (bus ? "\u6D4B\u8BD5\u5E76\u6DFB\u52A0\u5230\u603B\u7EBF"
+                              : "\u6D4F\u89C8\u5DF2\u626B\u63CF\u7684\u63D2\u4EF6\u5E76\u6DFB\u52A0\u5230\u8BE5\u8DEF\u5F84");
     addButton.onClick = [this]
     {
         owner.requestAddPlugin (pathIndex);
@@ -424,7 +474,9 @@ void PluginRackComponent::PathHeader::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat().reduced (1.0f);
 
-    const bool on = owner.engine.isPathEnabled (pathIndex);
+    const bool bus = isBusPath (pathIndex);
+    const bool on = bus ? owner.engine.isBusEnabled()
+                        : owner.engine.isPathEnabled (pathIndex);
 
     g.setColour (on ? juce::Colour (0xff20283a) : juce::Colour (0xff171b24));
     g.fillRoundedRectangle (b, 8.0f);
@@ -454,14 +506,14 @@ void PluginRackComponent::PathHeader::resized()
 PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIndex_, int slotIndex_)
     : owner (ownerRef), pathIndex (pathIndex_), slotIndex (slotIndex_)
 {
-    auto& chain = owner.engine.getChain (pathIndex);
+    auto& chain = owner.chainFor (pathIndex);
     auto* slot = chain.getSlot (slotIndex);
     jassert (slot != nullptr);
 
     bypass.setToggleState (slot != nullptr && slot->enabled, juce::dontSendNotification);
     bypass.onClick = [this]
     {
-        owner.engine.getChain (pathIndex).setEnabled (slotIndex, bypass.getToggleState());
+        owner.chainFor (pathIndex).setEnabled (slotIndex, bypass.getToggleState());
     };
     addAndMakeVisible (bypass);
 
@@ -476,7 +528,7 @@ PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIn
 
     removeButton.onClick = [this]
     {
-        owner.engine.getChain (pathIndex).remove (slotIndex);
+        owner.chainFor (pathIndex).remove (slotIndex);
     };
     addAndMakeVisible (removeButton);
 
@@ -486,7 +538,7 @@ PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIn
 void PluginRackComponent::RackRow::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat().reduced (1.0f);
-    const auto* slot = owner.engine.getChain (pathIndex).getSlot (slotIndex);
+    const auto* slot = owner.chainFor (pathIndex).getSlot (slotIndex);
 
     const bool isEnabled = slot != nullptr && slot->enabled;
 

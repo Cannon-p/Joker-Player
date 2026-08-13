@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 class PlayerEngine;
+class PluginChain;
 
 //==============================================================================
 /** The right-hand panel showing the three effect paths.
@@ -91,6 +92,9 @@ private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void timerCallback() override;
     void openEditor (int pathIndex, int slotIndex);
+
+    /** Returns the chain for a path index; PlayerEngine::busPath -> master bus. */
+    PluginChain& chainFor (int pathIndex) const;
 
     // Drag & drop reordering of plug-in rows.
     void beginRowDrag (int pathIndex, int slotIndex, int mouseY);

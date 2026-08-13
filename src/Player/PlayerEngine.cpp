@@ -121,6 +121,7 @@ PlayerEngine::PlayerEngine()
     }
 
     deviceManager.addChangeListener (this);
+    busChain.addChangeListener (this);
 
     // Restore the audio device that was used last time, if any.
     std::unique_ptr<juce::XmlElement> savedDeviceState;
@@ -145,6 +146,8 @@ PlayerEngine::PlayerEngine()
         setup.bufferSize = 512;
         deviceManager.setAudioDeviceSetup (setup, true);
     }
+
+    restoreBusChain();
 }
 
 PlayerEngine::~PlayerEngine()
@@ -152,10 +155,14 @@ PlayerEngine::~PlayerEngine()
     deviceManager.removeChangeListener (this);
     deviceManager.removeAudioCallback (&sourcePlayer);
 
+    // Remember the bus chain (plug-ins + states) for next launch.
+    saveBusChain();
+    busChain.removeChangeListener (this);
+
     // Remember the chosen audio device for next launch.
     if (auto state = deviceManager.createStateXml())
     {
-        if (state->getNumChildElements() > 0)
+        if (state->hasTagName ("DEVICESETUP"))
             state->writeTo (pluginManager.getDataDirectory().getChildFile ("device_state.xml"));
     }
 }
@@ -252,7 +259,13 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
         if (enabled[(size_t) p])
             maxLat = juce::jmax (maxLat, lat[(size_t) p]);
 
-    latencyComp->setTargetDelay (maxLat);
+    // The bus sits after the path sum, so it adds its own latency on top of the
+    // paths' maxLat. The dry reference must be delayed by the total to stay
+    // sample-aligned with the bus-processed wet signal.
+    const bool busOn = busEnabled.load();
+    const int busLat = busOn ? busChain.getTotalLatencySamples() : 0;
+
+    latencyComp->setTargetDelay (maxLat + busLat);
 
     // --- 3) dry/wet mix is computed against the dry input ----------------------
     // Capture the input (dry) reference *before* any path writes into the output
@@ -329,6 +342,16 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
                                                           volumes[(size_t) p],
                                                           numSamples);
         }
+    }
+
+    // --- 6b) master bus: process the merged wet signal -------------------------
+    // The bus inserts after the latency-aligned path sum and before the dry/wet
+    // mix, so it sees the combined output of paths 1..3.
+    if (busOn)
+    {
+        busMidi.clear();
+        busChain.processBlock (alignedSum, busMidi);
+        alignedSum.applyGain (busVolume.load());
     }
 
     // --- 7) dry/wet mix + master volume ----------------------------------------
@@ -474,13 +497,14 @@ void PlayerEngine::setPosition (double seconds)
 juce::String PlayerEngine::addPluginFromDescription (const juce::PluginDescription& description,
                                                      int path)
 {
-    path = juce::jlimit (0, numPaths - 1, path);
+    path = juce::jlimit (0, busPath, path);
+    PluginChain& target = (path == busPath) ? busChain : chains[(size_t) path];
 
     const double rate = sampleRate.load();
     const int block = blockSize.load();
 
     // Make sure the target chain is prepared with the current device config.
-    chains[(size_t) path].prepareToPlay (rate, block);
+    target.prepareToPlay (rate, block);
 
     juce::String error;
     auto instance = pluginManager.createInstance (description, rate, block, error);
@@ -489,8 +513,88 @@ juce::String PlayerEngine::addPluginFromDescription (const juce::PluginDescripti
         return error.isNotEmpty() ? error
                                   : juce::String ("鏃犳硶杞藉叆鎻掍欢: ") + description.name;
 
-    chains[(size_t) path].add (std::move (instance), description);
+    target.add (std::move (instance), description);
     return {};
+}
+
+//==============================================================================
+void PlayerEngine::saveBusChain()
+{
+    auto stateFile = pluginManager.getDataDirectory().getChildFile ("bus_chain.xml");
+
+    juce::XmlElement root ("BUSCHAIN");
+
+    for (int i = 0; i < busChain.getNumSlots(); ++i)
+    {
+        auto* slot = busChain.getSlot (i);
+        if (slot == nullptr || slot->instance == nullptr)
+            continue;
+
+        auto* item = new juce::XmlElement ("PLUGIN");
+        item->setAttribute ("enabled", slot->enabled);
+
+        if (auto descXml = slot->description.createXml())
+            item->addChildElement (descXml.release());
+
+        juce::MemoryBlock state;
+        slot->instance->getStateInformation (state);
+
+        if (state.getSize() > 0)
+        {
+            auto* stateEl = new juce::XmlElement ("STATE");
+            stateEl->addTextElement (state.toBase64Encoding());
+            item->addChildElement (stateEl);
+        }
+
+        root.addChildElement (item);
+    }
+
+    root.writeTo (stateFile);
+}
+
+void PlayerEngine::restoreBusChain()
+{
+    auto stateFile = pluginManager.getDataDirectory().getChildFile ("bus_chain.xml");
+
+    if (! stateFile.existsAsFile())
+        return;
+
+    auto xml = juce::XmlDocument::parse (stateFile);
+    if (xml == nullptr || ! xml->hasTagName ("BUSCHAIN"))
+        return;
+
+    const double rate = sampleRate.load();
+    const int block = blockSize.load();
+
+    for (auto* item : xml->getChildIterator())
+    {
+        if (item == nullptr || ! item->hasTagName ("PLUGIN"))
+            continue;
+
+        juce::PluginDescription desc;
+
+        if (auto* descXml = item->getFirstChildElement())
+            if (desc.loadFromXml (*descXml))
+            {
+                juce::String error;
+                auto instance = pluginManager.createInstance (desc, rate, block, error);
+
+                if (instance != nullptr)
+                {
+                    if (auto* stateEl = item->getChildByName ("STATE"))
+                    {
+                        juce::MemoryBlock state;
+
+                        if (state.fromBase64Encoding (stateEl->getAllSubText().trim()))
+                            instance->setStateInformation (state.getData(), (int) state.getSize());
+                    }
+
+                    const bool enabled = item->getBoolAttribute ("enabled", true);
+                    busChain.add (std::move (instance), desc);
+                    busChain.setEnabled (busChain.getNumSlots() - 1, enabled);
+                }
+            }
+    }
 }
 
 //==============================================================================
@@ -504,6 +608,8 @@ void PlayerEngine::reopenPlugIns()
 
     for (int p = 0; p < numPaths; ++p)
         chains[(size_t) p].prepareToPlay (newRate, newBlock);
+
+    busChain.prepareToPlay (newRate, newBlock);
 
     preparedRate = newRate;
     preparedBlock = newBlock;
@@ -525,6 +631,9 @@ int PlayerEngine::getCurrentLatencySamples() const
         result = juce::jmax (result, lat);
     }
 
+    if (busEnabled.load())
+        result += busChain.getTotalLatencySamples();
+
     return result;
 }
 
@@ -537,5 +646,9 @@ void PlayerEngine::changeListenerCallback (juce::ChangeBroadcaster* source)
                                          {
                                              reopenPlugIns();
                                          });
+    }
+    else if (source == &busChain)
+    {
+        saveBusChain();
     }
 }

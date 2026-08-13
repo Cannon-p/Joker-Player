@@ -65,12 +65,16 @@ public:
     //==============================================================================
     // Plug-ins
     static constexpr int numPaths = 3;
+    /** The master bus is conceptually path #numPaths: it inserts after the sum
+        of paths 1..3 and before the dry/wet mix. */
+    static constexpr int busPath = numPaths;
 
     PluginChain& getChain (int path) { return chains[(size_t) path]; }
+    PluginChain& getBusChain()       { return busChain; }
     PluginManager& getPluginManager() { return pluginManager; }
 
     /** Instantiates, prepares and adds a plug-in to a chain (message thread).
-        `path` is 0..numPaths-1. */
+        `path` is 0..numPaths-1, or PlayerEngine::busPath for the master bus. */
     juce::String addPluginFromDescription (const juce::PluginDescription& description,
                                            int path);
 
@@ -96,6 +100,16 @@ public:
     float getMasterVolume() const { return volume.load(); }
     void  setMasterVolume (float v) { volume.store (juce::jlimit (0.0f, 1.0f, v)); }
 
+    //==============================================================================
+    // Master bus
+    bool  isBusEnabled() const         { return busEnabled.load(); }
+    void  setBusEnabled (bool shouldBeEnabled) { busEnabled.store (shouldBeEnabled); }
+    float getBusVolume() const         { return busVolume.load(); }
+    void  setBusVolume (float v)       { busVolume.store (juce::jlimit (0.0f, 2.0f, v)); }
+
+    /** Writes the current bus chain (plug-in list + states) to disk. */
+    void saveBusChain();
+
     /** Largest effective latency (in samples) among all enabled paths.
         Path 3 is fed by path 1, so its effective latency includes path 1's. */
     int getCurrentLatencySamples() const;
@@ -114,6 +128,9 @@ private:
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
+    /** Re-creates the bus chain plug-ins from the saved file (called at startup). */
+    void restoreBusChain();
+
     juce::AudioDeviceManager deviceManager;
     // NB: this must be declared before sourcePlayer so that it is destroyed
     // AFTER it. AudioSourcePlayer::setSource (nullptr) (called from its
@@ -124,6 +141,7 @@ private:
     juce::AudioFormatManager formatManager;
     PluginManager pluginManager;
     PluginChain chains[(size_t) numPaths];
+    PluginChain busChain;
 
     std::unique_ptr<juce::AudioFormatReader> rawReader;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
@@ -139,11 +157,14 @@ private:
     std::vector<std::unique_ptr<LatencyCompensator>> alignComps;
     juce::AudioBuffer<float> alignedSum;
     std::vector<juce::MidiBuffer> midiBuffers;
+    juce::MidiBuffer busMidi;
 
     std::atomic<float> mix { 1.0f };
     std::atomic<float> volume { 1.0f };
     std::atomic<bool> pathEnabled[(size_t) numPaths];
     std::atomic<float> pathVolume[(size_t) numPaths];
+    std::atomic<bool> busEnabled { true };
+    std::atomic<float> busVolume { 1.0f };
 
     std::atomic<double> sampleRate { 48000.0 };
     std::atomic<int> blockSize { 512 };
