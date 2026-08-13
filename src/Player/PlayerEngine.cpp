@@ -57,6 +57,7 @@ public:
             for (int ch = 0; ch < numChannels; ++ch)
                 ring.getWritePointer (ch)[writePos] = inData[ch][i];
 
+            const int writePosBefore = writePos;
             writePos = (writePos + 1) % ringSize;
 
             if (crossfade >= 0.0f)
@@ -69,11 +70,11 @@ public:
                 }
             }
 
-            const int readNew = ((writePos - targetDelay) % ringSize + ringSize) % ringSize;
+            const int readNew = ((writePosBefore - targetDelay) % ringSize + ringSize) % ringSize;
 
             if (crossfade >= 0.0f && crossfade < 1.0f)
             {
-                const int readOld = ((writePos - currentDelay) % ringSize + ringSize) % ringSize;
+                const int readOld = ((writePosBefore - currentDelay) % ringSize + ringSize) % ringSize;
                 const float f = crossfade;
                 const float g = 1.0f - f;
 
@@ -199,6 +200,16 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
     const int numChannels = bufferToFill.buffer->getNumChannels();
     const int numSamples = bufferToFill.numSamples;
     const int startSample = bufferToFill.startSample;
+
+    // Transport output peak, measured BEFORE any engine processing, so the
+    // log can separate "transport produced silence" from "engine killed it".
+    float tpk = 0.0f;
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        const float* r = bufferToFill.buffer->getReadPointer (ch, startSample);
+        for (int i = 0; i < numSamples; ++i)
+            tpk = juce::jmax (tpk, std::abs (r[i]));
+    }
 
     // --- 0) snapshot path states ----------------------------------------------
     bool enabled[(size_t) numPaths];
@@ -358,6 +369,43 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
     }
 
     bufferToFill.buffer->applyGain (startSample, numSamples, volume.load());
+
+    // --- DIAGNOSTIC (temp): per-block output peak while playing ----------------
+    {
+        static int diagCount = 0;
+        static int sincePlay = 0;
+
+        const bool playing = transport.isPlaying();
+        if (playing)
+            ++sincePlay;
+        else
+            sincePlay = 0;
+
+        if (playing && sincePlay <= 600)
+        {
+            float peak = 0.0f;
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                const float* r = bufferToFill.buffer->getReadPointer (ch, startSample);
+                for (int i = 0; i < numSamples; ++i)
+                    peak = juce::jmax (peak, std::abs (r[i]));
+            }
+
+            char buf[192];
+            snprintf (buf, sizeof (buf),
+                      "DIAGB blk=%d play=%d pos=%.2f tpk=%.4f pk=%.4f rpos=%.2f lat0=%d lat1=%d lat2=%d max=%d smp=%d ch=%d",
+                      (int) diagCount, (int) playing,
+                      transport.getCurrentPosition(), tpk, peak,
+                      (readerSource != nullptr ? (double) readerSource->getNextReadPosition() / sampleRate.load() : -1.0),
+                      lat[0], lat[1], lat[2], maxLat,
+                      numSamples, numChannels);
+            aur::traceStep (buf);
+        }
+        else
+        {
+            ++diagCount;
+        }
+    }
 }
 
 //==============================================================================
@@ -375,9 +423,12 @@ bool PlayerEngine::loadFile (const juce::File& file)
 
     readerSource = std::make_unique<juce::AudioFormatReaderSource> (rawReader.get(), false);
 
+    // Read the file directly (no BufferingAudioSource read-ahead thread): the
+    // playback had multi-second output silence with read-ahead enabled, which
+    // was a transport/thread race; for local files a direct read is fine.
     transport.setSource (readerSource.get(),
-                         (int) rawReader->sampleRate,
-                         &bufferedThread,
+                         0,
+                         nullptr,
                          rawReader->sampleRate);
 
     currentFile = file;
