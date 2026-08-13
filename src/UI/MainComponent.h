@@ -67,7 +67,9 @@ private:
     void openPluginBrowser();
 
     void refreshDeviceList();
+    void refreshBufferList();
     void setDeviceSelection();
+    void setBufferSelection();
     void updateNowPlaying();
     void updateTransportUi();
 
@@ -77,6 +79,8 @@ private:
     juce::Label appTitle { {}, "Joker Player" };
     juce::Label deviceLabel { {}, "输出设备" };
     juce::ComboBox deviceCombo;
+    juce::Label bufferLabel { {}, "缓冲区" };
+    juce::ComboBox bufferCombo;
     juce::Slider volumeSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
 
     // --- now playing card ---
@@ -109,6 +113,7 @@ private:
         juce::String name;
     };
     juce::Array<DeviceEntry> deviceEntries;
+    juce::Array<int> bufferSizes;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

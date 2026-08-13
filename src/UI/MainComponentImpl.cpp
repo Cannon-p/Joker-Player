@@ -131,6 +131,14 @@ MainComponent::MainComponent()
     deviceCombo.onChange = [this] { setDeviceSelection(); };
     addAndMakeVisible (deviceCombo);
 
+    bufferLabel.setFont (aur::Theme::uiFont (13.0f));
+    bufferLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    bufferLabel.setJustificationType (juce::Justification::centredLeft);
+    addAndMakeVisible (bufferLabel);
+
+    bufferCombo.onChange = [this] { setBufferSelection(); };
+    addAndMakeVisible (bufferCombo);
+
     volumeSlider.setRange (0.0, 1.0, 0.01);
     volumeSlider.setValue (0.9, juce::dontSendNotification);
     volumeSlider.onValueChange = [this]
@@ -239,8 +247,11 @@ void MainComponent::resized()
     auto titleArea = header.removeFromLeft (240);
     appTitle.setBounds (titleArea.removeFromBottom (40));
 
-    auto right = header.removeFromRight (300);
+    auto right = header.removeFromRight (360);
     deviceLabel.setBounds (right.removeFromLeft (72).withTrimmedTop (22).withHeight (20));
+    auto bufferArea = right.removeFromRight (150);
+    bufferLabel.setBounds (bufferArea.removeFromLeft (50).withTrimmedTop (22).withHeight (20));
+    bufferCombo.setBounds (bufferArea.reduced (0, 16));
     deviceCombo.setBounds (right.reduced (0, 16));
 
     // --- footer / transport ---
@@ -484,6 +495,44 @@ void MainComponent::refreshDeviceList()
 
     if (selected >= 0)
         deviceCombo.setSelectedItemIndex (selected, juce::dontSendNotification);
+
+    refreshBufferList();
+}
+
+void MainComponent::refreshBufferList()
+{
+    bufferCombo.clear (juce::dontSendNotification);
+    bufferSizes.clear();
+
+    auto& dm = engine.getDeviceManager();
+    auto* device = dm.getCurrentAudioDevice();
+
+    if (device == nullptr)
+        return;
+
+    const int current = dm.getAudioDeviceSetup().bufferSize;
+
+    // ASIO drivers advertise a fixed set of supported buffer sizes; WASAPI /
+    // DirectSound report a range, so present a handful of common power-of-two
+    // options (the engine coerces the device to a power of two anyway).
+    auto sizes = device->getAvailableBufferSizes();
+
+    if (sizes.isEmpty())
+    {
+        for (int s = 64; s <= 2048; s *= 2)
+            sizes.add (s);
+    }
+
+    for (auto size : sizes)
+    {
+        bufferSizes.add (size);
+        bufferCombo.addItem (juce::String (size), bufferSizes.size());
+    }
+
+    const int index = bufferSizes.indexOf (current);
+
+    if (index >= 0)
+        bufferCombo.setSelectedItemIndex (index, juce::dontSendNotification);
 }
 
 void MainComponent::setDeviceSelection()
@@ -505,6 +554,21 @@ void MainComponent::setDeviceSelection()
     dm.setAudioDeviceSetup (setup, true);
 
     refreshDeviceList();
+}
+
+void MainComponent::setBufferSelection()
+{
+    const int idx = bufferCombo.getSelectedItemIndex();
+
+    if (idx < 0 || idx >= bufferSizes.size())
+        return;
+
+    auto& dm = engine.getDeviceManager();
+    auto setup = dm.getAudioDeviceSetup();
+    setup.bufferSize = bufferSizes[idx];
+    dm.setAudioDeviceSetup (setup, true);
+
+    refreshBufferList();
 }
 
 //==============================================================================

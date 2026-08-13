@@ -20,9 +20,14 @@ target_compile_definitions(JokerPlayer PRIVATE
     JUCE_WEB_BROWSER=0       # we don't use the web browser module
     JUCE_USE_CURL=0
     JUCE_USE_MP3AUDIOFORMAT=1 # software MP3 decoding (wav/aiff/flac/vorbis are always available)
+    JUCE_ASIO=1               # enable ASIO audio devices (uses the bundled ASIO SDK)
     JUCE_PLUGINHOST_VST3=1    # enable VST3 plug-in hosting
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_MODAL_LOOPS_PERMITTED=1 # FileChooser::browseForDirectory etc. (GUI app)
+)
+
+target_include_directories(JokerPlayer PRIVATE
+    ${CMAKE_SOURCE_DIR}/asiosdk_2.3.3_2019-06-14/common
 )
 
 target_sources(JokerPlayer PRIVATE
