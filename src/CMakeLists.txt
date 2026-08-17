@@ -8,6 +8,7 @@ juce_add_gui_app(JokerPlayer
     VERSION 1.0.0
     NEEDS_MIDI_INPUT FALSE
     MICROPHONE_PERMISSION_ENABLED FALSE
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/Resources/app_icon.png"
 )
 
 target_compile_features(JokerPlayer PRIVATE cxx_std_17)

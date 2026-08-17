@@ -75,11 +75,30 @@ private:
         Icon icon;
     };
 
+    enum class PlayMode { Sequential, Loop, Shuffle };
+
+    /** A small circular button that cycles through the play modes
+        (顺序播放 / 循环播放 / 随机播放). */
+    class PlayModeButton : public juce::Button
+    {
+    public:
+        PlayModeButton();
+
+        void setMode (PlayMode m) { mode = m; repaint(); }
+
+    private:
+        void paintButton (juce::Graphics&, bool shouldDrawButtonAsHighlighted,
+                          bool shouldDrawButtonAsDown) override;
+        PlayMode mode = PlayMode::Sequential;
+    };
+
     void playTrack (int index);
     void playNext();
     void playPrevious();
     void togglePlayPause();
     void openPluginBrowser();
+    void cyclePlayMode();
+    int getRandomTrackIndex() const;
 
     void refreshDeviceList();
     void refreshBufferList();
@@ -117,6 +136,7 @@ private:
     TransportButton playButton { TransportButton::Icon::Play };
     TransportButton stopButton { TransportButton::Icon::Stop };
     TransportButton nextButton { TransportButton::Icon::Next };
+    PlayModeButton playModeButton;
 
     std::unique_ptr<PluginBrowserDialog> pluginBrowser;
 
@@ -125,6 +145,7 @@ private:
     bool wasPlaying = false;
     float playPulsePhase = 0.0f;
     juce::Rectangle<int> nowPlayingBounds;
+    PlayMode playMode = PlayMode::Sequential;
 
     struct DeviceEntry
     {

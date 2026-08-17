@@ -577,6 +577,41 @@ juce::Button* aur::CustomLookAndFeel::createDocumentWindowButton (int buttonType
     return nullptr;
 }
 
+void aur::CustomLookAndFeel::positionDocumentWindowButtons (juce::DocumentWindow&,
+                                                     int titleBarX, int titleBarY,
+                                                     int titleBarW, int titleBarH,
+                                                     juce::Button* minimiseButton,
+                                                     juce::Button* maximiseButton,
+                                                     juce::Button* closeButton,
+                                                     bool positionTitleBarButtonsOnLeft)
+{
+    const int buttonW = 36;
+    const int gap = 2;
+    const int margin = 2;
+
+    auto x = positionTitleBarButtonsOnLeft
+                 ? titleBarX + margin
+                 : titleBarX + titleBarW - buttonW - margin;
+
+    if (closeButton != nullptr)
+    {
+        closeButton->setBounds (x, titleBarY, buttonW, titleBarH);
+        x += positionTitleBarButtonsOnLeft ? buttonW + gap : -(buttonW + gap);
+    }
+
+    if (positionTitleBarButtonsOnLeft)
+        std::swap (minimiseButton, maximiseButton);
+
+    if (maximiseButton != nullptr)
+    {
+        maximiseButton->setBounds (x, titleBarY, buttonW, titleBarH);
+        x += positionTitleBarButtonsOnLeft ? buttonW + gap : -(buttonW + gap);
+    }
+
+    if (minimiseButton != nullptr)
+        minimiseButton->setBounds (x, titleBarY, buttonW, titleBarH);
+}
+
 void aur::CustomLookAndFeel::drawDocumentWindowTitleBar (juce::DocumentWindow& window,
                                                    juce::Graphics& g,
                                                    int w, int h,

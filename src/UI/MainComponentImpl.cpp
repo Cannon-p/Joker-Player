@@ -225,6 +225,10 @@ MainComponent::MainComponent()
     nextButton.onClick = [this] { playNext(); };
     addAndMakeVisible (nextButton);
 
+    playModeButton.setTooltip (juce::String (juce::CharPointer_UTF8 ("顺序播放")));
+    playModeButton.onClick = [this] { cyclePlayMode(); };
+    addAndMakeVisible (playModeButton);
+
     // --- restore playlist from last session ---
     playlist.loadFromFile (engine.getPluginManager().getDataDirectory()
                                .getChildFile ("playlist.xml"));
@@ -323,7 +327,7 @@ void MainComponent::resized()
     const int centreX = footer.getCentreX();
     const int centreY = footer.getCentreY();
 
-    const int groupWidth = btnSize * 3 + bigSize + gap * 3;
+    const int groupWidth = btnSize * 4 + bigSize + gap * 4;
     const int startX = centreX - groupWidth / 2;
 
     prevButton.setBounds (startX, centreY - btnSize / 2, btnSize, btnSize);
@@ -333,8 +337,10 @@ void MainComponent::resized()
                           bigSize, bigSize);
     nextButton.setBounds (startX + 2 * (btnSize + gap) + bigSize + gap,
                           centreY - btnSize / 2, btnSize, btnSize);
-    volumeSlider.setBounds (nextButton.getRight() + 20, centreY - 4,
-                            footer.getRight() - nextButton.getRight() - 20 - 18, 8);
+    playModeButton.setBounds (startX + 3 * (btnSize + gap) + bigSize,
+                              centreY - btnSize / 2, btnSize, btnSize);
+    volumeSlider.setBounds (playModeButton.getRight() + 20, centreY - 4,
+                            footer.getRight() - playModeButton.getRight() - 20 - 18, 8);
 
     // --- main content ---
     auto mainArea = b.reduced (18, 14);
@@ -371,7 +377,15 @@ void MainComponent::timerCallback()
     // --- auto-advance to the next track -------------------------------------
     if (playing && finished)
     {
-        if (playingIndex + 1 < playlist.getNumTracks())
+        if (playMode == PlayMode::Loop)
+        {
+            playTrack ((playingIndex + 1) % playlist.getNumTracks());
+        }
+        else if (playMode == PlayMode::Shuffle)
+        {
+            playTrack (getRandomTrackIndex());
+        }
+        else if (playingIndex + 1 < playlist.getNumTracks())
         {
             playTrack (playingIndex + 1);
         }
@@ -463,6 +477,12 @@ void MainComponent::playNext()
     if (playlist.getNumTracks() == 0)
         return;
 
+    if (playMode == PlayMode::Shuffle)
+    {
+        playTrack (getRandomTrackIndex());
+        return;
+    }
+
     playTrack ((playingIndex + 1) % playlist.getNumTracks());
 }
 
@@ -480,6 +500,35 @@ void MainComponent::playPrevious()
 
     const int target = playingIndex < 0 ? 0 : (playingIndex - 1 + playlist.getNumTracks()) % playlist.getNumTracks();
     playTrack (target);
+}
+
+void MainComponent::cyclePlayMode()
+{
+    switch (playMode)
+    {
+        case PlayMode::Sequential: playMode = PlayMode::Loop;    break;
+        case PlayMode::Loop:       playMode = PlayMode::Shuffle; break;
+        case PlayMode::Shuffle:    playMode = PlayMode::Sequential; break;
+    }
+
+    playModeButton.setMode (playMode);
+
+    const char* tip = (playMode == PlayMode::Sequential) ? "顺序播放"
+                    : (playMode == PlayMode::Loop)        ? "循环播放"
+                                                          : "随机播放";
+    playModeButton.setTooltip (juce::String (juce::CharPointer_UTF8 (tip)));
+}
+
+int MainComponent::getRandomTrackIndex() const
+{
+    const int n = playlist.getNumTracks();
+    if (n <= 1)
+        return 0;
+
+    int idx = juce::Random::getSystemRandom().nextInt (n);
+    if (idx == playingIndex)
+        idx = (idx + 1) % n;
+    return idx;
 }
 
 //==============================================================================
@@ -674,6 +723,7 @@ void MainComponent::updateTransportUi()
     const bool hasAnyTrack = engine.hasTrack() || playlist.getNumTracks() > 0;
     prevButton.setEnabled (hasAnyTrack);
     nextButton.setEnabled (playlist.getNumTracks() > 0);
+    playModeButton.setEnabled (playlist.getNumTracks() > 0);
     stopButton.setEnabled (engine.hasTrack());
 
     if (playing != wasPlaying)
@@ -876,6 +926,119 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
             p.addTriangle (cx - s * 0.22f, cy - s * 0.24f, cx - s * 0.22f, cy + s * 0.24f, cx + s * 0.08f, cy);
             p.addRectangle (cx + s * 0.12f, cy - s * 0.24f, s * 0.12f, s * 0.48f);
             break;
+
+        default:
+            break;
+    }
+
+    g.fillPath (p);
+}
+
+//==============================================================================
+MainComponent::PlayModeButton::PlayModeButton()
+    : juce::Button ({})
+{
+    setClickingTogglesState (false);
+    setColour (juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+}
+
+void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
+                                                 bool shouldDrawButtonAsHighlighted,
+                                                 bool shouldDrawButtonAsDown)
+{
+    auto area = getLocalBounds().toFloat().reduced (3.0f);
+
+    juce::Colour base = aur::Theme::panel();
+    if (shouldDrawButtonAsHighlighted)
+        base = aur::Theme::panelHover();
+    if (shouldDrawButtonAsDown)
+        base = aur::Theme::panelActive();
+
+    if (! isEnabled())
+        base = base.withAlpha (0.35f);
+
+    g.setColour (base);
+    g.fillEllipse (area);
+
+    g.setColour (aur::Theme::text().withAlpha (isEnabled() ? 0.95f : 0.4f));
+
+    const float cx = area.getCentreX();
+    const float cy = area.getCentreY();
+    const float s = area.getWidth();
+
+    juce::Path p;
+
+    switch (mode)
+    {
+        case PlayMode::Sequential:
+        {
+            // Three stacked lines (list) with a small arrow.
+            p.addRoundedRectangle (cx - s * 0.24f, cy - s * 0.14f, s * 0.20f, s * 0.07f, 1.0f);
+            p.addRoundedRectangle (cx - s * 0.24f, cy - s * 0.03f, s * 0.20f, s * 0.07f, 1.0f);
+            p.addRoundedRectangle (cx - s * 0.24f, cy + s * 0.08f, s * 0.20f, s * 0.07f, 1.0f);
+
+            juce::Path arrow;
+            arrow.addTriangle (cx + s * 0.14f, cy - s * 0.14f,
+                               cx + s * 0.14f, cy + s * 0.02f,
+                               cx + s * 0.28f, cy - s * 0.06f);
+            g.fillPath (arrow);
+            break;
+        }
+
+        case PlayMode::Loop:
+        {
+            // Two bent arrows forming a circular loop.
+            const float r = s * 0.26f;
+            juce::PathStrokeType stroke (1.7f, juce::PathStrokeType::curved,
+                                         juce::PathStrokeType::rounded);
+
+            juce::Path upper;
+            upper.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f,
+                          juce::MathConstants<float>::halfPi, juce::MathConstants<float>::pi * 1.9f, true);
+            g.strokePath (upper, stroke);
+
+            juce::Path lower;
+            lower.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f,
+                          juce::MathConstants<float>::pi * 1.9f, juce::MathConstants<float>::pi * 2.6f, true);
+            g.strokePath (lower, stroke);
+
+            juce::Path arrowTop;
+            arrowTop.addTriangle (cx - s * 0.04f, cy - r - s * 0.06f,
+                                  cx + s * 0.06f, cy - r - s * 0.06f,
+                                  cx + s * 0.01f, cy - r + s * 0.04f);
+            g.fillPath (arrowTop);
+            break;
+        }
+
+        case PlayMode::Shuffle:
+        {
+            // Two crossing arrows.
+            juce::PathStrokeType stroke (1.7f, juce::PathStrokeType::curved,
+                                         juce::PathStrokeType::rounded);
+
+            juce::Path first;
+            first.startNewSubPath (cx - s * 0.24f, cy - s * 0.20f);
+            first.lineTo (cx + s * 0.12f, cy - s * 0.20f);
+            g.strokePath (first, stroke);
+
+            juce::Path firstHead;
+            firstHead.addTriangle (cx + s * 0.16f, cy - s * 0.20f,
+                                   cx + s * 0.08f, cy - s * 0.28f,
+                                   cx + s * 0.08f, cy - s * 0.12f);
+            g.fillPath (firstHead);
+
+            juce::Path second;
+            second.startNewSubPath (cx + s * 0.16f, cy - s * 0.14f);
+            second.lineTo (cx - s * 0.24f, cy + s * 0.22f);
+            g.strokePath (second, stroke);
+
+            juce::Path secondHead;
+            secondHead.addTriangle (cx - s * 0.28f, cy + s * 0.24f,
+                                    cx - s * 0.16f, cy + s * 0.16f,
+                                    cx - s * 0.24f, cy + s * 0.08f);
+            g.fillPath (secondHead);
+            break;
+        }
 
         default:
             break;

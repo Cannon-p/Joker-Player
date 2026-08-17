@@ -212,6 +212,13 @@ public:
 
     //==========================================================================
     juce::Button* createDocumentWindowButton (int buttonType) override;
+    void positionDocumentWindowButtons (juce::DocumentWindow&,
+                                        int titleBarX, int titleBarY,
+                                        int titleBarW, int titleBarH,
+                                        juce::Button* minimiseButton,
+                                        juce::Button* maximiseButton,
+                                        juce::Button* closeButton,
+                                        bool positionTitleBarButtonsOnLeft) override;
     void drawDocumentWindowTitleBar (juce::DocumentWindow&, juce::Graphics&,
                                      int w, int h, int titleSpaceX, int titleSpaceW,
                                      const juce::Image* icon, bool drawTitleTextOnLeft) override;
