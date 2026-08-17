@@ -99,6 +99,15 @@ void aur::CustomLookAndFeel::refreshScheme()
     setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
     setColour (juce::ListBox::textColourId, aur::Theme::text());
     setColour (juce::TableListBox::textColourId, aur::Theme::text());
+
+    // Generic component background: the plug-in scanner's folder list fills its
+    // whole area with this colour id, which otherwise falls back to black and
+    // makes the dialog unreadable in day mode.
+    setColour (juce::FileSearchPathListComponent::backgroundColourId, aur::Theme::panel());
+
+    // Row selection highlight inside the scanner's folder list.
+    setColour (juce::TextEditor::highlightColourId, aur::Theme::accentSoft());
+    setColour (juce::TextEditor::highlightedTextColourId, aur::Theme::text());
 }
 
 aur::CustomLookAndFeel& aur::CustomLookAndFeel::instance()
@@ -493,6 +502,132 @@ void aur::CustomLookAndFeel::drawAlertBox (juce::Graphics& g, juce::AlertWindow&
     g.drawRoundedRectangle (bounds, 8.0f, 1.0f);
 
     juce::ignoreUnused (textArea, textLayout);
+}
+
+//==============================================================================
+namespace
+{
+class JokerWindowButton final : public juce::Button
+{
+public:
+    JokerWindowButton (const juce::String& name, int buttonType)
+        : Button (name), type (buttonType)
+    {
+    }
+
+    void paintButton (juce::Graphics& g, bool isOver, bool isDown) override
+    {
+        auto bounds = getLocalBounds().toFloat();
+
+        g.setColour (isOver || isDown
+                         ? aur::Theme::panelHover()
+                         : juce::Colours::transparentBlack);
+        g.fillRect (bounds);
+
+        auto colour = aur::Theme::textDim();
+        if (type == juce::DocumentWindow::closeButton)
+            colour = (isOver || isDown) ? juce::Colour (0xffff5252) : colour;
+
+        g.setColour (colour);
+        g.setOpacity (isDown ? 0.7f : 1.0f);
+
+        const float w = jmin (11.0f, getWidth() * 0.28f);
+        const auto centre = bounds.getCentre();
+
+        if (type == juce::DocumentWindow::closeButton)
+        {
+            juce::Path p;
+            p.startNewSubPath (centre.x - w, centre.y - w);
+            p.lineTo (centre.x + w, centre.y + w);
+            p.startNewSubPath (centre.x + w, centre.y - w);
+            p.lineTo (centre.x - w, centre.y + w);
+            g.strokePath (p, juce::PathStrokeType (1.6f, juce::PathStrokeType::curved,
+                                                   juce::PathStrokeType::rounded));
+        }
+        else if (type == juce::DocumentWindow::minimiseButton)
+        {
+            g.fillRoundedRectangle (juce::Rectangle<float> (centre.x - w, centre.y - 1.0f,
+                                                            2.0f * w, 2.0f), 1.0f);
+        }
+        else // maximise
+        {
+            auto r = juce::Rectangle<float> (centre.x - w, centre.y - w,
+                                             2.0f * w, 2.0f * w);
+            g.drawRoundedRectangle (r, 1.5f, 1.4f);
+            g.fillRect (r.withHeight (1.4f));
+        }
+    }
+
+private:
+    int type;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JokerWindowButton)
+};
+} // namespace
+
+juce::Button* aur::CustomLookAndFeel::createDocumentWindowButton (int buttonType)
+{
+    if (buttonType == juce::DocumentWindow::closeButton)
+        return new JokerWindowButton (juce::String (juce::CharPointer_UTF8 ("关闭")), buttonType);
+    if (buttonType == juce::DocumentWindow::minimiseButton)
+        return new JokerWindowButton (juce::String (juce::CharPointer_UTF8 ("最小化")), buttonType);
+    if (buttonType == juce::DocumentWindow::maximiseButton)
+        return new JokerWindowButton (juce::String (juce::CharPointer_UTF8 ("最大化")), buttonType);
+
+    jassertfalse;
+    return nullptr;
+}
+
+void aur::CustomLookAndFeel::drawDocumentWindowTitleBar (juce::DocumentWindow& window,
+                                                   juce::Graphics& g,
+                                                   int w, int h,
+                                                   int titleSpaceX, int titleSpaceW,
+                                                   const juce::Image* icon,
+                                                   bool drawTitleTextOnLeft)
+{
+    if (w * h == 0)
+        return;
+
+    // Title bar background: same palette as the app's top row.
+    g.fillAll (aur::Theme::bgTop());
+    g.setColour (aur::Theme::border().withAlpha (0.5f));
+    g.drawHorizontalLine (h - 1, 0.0f, (float) w);
+
+    auto font = aur::Theme::uiFont ((float) h * 0.52f);
+    g.setFont (font);
+
+    auto textW = juce::GlyphArrangement::getStringWidthInt (font, window.getName());
+    auto iconW = 0;
+    auto iconH = 0;
+
+    if (icon != nullptr)
+    {
+        iconH = (int) font.getHeight();
+        iconW = icon->getWidth() * iconH / icon->getHeight() + 6;
+    }
+
+    textW = jmin (titleSpaceW, textW + iconW);
+    auto textX = drawTitleTextOnLeft ? titleSpaceX
+                                     : jmax (titleSpaceX, (w - textW) / 2);
+
+    if (textX + textW > titleSpaceX + titleSpaceW)
+        textX = titleSpaceX + titleSpaceW - textW;
+
+    const bool active = window.isActiveWindow();
+    if (icon != nullptr)
+    {
+        g.setOpacity (active ? 1.0f : 0.55f);
+        g.drawImageWithin (*icon, textX, (h - iconH) / 2, iconW, iconH,
+                           juce::RectanglePlacement::centred, false);
+        textX += iconW;
+        textW -= iconW;
+    }
+
+    if (textW > 0)
+    {
+        g.setColour (aur::Theme::text().withAlpha (active ? 1.0f : 0.55f));
+        g.drawFittedText (window.getName(), textX, 0, textW, h,
+                          juce::Justification::centredLeft, 1);
+    }
 }
 
 //==============================================================================

@@ -68,7 +68,7 @@ void MainComponent::WaveformBar::paint (juce::Graphics& g)
         if (playedW > 0)
             g.reduceClipRegion (juce::Rectangle<int> (area.getX(), area.getY(),
                                                       playedW, area.getHeight()));
-        g.setColour (aur::Theme::accent());
+        g.setColour (aur::Theme::accentLight());
         thumbnail.drawChannels (g, area.toNearestInt(), 0.0, total, 1.0f);
         g.restoreState();
 
@@ -710,6 +710,11 @@ void MainComponent::applyTheme()
         pluginBrowser->applyTheme();
 
     repaint();
+
+    // The custom title bar is drawn by the DocumentWindow itself, so make sure
+    // it also picks up the new theme colours.
+    if (auto* tlw = getTopLevelComponent())
+        tlw->repaint();
 }
 
 //==============================================================================
@@ -762,7 +767,8 @@ void MainComponent::ThemeButton::paintButton (juce::Graphics& g,
     else
     {
         // Crescent moon: a filled disc with the backdrop colour carved out of
-        // its upper-left so only a smooth crescent remains.
+        // its upper-left so only a smooth crescent remains. The carve is offset
+        // symmetrically so the crescent stays centred in the button.
         const float r = bg.getHeight() * 0.40f;
         const float xc = centre.x;
         const float yc = centre.y;
@@ -770,7 +776,7 @@ void MainComponent::ThemeButton::paintButton (juce::Graphics& g,
         g.fillEllipse (xc - r, yc - r, r * 2.0f, r * 2.0f);
 
         g.setColour (bgCol);
-        g.fillEllipse (xc - r * 0.40f, yc - r * 0.90f, r * 2.0f, r * 2.0f);
+        g.fillEllipse (xc - r * 0.45f, yc - r * 0.45f, r * 2.0f, r * 2.0f);
     }
 }
 
@@ -795,7 +801,7 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
     if (isMain)
     {
         if (isOn)
-            base = aur::Theme::accent();
+            base = aur::Theme::accentLight();
         else if (shouldDrawButtonAsHighlighted)
             base = aur::Theme::panelHover();
     }
@@ -815,9 +821,9 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
     {
         const float pulse = aur::UIAnimator::value (*this, "pulse", 0.0f);
         const float glowA = 0.28f + 0.22f * std::sin (pulse * juce::MathConstants<float>::twoPi);
-        juce::ColourGradient glow (aur::Theme::accent().withAlpha (glowA),
+        juce::ColourGradient glow (aur::Theme::accentLight().withAlpha (glowA),
                                    area.getCentreX(), area.getCentreY(),
-                                   aur::Theme::accent().withAlpha (0.0f),
+                                   aur::Theme::accentLight().withAlpha (0.0f),
                                    area.getCentreX(), area.getCentreY(),
                                    true);
         g.setGradientFill (glow);
@@ -827,9 +833,10 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
     g.setColour (base);
     g.fillEllipse (area);
 
-    // Icons on an accent (playing) button read best in white on both themes.
+    // Icons on a light (playing) button: use the theme text colour, which is
+    // dark in day mode and near-white in night mode, so it stays readable.
     const bool iconOnAccent = isMain && isOn && isEnabled();
-    const juce::Colour iconCol = iconOnAccent ? juce::Colours::white
+    const juce::Colour iconCol = iconOnAccent ? aur::Theme::text()
                                               : aur::Theme::text().withAlpha (isEnabled() ? 0.95f : 0.4f);
     g.setColour (iconCol);
 

@@ -43,14 +43,26 @@ private:
                               DocumentWindow::allButtons)
         {
             aur::traceStep ("MainWindow ctor body");
-            setUsingNativeTitleBar (true);
-            aur::traceStep ("native title bar");
+            setUsingNativeTitleBar (false);
+            setTitleBarHeight (36);
+            aur::traceStep ("custom title bar");
+
+            // App icon, embedded as a binary resource (from "Joker Player.png").
+            auto iconImage = juce::ImageCache::getFromMemory (BinaryData::app_icon_png,
+                                                              BinaryData::app_icon_pngSize);
+            if (iconImage.isValid())
+                setIcon (iconImage);
+
             setContentOwned (new MainComponent(), true);
             aur::traceStep ("content owned");
             centreWithSize (1180, 760);
             setResizable (true, true);
             setResizeLimits (980, 640, 2560, 1600);
             setVisible (true);
+
+            // Also apply the icon to the OS window / taskbar.
+            if (auto* peer = getPeer())
+                peer->setIcon (iconImage);
         }
 
         void closeButtonPressed() override

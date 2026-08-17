@@ -73,6 +73,12 @@ struct Theme
         static const juce::Colour day (0xffff7ab0);
         return (mode == Mode::Day) ? day : night;
     }
+    static const juce::Colour& accentLight()
+    {
+        static const juce::Colour night (0xff7a9bff);
+        static const juce::Colour day (0xffb9a9ff);
+        return (mode == Mode::Day) ? day : night;
+    }
     static const juce::Colour& accentSoft()
     {
         static const juce::Colour night (0x504d8dff);
@@ -203,6 +209,12 @@ public:
 
     void drawAlertBox (juce::Graphics&, juce::AlertWindow&, const juce::Rectangle<int>&,
                        juce::TextLayout&) override;
+
+    //==========================================================================
+    juce::Button* createDocumentWindowButton (int buttonType) override;
+    void drawDocumentWindowTitleBar (juce::DocumentWindow&, juce::Graphics&,
+                                     int w, int h, int titleSpaceX, int titleSpaceW,
+                                     const juce::Image* icon, bool drawTitleTextOnLeft) override;
 
     //==========================================================================
     static juce::Colour transparentWithAlpha (const juce::Colour& c, float alpha);

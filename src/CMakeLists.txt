@@ -60,4 +60,11 @@ target_link_libraries(JokerPlayer PRIVATE
     juce::juce_animation
 )
 
+juce_add_binary_data(JokerPlayerResources
+    SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/Resources/app_icon.png"
+)
+
+target_link_libraries(JokerPlayer PRIVATE JokerPlayerResources)
+
 juce_generate_juce_header(JokerPlayer)
