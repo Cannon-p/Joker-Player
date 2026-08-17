@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -82,7 +82,7 @@ bool MessageManager::MessageBase::post()
 {
     auto* mm = MessageManager::instance;
 
-    if (mm == nullptr || mm->quitMessagePosted.get() != 0 || ! postMessageToSystemQueue (this))
+    if (mm == nullptr || mm->quitMessagePosted || ! postMessageToSystemQueue (this))
     {
         Ptr deleter (this); // (this will delete messages that were just created with a 0 ref count)
         return false;
@@ -117,7 +117,7 @@ void MessageManager::runDispatchLoop()
 {
     jassert (isThisTheMessageThread()); // must only be called by the message thread
 
-    while (quitMessageReceived.get() == 0)
+    while (! quitMessageReceived)
     {
         JUCE_TRY
         {
@@ -141,7 +141,7 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
 
     auto endTime = Time::currentTimeMillis() + millisecondsToRunFor;
 
-    while (quitMessageReceived.get() == 0)
+    while (! quitMessageReceived)
     {
         JUCE_TRY
         {
@@ -154,66 +154,16 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
             break;
     }
 
-    return quitMessageReceived.get() == 0;
+    return ! quitMessageReceived;
 }
 #endif
 
 #endif
 
 //==============================================================================
-class AsyncFunctionCallback final : public MessageManager::MessageBase
-{
-public:
-    AsyncFunctionCallback (MessageCallbackFunction* const f, void* const param)
-        : func (f), parameter (param)
-    {}
-
-    void messageCallback() override
-    {
-        result = (*func) (parameter);
-        finished.signal();
-    }
-
-    WaitableEvent finished;
-    std::atomic<void*> result { nullptr };
-
-private:
-    MessageCallbackFunction* const func;
-    void* const parameter;
-
-    JUCE_DECLARE_NON_COPYABLE (AsyncFunctionCallback)
-};
-
 void* MessageManager::callFunctionOnMessageThread (MessageCallbackFunction* func, void* parameter)
 {
-    if (isThisTheMessageThread())
-        return func (parameter);
-
-    // If this thread has the message manager locked, then this will deadlock!
-    jassert (! currentThreadHasLockedMessageManager());
-
-    const ReferenceCountedObjectPtr<AsyncFunctionCallback> message (new AsyncFunctionCallback (func, parameter));
-
-    if (message->post())
-    {
-        message->finished.wait();
-        return message->result.load();
-    }
-
-    jassertfalse; // the OS message queue failed to send the message!
-    return nullptr;
-}
-
-bool MessageManager::callAsync (std::function<void()> fn)
-{
-    struct AsyncCallInvoker final : public MessageBase
-    {
-        AsyncCallInvoker (std::function<void()> f) : callback (std::move (f)) {}
-        void messageCallback() override  { callback(); }
-        std::function<void()> callback;
-    };
-
-    return (new AsyncCallInvoker (std::move (fn)))->post();
+    return callSync ([func, parameter] { return func (parameter); }).value_or (nullptr);
 }
 
 //==============================================================================
@@ -264,7 +214,7 @@ void MessageManager::setCurrentThreadAsMessageThread()
 bool MessageManager::currentThreadHasLockedMessageManager() const noexcept
 {
     auto thisThread = Thread::getCurrentThreadId();
-    return thisThread == messageThreadId || thisThread == threadWithLock.get();
+    return thisThread == messageThreadId || thisThread == threadWithLock;
 }
 
 bool MessageManager::existsAndIsLockedByCurrentThread() noexcept

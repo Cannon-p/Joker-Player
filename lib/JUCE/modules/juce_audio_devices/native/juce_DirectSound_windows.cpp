@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -34,7 +34,7 @@
 
 extern "C"
 {
-    // Declare just the minimum number of interfaces for the DSound objects that we need..
+    // Declare just the minimum number of interfaces for the DSound objects that we need.
     struct DSBUFFERDESC
     {
         DWORD dwSize;
@@ -857,7 +857,7 @@ public:
         {
             if (! isThreadRunning())
             {
-                // something gone wrong and the thread's stopped..
+                // something gone wrong and the thread's stopped
                 isOpen_ = false;
                 return;
             }
@@ -1119,7 +1119,7 @@ String DSoundAudioIODevice::openDevice (const BigInteger& inputChannels,
     sampleRate = sampleRate_ > 0.0 ? sampleRate_ : 44100.0;
 
     if (bufferSizeSamples_ <= 0)
-        bufferSizeSamples_ = 960; // use as a default size if none is set.
+        bufferSizeSamples_ = 960; // use as a default size if none is set
 
     bufferSizeSamples = bufferSizeSamples_ & ~7;
 

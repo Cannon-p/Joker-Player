@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -203,5 +203,24 @@ private:
         return result;
     }
 };
+
+namespace detail
+{
+
+std::vector<int> UnicodeHelpers::getLineBreaks (const String& data)
+{
+    std::vector<int> lineBreaks;
+    const auto analysis = Unicode::performAnalysis (data);
+
+    for (const auto [index, codepoint] : enumerate (analysis, int{}))
+    {
+        if (codepoint.breaking == TextBreakType::hard)
+            lineBreaks.push_back (index);
+    }
+
+    return lineBreaks;
+}
+
+} // namespace detail
 
 } // namespace juce

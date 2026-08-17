@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -201,7 +201,7 @@ public:
                     }
                     else
                     {
-                        // The marker we want doesn't exist, so watch all lists in case they change and the marker appears later..
+                        // The marker we want doesn't exist, so watch all lists in case they change and the marker appears later.
                         if (auto* mlh = dynamic_cast<MarkerList::MarkerListHolder*> (parent))
                         {
                             positioner.registerMarkerListListener (mlh->getMarkers (true));
@@ -227,7 +227,7 @@ public:
         }
         else
         {
-            // The named component doesn't exist, so we'll watch the parent for changes in case it appears later..
+            // The named component doesn't exist, so we'll watch the parent for changes in case it appears later.
             if (Component* const parent = component.getParentComponent())
                 positioner.registerComponentListener (*parent);
 

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -59,6 +59,13 @@ struct MidiMessageMetadata
         Note that MidiMessage owns its data storage, whereas MidiMessageMetadata does not.
     */
     MidiMessage getMessage() const          { return MidiMessage (data, numBytes, samplePosition); }
+
+    Span<const std::byte> asSpan() const&
+    {
+        return { reinterpret_cast<const std::byte*> (data), (size_t) numBytes };
+    }
+
+    Span<const std::byte> asSpan() const&& = delete;
 
     /** Pointer to the first byte of a MIDI message. */
     const uint8* data = nullptr;
@@ -285,7 +292,7 @@ public:
     MidiBufferIterator findNextSamplePosition (int samplePosition) const noexcept;
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     /** This class is now deprecated in favour of MidiBufferIterator.
 
         Used to iterate through the events in a MidiBuffer.
@@ -342,7 +349,7 @@ public:
         const MidiBuffer& buffer;
         MidiBufferIterator iterator;
     };
-   #endif
+    /** @endcond */
 
     /** The raw data holding this buffer.
         Obviously access to this data is provided at your own risk. Its internal format could

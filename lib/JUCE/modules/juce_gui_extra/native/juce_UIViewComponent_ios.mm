@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -76,7 +76,7 @@ public:
         {
             if ([view superview] != nil)
                 [view removeFromSuperview]; // Must be careful not to call this unless it's required - e.g. some Apple AU views
-                                            // override the call and use it as a sign that they're being deleted, which breaks everything..
+                                            // override the call and use it as a sign that they're being deleted, which breaks everything.
             currentPeer = peer;
 
             if (peer != nullptr)

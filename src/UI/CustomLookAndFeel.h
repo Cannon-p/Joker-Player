@@ -8,20 +8,101 @@ namespace aur
 /** Central colour palette — a modern, dark, rounded theme. */
 struct Theme
 {
-    static const juce::Colour& bg()        { static const juce::Colour c (0xff10131a); return c; }
-    static const juce::Colour& bgTop()     { static const juce::Colour c (0xff1a1f2a); return c; }
-    static const juce::Colour& panel()     { static const juce::Colour c (0xff171b25); return c; }
-    static const juce::Colour& panelHover(){ static const juce::Colour c (0xff202636); return c; }
-    static const juce::Colour& panelActive(){ static const juce::Colour c (0xff273043); return c; }
-    static const juce::Colour& text()      { static const juce::Colour c (0xffe9edf4); return c; }
-    static const juce::Colour& textDim()   { static const juce::Colour c (0xff8b94a8); return c; }
-    static const juce::Colour& accent()    { static const juce::Colour c (0xff5e8cff); return c; }
-    static const juce::Colour& accent2()   { static const juce::Colour c (0xff8a5cff); return c; }
-    static const juce::Colour& accentSoft(){ static const juce::Colour c (0x405e8cff); return c; }
-    static const juce::Colour& good()      { static const juce::Colour c (0xff38d08c); return c; }
-    static const juce::Colour& warn()      { static const juce::Colour c (0xffffa94d); return c; }
-    static const juce::Colour& border()    { static const juce::Colour c (0xff2a3140); return c; }
-    static const juce::Colour& inputBg()   { static const juce::Colour c (0xff0e1116); return c; }
+    enum class Mode { Night, Day };
+
+    static Mode getMode() { return mode; }
+    static void setMode (Mode m) { mode = m; }
+
+    /** Loads the saved theme mode from disk (applied automatically at startup). */
+    static void loadSavedMode();
+
+    /** Persists the current theme mode so it survives restarts. */
+    static void saveMode();
+
+    static const juce::Colour& bg()
+    {
+        static const juce::Colour night (0xff101320);
+        static const juce::Colour day (0xfff7f3fb);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& bgTop()
+    {
+        static const juce::Colour night (0xff20263d);
+        static const juce::Colour day (0xfff6f8ff);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& panel()
+    {
+        static const juce::Colour night (0xff1b2034);
+        static const juce::Colour day (0xfff2edf9);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& panelHover()
+    {
+        static const juce::Colour night (0xff2b3350);
+        static const juce::Colour day (0xffe8e2f6);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& panelActive()
+    {
+        static const juce::Colour night (0xff37426a);
+        static const juce::Colour day (0xffd9cff2);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& text()
+    {
+        static const juce::Colour night (0xffeef1fa);
+        static const juce::Colour day (0xff2d2840);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& textDim()
+    {
+        static const juce::Colour night (0xff9aa6c4);
+        static const juce::Colour day (0xff7a7391);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& accent()
+    {
+        static const juce::Colour night (0xff4d8dff);
+        static const juce::Colour day (0xff6b5bff);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& accent2()
+    {
+        static const juce::Colour night (0xffb45cff);
+        static const juce::Colour day (0xffff7ab0);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& accentSoft()
+    {
+        static const juce::Colour night (0x504d8dff);
+        static const juce::Colour day (0x336b5bff);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& good()
+    {
+        static const juce::Colour night (0xff3ce8a5);
+        static const juce::Colour day (0xff2fb877);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& warn()
+    {
+        static const juce::Colour night (0xffffb15c);
+        static const juce::Colour day (0xffffa040);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& border()
+    {
+        static const juce::Colour night (0xff3a4564);
+        static const juce::Colour day (0xffcfc6e6);
+        return (mode == Mode::Day) ? day : night;
+    }
+    static const juce::Colour& inputBg()
+    {
+        static const juce::Colour night (0xff0e1220);
+        static const juce::Colour day (0xffffffff);
+        return (mode == Mode::Day) ? day : night;
+    }
 
     /** Returns the UI typeface (with CJK support where available). */
     static juce::Font uiFont (float height)
@@ -29,6 +110,38 @@ struct Theme
         constexpr float scale = 1.2f;
         return juce::Font ("Microsoft YaHei UI", height * scale, juce::Font::plain);
     }
+
+    /** A smooth diagonal gradient for the main window background. */
+    static juce::ColourGradient windowBackgroundGradient (const juce::Rectangle<float>& area)
+    {
+        if (mode == Mode::Day)
+        {
+            juce::ColourGradient g (juce::Colour (0xffe9dbff), area.getTopLeft(),
+                                    juce::Colour (0xffffe0f0), area.getBottomRight(), false);
+            g.addColour (0.5f, juce::Colour (0xffd8e8ff));
+            return g;
+        }
+
+        return juce::ColourGradient (juce::Colour (0xff26304e), area.getTopLeft(),
+                                     juce::Colour (0xff0d0a1e), area.getBottomRight(), false);
+    }
+
+    /** A smooth vertical gradient for panel surfaces (lighter at top, deeper at bottom). */
+    static juce::ColourGradient panelGradient (const juce::Rectangle<float>& area)
+    {
+        if (mode == Mode::Day)
+        {
+            juce::ColourGradient g (juce::Colour (0xffffffff), area.getTopLeft(),
+                                    juce::Colour (0xfff3ecff), area.getBottomLeft(), false);
+            g.addColour (0.6f, juce::Colour (0xfffff1f8));
+            return g;
+        }
+
+        return juce::ColourGradient (juce::Colour (0xff232c4c), area.getTopLeft(),
+                                     juce::Colour (0xff12162c), area.getBottomLeft(), false);
+    }
+
+    static Mode mode;
 };
 
 /** A custom look-and-feel providing the Joker visual style. */
@@ -38,6 +151,10 @@ public:
     CustomLookAndFeel();
 
     static CustomLookAndFeel& instance();
+
+    /** Re-applies the current theme colours to the LAF colour scheme
+        (call after aur::Theme::setMode). */
+    void refreshScheme();
 
     //==========================================================================
     void drawButtonBackground (juce::Graphics&, juce::Button&,

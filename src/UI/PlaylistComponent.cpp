@@ -3,6 +3,7 @@
 #include "../Trace.h"
 
 #include <cctype>
+#include <cmath>
 
 namespace
 {
@@ -45,7 +46,7 @@ PlaylistComponent::PlaylistComponent()
     addAndMakeVisible (listBox);
     aur::traceStep ("PlaylistComponent listbox ready");
 
-    listTitle.setText ("播放列表", juce::dontSendNotification);
+    listTitle.setText (juce::String (juce::CharPointer_UTF8 ("播放列表")), juce::dontSendNotification);
     listTitle.setFont (aur::Theme::uiFont (15.0f).boldened());
     listTitle.setJustificationType (juce::Justification::centredLeft);
     listTitle.setColour (juce::Label::textColourId, aur::Theme::text());
@@ -58,7 +59,7 @@ PlaylistComponent::PlaylistComponent()
 
     addButton.onClick = [this]
     {
-        juce::FileChooser chooser ("选择音频文件",
+        juce::FileChooser chooser (juce::String (juce::CharPointer_UTF8 ("选择音频文件")),
                                    juce::File::getSpecialLocation (juce::File::userHomeDirectory),
                                    "*");
         if (chooser.browseForMultipleFilesToOpen())
@@ -166,6 +167,53 @@ void PlaylistComponent::setPlayingIndex (int newIndex)
     playingIndex = newIndex;
     listBox.repaint();
     listBox.scrollToEnsureRowIsOnscreen (juce::jmax (0, newIndex));
+
+    if (playingIndex >= 0)
+    {
+        eqPhase = 0.0f;
+        startTimerHz (30);
+    }
+    else
+    {
+        stopTimer();
+    }
+}
+
+//==============================================================================
+void PlaylistComponent::timerCallback()
+{
+    if (playingIndex < 0)
+    {
+        stopTimer();
+        return;
+    }
+
+    eqPhase += 0.12f;
+    listBox.repaintRow (playingIndex);
+}
+
+//==============================================================================
+void PlaylistComponent::applyTheme()
+{
+    listTitle.setColour (juce::Label::textColourId, aur::Theme::text());
+    countLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    repaint();
+    listBox.repaint();
+}
+
+//==============================================================================
+void PlaylistComponent::paint (juce::Graphics& g)
+{
+    const auto b = getLocalBounds().toFloat().reduced (2.0f);
+
+    juce::DropShadow shadow (juce::Colour (0x40000000), 10, { 0, 3 });
+    shadow.drawForRectangle (g, b.toNearestInt());
+
+    g.setGradientFill (aur::Theme::panelGradient (b));
+    g.fillRoundedRectangle (b, 10.0f);
+
+    g.setColour (aur::Theme::border().withAlpha (0.6f));
+    g.drawRoundedRectangle (b, 10.0f, 1.0f);
 }
 
 //==============================================================================
@@ -200,7 +248,7 @@ void PlaylistComponent::paintListBoxItem (int rowNumber, juce::Graphics& g,
     {
         g.setColour (aur::Theme::textDim());
         g.setFont (aur::Theme::uiFont (14.0f));
-        g.drawText ("将音频文件拖放到这里，或点击“添加歌曲”", getLocalBounds(),
+        g.drawText (juce::String (juce::CharPointer_UTF8 ("将音频文件拖放到这里，或点击“添加歌曲”")), getLocalBounds(),
                     juce::Justification::centred);
         return;
     }
@@ -233,17 +281,23 @@ void PlaylistComponent::paintListBoxItem (int rowNumber, juce::Graphics& g,
 
     if (rowIsPlaying)
     {
-        // Little animated-style equalizer bars.
+        // Live animated equalizer bars.
         const float cy = area.getCentreY();
         const float barW = 3.0f;
         const float gap = 2.0f;
         float xs[] = { 6.0f, 6.0f + barW + gap, 6.0f + 2 * (barW + gap) };
 
+        const float heights[] = {
+            juce::jmap (std::sin (eqPhase * 1.3f + 0.0f) * 0.5f + 0.5f, 0.0f, 1.0f, 3.0f, 11.0f),
+            juce::jmap (std::sin (eqPhase * 1.7f + 2.1f) * 0.5f + 0.5f, 0.0f, 1.0f, 4.0f, 14.0f),
+            juce::jmap (std::sin (eqPhase * 1.1f + 4.2f) * 0.5f + 0.5f, 0.0f, 1.0f, 3.0f, 9.0f)
+        };
+
         g.setColour (aur::Theme::accent().withMultipliedAlpha (0.4f));
-        g.fillRoundedRectangle (indexBox.getX() + xs[0], cy - 5.0f, barW, 10.0f, 1.5f);
+        g.fillRoundedRectangle (indexBox.getX() + xs[0], cy - heights[0] * 0.5f, barW, heights[0], 1.5f);
         g.setColour (aur::Theme::accent());
-        g.fillRoundedRectangle (indexBox.getX() + xs[1], cy - 7.0f, barW, 14.0f, 1.5f);
-        g.fillRoundedRectangle (indexBox.getX() + xs[2], cy - 3.0f, barW, 6.0f, 1.5f);
+        g.fillRoundedRectangle (indexBox.getX() + xs[1], cy - heights[1] * 0.5f, barW, heights[1], 1.5f);
+        g.fillRoundedRectangle (indexBox.getX() + xs[2], cy - heights[2] * 0.5f, barW, heights[2], 1.5f);
     }
     else
     {

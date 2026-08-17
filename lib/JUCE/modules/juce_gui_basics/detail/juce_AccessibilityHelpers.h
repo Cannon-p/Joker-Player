@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -51,17 +51,7 @@ struct AccessibilityHelpers
 
     static void notifyAccessibilityEvent (const AccessibilityHandler&, Event);
 
-    static String getApplicationOrPluginName()
-    {
-       #if defined (JucePlugin_Name)
-        return JucePlugin_Name;
-       #else
-        if (auto* app = JUCEApplicationBase::getInstance())
-            return app->getApplicationName();
-
-        return "JUCE Application";
-       #endif
-    }
+    static String getApplicationOrPluginName();
 
     template <typename MemberFn>
     static const AccessibilityHandler* getEnclosingHandlerWithInterface (const AccessibilityHandler* handler, MemberFn fn)

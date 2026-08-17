@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -85,8 +85,11 @@ class JUCE_API  AbstractFifo
 {
 public:
     //==============================================================================
-    /** Creates a FIFO to manage a buffer with the specified capacity. */
-    AbstractFifo (int capacity) noexcept;
+    /** Creates a FIFO to manage a buffer with the specified size.
+
+        The maximum number of items managed by the FIFO is 1 less than the buffer size.
+    */
+    explicit AbstractFifo (int bufferSize) noexcept;
 
     //==============================================================================
     /** Returns the total size of the buffer being managed. */
@@ -102,6 +105,7 @@ public:
     void reset() noexcept;
 
     /** Changes the buffer's total size.
+
         Note that this isn't thread-safe, so don't call it if there's any danger that it
         might overlap with a call to any other method in this class!
     */

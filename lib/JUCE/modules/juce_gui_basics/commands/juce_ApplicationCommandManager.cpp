@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -192,7 +192,7 @@ bool ApplicationCommandManager::invokeDirectly (CommandID commandID, bool asynch
 bool ApplicationCommandManager::invoke (const ApplicationCommandTarget::InvocationInfo& inf, bool asynchronously)
 {
     // This call isn't thread-safe for use from a non-UI thread without locking the message
-    // manager first..
+    // manager first.
     JUCE_ASSERT_MESSAGE_MANAGER_IS_LOCKED
 
     bool ok = false;
@@ -276,7 +276,7 @@ ApplicationCommandTarget* ApplicationCommandManager::findDefaultComponentTarget(
     {
         auto& desktop = Desktop::getInstance();
 
-        // getting a bit desperate now: try all desktop comps..
+        // getting a bit desperate now: try all desktop comps...
         for (int i = desktop.getNumComponents(); --i >= 0;)
             if (auto* component = desktop.getComponent (i))
                 if (detail::WindowingHelpers::isForegroundOrEmbeddedProcess (component))

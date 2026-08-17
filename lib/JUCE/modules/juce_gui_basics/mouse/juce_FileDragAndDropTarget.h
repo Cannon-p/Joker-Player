@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -99,7 +99,7 @@ public:
 
     /** Callback to indicate that the user has dropped the files onto this component.
 
-        When the user drops the files, this get called, and you can use the files in whatever
+        When the user drops the files, this gets called, and you can use the files in whatever
         way is appropriate.
 
         Note that after this is called, the fileDragExit method may not be called, so you should

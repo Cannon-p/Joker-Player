@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -88,7 +88,7 @@ namespace ComponentBuilderHelpers
 
             if (type == nullptr || uid.isEmpty())
             {
-                // ..handle the case where a child of the actual state node has changed.
+                // handle the case where a child of the actual state node has changed
                 if (state.getParent().isValid())
                     updateComponent (builder, state.getParent());
             }
@@ -282,7 +282,7 @@ void ComponentBuilder::updateChildComponents (Component& parent, const ValueTree
         // (remaining unused items in existingComponents get deleted here as it goes out of scope)
     }
 
-    // Make sure the z-order is correct..
+    // make sure the z-order is correct
     if (componentsInOrder.size() > 0)
     {
         componentsInOrder.getLast()->toFront (false);

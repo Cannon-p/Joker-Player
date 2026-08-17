@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -484,6 +484,38 @@ public:
 
             expect (numberOfCallbacks == 2);
             expect (listeners.size() == 2);
+        }
+
+        beginTest ("ThreadSafeListenerList stress test");
+        {
+            struct Listener { void callback(){} };
+
+            ThreadPool threadPool { 10 };
+            ThreadSafeListenerList<Listener> listeners;
+
+            for (int i = 0; i < 1'000; ++i)
+            {
+                threadPool.addJob ([&]
+                {
+                    std::vector<std::unique_ptr<Listener>> listenersToAdd;
+
+                    for (int j = 0; j < 1'000; ++j)
+                    {
+                        listenersToAdd.push_back (std::make_unique<Listener>());
+                        listeners.add (listenersToAdd.back().get());
+                    }
+
+                    for (auto& listener : listenersToAdd)
+                        listeners.remove (listener.get());
+                });
+
+                threadPool.addJob ([&]
+                {
+                    listeners.call (&Listener::callback);
+                });
+            }
+
+            expect (threadPool.removeAllJobs (false, 30'000));
         }
     }
 

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -48,7 +48,7 @@ RSAKey::RSAKey (const String& s)
     }
     else
     {
-        // the string needs to be two hex numbers, comma-separated..
+        // the string needs to be two hex numbers, comma-separated
         jassertfalse;
     }
 }
@@ -123,7 +123,7 @@ BigInteger RSAKey::findBestCommonDivisor (const BigInteger& p, const BigInteger&
 void RSAKey::createKeyPair (RSAKey& publicKey, RSAKey& privateKey,
                             const int numBits, const int* randomSeeds, const int numRandomSeeds)
 {
-    jassert (numBits > 16); // not much point using less than this..
+    jassert (numBits > 16); // not much point using less than this
     jassert (numRandomSeeds == 0 || numRandomSeeds >= 2); // you need to provide plenty of seeds here!
 
     BigInteger p (Primes::createProbablePrime (numBits / 2, 30, randomSeeds, numRandomSeeds / 2));

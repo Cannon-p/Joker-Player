@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -78,7 +78,7 @@
 #include "codecs/juce_LAMEEncoderAudioFormat.cpp"
 
 #if JucePlugin_Enable_ARA
- #include "juce_audio_processors/utilities/ARA/juce_ARADocumentControllerCommon.cpp"
+ #include <juce_audio_processors_headless/utilities/ARA/juce_ARADocumentControllerCommon.h>
  #include "format/juce_ARAAudioReaders.cpp"
 #endif
 

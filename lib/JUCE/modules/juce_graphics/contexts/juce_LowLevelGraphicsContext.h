@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -92,6 +92,7 @@ public:
     //==============================================================================
     virtual void setFill (const FillType&) = 0;
     virtual void setOpacity (float) = 0;
+    virtual void setImageBlendMode (BlendMode) = 0;
     virtual void setInterpolationQuality (Graphics::ResamplingQuality) = 0;
 
     //==============================================================================
@@ -136,6 +137,16 @@ public:
     virtual void drawGlyphs (Span<const uint16_t>,
                              Span<const Point<float>>,
                              const AffineTransform&) = 0;
+
+    /** Returns the optimal ImageType for creating temporary images in this GraphicsContext.
+
+        While this typically matches the GraphicsContext's native ImageType, certain scenarios
+        may benefit from using a different format for temporary operations (e.g., for
+        performance, memory efficiency, or specific rendering requirements).
+
+        @return A unique_ptr to the recommended ImageType instance for temporary images
+    */
+    virtual std::unique_ptr<ImageType> getPreferredImageTypeForTemporaryImages() const = 0;
 
     virtual void drawRoundedRectangle (const Rectangle<float>& r, float cornerSize, float lineThickness)
     {

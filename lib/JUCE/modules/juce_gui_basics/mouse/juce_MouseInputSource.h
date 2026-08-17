@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -285,13 +285,13 @@ public:
     static const Point<float> offscreenMousePos;
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("This method has been replaced with the isLongPressOrDrag and hasMovedSignificantlySincePressed "
                  "methods. If you want the same behaviour you should use isLongPressOrDrag which accounts for the "
                  "amount of time that the input source has been held down for, but if you only want to know whether "
                  "it has been moved use hasMovedSignificantlySincePressed instead.")]]
     bool hasMouseMovedSignificantlySincePressed() const noexcept;
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================

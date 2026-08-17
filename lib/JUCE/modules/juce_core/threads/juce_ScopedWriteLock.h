@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -52,7 +52,7 @@ namespace juce
 
         ...do some stuff...
 
-        // myLock gets unlocked here.
+        // myLock gets unlocked here
     }
     @endcode
 
@@ -117,10 +117,10 @@ private:
         }
         else
         {
-            ..our attempt at locking failed because some other thread has already locked the object..
+            ...our attempt at locking failed because some other thread has already locked the object...
         }
 
-        // myLock gets unlocked here (if it was locked).
+        // myLock gets unlocked here (if it was locked)
     }
     @endcode
 

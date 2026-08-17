@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -36,10 +36,12 @@ namespace juce
 {
 
 //==============================================================================
-#if JUCE_WINDOWS && ! defined (DOXYGEN)
+#if JUCE_WINDOWS
+ /** @cond */
  #define JUCE_NATIVE_WCHAR_IS_UTF8      0
  #define JUCE_NATIVE_WCHAR_IS_UTF16     1
  #define JUCE_NATIVE_WCHAR_IS_UTF32     0
+ /** @endcond */
 #else
  /** This macro will be set to 1 if the compiler's native wchar_t is an 8-bit type. */
  #define JUCE_NATIVE_WCHAR_IS_UTF8      0
@@ -56,10 +58,10 @@ namespace juce
  using juce_wchar = uint32;
 #endif
 
-#ifndef DOXYGEN
- /** This macro is deprecated, but preserved for compatibility with old code. */
- #define JUCE_T(stringLiteral)   (L##stringLiteral)
-#endif
+// This macro is deprecated, but preserved for compatibility with old code.
+/** @cond */
+#define JUCE_T(stringLiteral)   (L##stringLiteral)
+/** @endcond */
 
 #if JUCE_DEFINE_T_MACRO
  /** The 'T' macro is an alternative for using the "L" prefix in front of a string literal.
@@ -72,8 +74,7 @@ namespace juce
  #define T(stringLiteral)   JUCE_T(stringLiteral)
 #endif
 
-#ifndef DOXYGEN
-
+/** @cond */
 //==============================================================================
 // GNU libstdc++ does not have std::make_unsigned
 namespace internal
@@ -86,8 +87,7 @@ namespace internal
     template <> struct make_unsigned<long>                      { using type = unsigned long; };
     template <> struct make_unsigned<long long>                 { using type = unsigned long long; };
 }
-
-#endif
+/** @endcond */
 
 //==============================================================================
 /**
@@ -569,36 +569,67 @@ public:
     template <typename CharPointerType1, typename CharPointerType2>
     static int compare (CharPointerType1 s1, CharPointerType2 s2) noexcept
     {
-        for (;;)
+        using Char1 = typename CharPointerType1::CharType;
+        using Char2 = typename CharPointerType2::CharType;
+
+        if constexpr (std::is_same_v<Char1, char> && std::is_same_v<Char2, char>)
         {
-            auto c1 = s1.getAndAdvance();
-
-            if (auto diff = compare (c1, s2.getAndAdvance()))
-                return diff;
-
-            if (c1 == 0)
-                break;
+            return strcmp (s1.getAddress(), s2.getAddress());
         }
+        else if constexpr (std::is_same_v<Char1, wchar_t> && std::is_same_v<Char2, wchar_t>)
+        {
+            return wcscmp (s1.getAddress(), s2.getAddress());
+        }
+        else
+        {
+            for (;;)
+            {
+                auto c1 = s1.getAndAdvance();
 
-        return 0;
+                if (auto diff = compare (c1, s2.getAndAdvance()))
+                    return diff;
+
+                if (c1 == 0)
+                    break;
+            }
+
+            return 0;
+        }
     }
 
     /** Compares two null-terminated character strings, up to a given number of characters. */
     template <typename CharPointerType1, typename CharPointerType2>
     static int compareUpTo (CharPointerType1 s1, CharPointerType2 s2, int maxChars) noexcept
     {
-        while (--maxChars >= 0)
+        // Must not be negative!
+        jassert (maxChars >= 0);
+
+        using Char1 = typename CharPointerType1::CharType;
+        using Char2 = typename CharPointerType2::CharType;
+
+        if constexpr (std::is_same_v<Char1, char> && std::is_same_v<Char2, char>)
         {
-            auto c1 = s1.getAndAdvance();
-
-            if (auto diff = compare (c1, s2.getAndAdvance()))
-                return diff;
-
-            if (c1 == 0)
-                break;
+            return std::strncmp (s1.getAddress(), s2.getAddress(), (size_t) maxChars);
         }
+        else if constexpr (std::is_same_v<Char1, wchar_t> && std::is_same_v<Char2, wchar_t>)
+        {
+            return std::wcsncmp (s1.getAddress(), s2.getAddress(), (size_t) maxChars);
+        }
+        else
+        {
+            while (--maxChars >= 0)
+            {
+                auto c1 = s1.getAndAdvance();
 
-        return 0;
+                if (auto diff = compare (c1, s2.getAndAdvance()))
+                    return diff;
+
+                if (c1 == 0)
+                    break;
+            }
+
+            return 0;
+        }
     }
 
     /** Compares two characters, using a case-independant match. */
@@ -759,6 +790,36 @@ public:
         }
 
         return -1;
+    }
+
+    /** Given a CharacterPointer range and a predicate, returns a pointer to the first
+        character in the range that does not satisfy the predicate.
+    */
+    template <typename Type, typename Predicate>
+    static Type trimBegin (Type begin, const Type end, Predicate&& shouldTrim)
+    {
+        while (begin != end && shouldTrim (begin))
+            ++begin;
+
+        return begin;
+    }
+
+    /** Given a CharacterPointer range and a predicate, returns a pointer one-past the
+        last character in the range that does not satisfy the predicate.
+    */
+    template <typename Type, typename Predicate>
+    static Type trimEnd (const Type begin, Type end, Predicate&& shouldTrim)
+    {
+        while (end > begin)
+        {
+            if (! shouldTrim (--end))
+            {
+                ++end;
+                break;
+            }
+        }
+
+        return end;
     }
 
     /** Increments a pointer until it points to the first non-whitespace character

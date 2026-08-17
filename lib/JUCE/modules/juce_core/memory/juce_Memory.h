@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -178,7 +178,8 @@ inline const Type* addBytesToPointer (const Type* basePointer, IntegerType bytes
    avoiding problems when an object is created in one module and passed across to another where it is deleted.
    By piggy-backing on the JUCE_LEAK_DETECTOR macro, these allocators can be injected into most juce classes.
 */
-#if JUCE_MSVC && (defined (JUCE_DLL) || defined (JUCE_DLL_BUILD)) && ! (JUCE_DISABLE_DLL_ALLOCATORS || DOXYGEN)
+#if JUCE_MSVC && (defined (JUCE_DLL) || defined (JUCE_DLL_BUILD)) && ! JUCE_DISABLE_DLL_ALLOCATORS
+ /** @cond */
  extern JUCE_API void* juceDLL_malloc (size_t);
  extern JUCE_API void  juceDLL_free (void*);
 
@@ -187,6 +188,7 @@ inline const Type* addBytesToPointer (const Type* basePointer, IntegerType bytes
     static void* operator new (size_t, void* p)     { return p; } \
     static void operator delete (void* p)           { juce::juceDLL_free (p); } \
     static void operator delete (void*, void*)      {}
+ /** @endcond */
 #endif
 
 //==============================================================================

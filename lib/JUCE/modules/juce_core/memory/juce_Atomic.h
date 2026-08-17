@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,13 +35,13 @@
 namespace juce
 {
 
-#ifndef DOXYGEN
- namespace AtomicHelpers
- {
-     template <typename T> struct DiffTypeHelper     { using Type = T; };
-     template <typename T> struct DiffTypeHelper<T*> { using Type = std::ptrdiff_t; };
- }
-#endif
+/** @cond */
+namespace AtomicHelpers
+{
+    template <typename T> struct DiffTypeHelper     { using Type = T; };
+    template <typename T> struct DiffTypeHelper<T*> { using Type = std::ptrdiff_t; };
+}
+/** @endcond */
 
 //==============================================================================
 /**
@@ -147,11 +147,11 @@ struct Atomic  final
     std::atomic<Type> value;
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("This method has been deprecated as there is no equivalent method in "
                  "std::atomic. Use compareAndSetBool instead.")]]
     Type compareAndSetValue (Type, Type) noexcept;
-   #endif
+    /** @endcond */
 };
 
 } // namespace juce

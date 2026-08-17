@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -47,7 +47,8 @@ namespace KeyboardFocusTraverserHelpers
                                 detail::FocusHelpers::NavigationDirection direction)
     {
         if (auto* comp = detail::FocusHelpers::navigateFocus (current, container, direction,
-                                                              &Component::isKeyboardFocusContainer))
+                                                              &Component::isKeyboardFocusContainer,
+                                                              FocusTraverser::SkipDisabledComponents::yes))
         {
             if (isKeyboardFocusable (comp, container))
                 return comp;
@@ -85,7 +86,8 @@ std::vector<Component*> KeyboardFocusTraverser::getAllComponents (Component* par
     std::vector<Component*> components;
     detail::FocusHelpers::findAllComponents (parentComponent,
                                              components,
-                                             &Component::isKeyboardFocusContainer);
+                                             &Component::isKeyboardFocusContainer,
+                                             FocusTraverser::SkipDisabledComponents::yes);
 
     auto removePredicate = [parentComponent] (const Component* comp)
     {

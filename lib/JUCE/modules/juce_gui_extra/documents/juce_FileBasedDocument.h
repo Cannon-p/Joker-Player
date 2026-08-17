@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -64,8 +64,8 @@ public:
 
         @param fileExtension            the extension to use when loading/saving files, e.g. ".doc"
         @param fileWildCard             the wildcard to use in file dialogs, e.g. "*.doc"
-        @param openFileDialogTitle      the title to show on an open-file dialog, e.g. "Choose a file to open.."
-        @param saveFileDialogTitle      the title to show on an save-file dialog, e.g. "Choose a file to save as.."
+        @param openFileDialogTitle      the title to show on an open-file dialog, e.g. "Choose a file to open"
+        @param saveFileDialogTitle      the title to show on an save-file dialog, e.g. "Choose a file to save as"
     */
     FileBasedDocument (const String& fileExtension,
                        const String& fileWildCard,

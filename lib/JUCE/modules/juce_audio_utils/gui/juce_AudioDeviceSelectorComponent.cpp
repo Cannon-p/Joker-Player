@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -804,10 +804,17 @@ private:
             currentRate = 48000.0;
 
         for (auto bs : currentDevice->getAvailableBufferSizes())
-            bufferSizeDropDown->addItem (String (bs) + " samples (" + String (bs * 1000.0 / currentRate, 1) + " ms)", bs);
+            bufferSizeDropDown->addItem (getBufferSizeText (bs, currentRate), bs);
 
-        bufferSizeDropDown->setSelectedId (currentDevice->getCurrentBufferSizeSamples(), dontSendNotification);
+        const auto bufferSizeSamples = currentDevice->getCurrentBufferSizeSamples();
+        bufferSizeDropDown->setText (getBufferSizeText (bufferSizeSamples, currentRate), dontSendNotification);
+
         bufferSizeDropDown->onChange = [this] { updateConfig (false, false, false, true); };
+    }
+
+    String getBufferSizeText (int bs, double currentRate) const
+    {
+        return String (bs) + " samples (" + String (bs * 1000.0 / currentRate, 1) + " ms)";
     }
 
 public:

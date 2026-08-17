@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -43,7 +43,7 @@ namespace juce::midi_ci::detail
 */
 class PropertyDataMessageChunker
 {
-    auto tie() const { return std::tie (storage, body, source, dest, chunkSize, messageKind, requestId); }
+    auto tie() const;
 
 public:
     /*  Constructs a chunker instance.
@@ -79,8 +79,8 @@ public:
     PropertyDataMessageChunker& operator++() noexcept;
 
     /*  Checks whether the state of this chunker matches the state of another chunker, enabling foreach usage. */
-    bool operator== (const PropertyDataMessageChunker& other) const noexcept { return tie() == other.tie(); }
-    bool operator!= (const PropertyDataMessageChunker& other) const noexcept { return tie() != other.tie(); }
+    bool operator== (const PropertyDataMessageChunker& other) const noexcept;
+    bool operator!= (const PropertyDataMessageChunker& other) const noexcept;
 
     /*  Returns a span over the valid bytes in the output buffer. */
     Span<const std::byte> operator*() const noexcept;

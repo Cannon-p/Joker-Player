@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -89,13 +89,15 @@ public:
 
     //==============================================================================
     /** Changes the font to use to draw the text.
-        @see getFont
+        Note that when drawing, the label's LookAndFeel may override the font set here.
+        @see getFont, LookAndFeelMethods
     */
     void setFont (const Font& newFont);
 
-    /** Returns the font currently being used.
-        This may be the one set by setFont(), unless it has been overridden by the current LookAndFeel
-        @see setFont
+    /** Returns the Label's current font.
+        Note that this method will always return the font set by setFont(), even if
+        the LookAndFeel is overriding the label's font during drawing.
+        @see setFont, LookAndFeelMethods
     */
     Font getFont() const noexcept;
 

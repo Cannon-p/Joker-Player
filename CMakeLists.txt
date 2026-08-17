@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.22)
 
 PROJECT(JokerPlayer
-LANGUAGES CXX
+LANGUAGES C CXX
 VERSION 1.0.0
 )
 

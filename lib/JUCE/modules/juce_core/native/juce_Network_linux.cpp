@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -537,7 +537,16 @@ private:
         if (userHeaders.isNotEmpty())
             header << "\r\n" << userHeaders;
 
-        header << "\r\n\r\n";
+        const auto headerHasCompleteSuffix = [&header]
+        {
+            const auto actualEnd = static_cast<const char*> (header.getData()) + header.getDataSize();
+            const auto actualBegin = actualEnd - jmin (header.getDataSize(), (size_t) 4);
+            const char expected[] { '\r', '\n', '\r', '\n' };
+            return std::equal (actualBegin, actualEnd, std::begin (expected), std::end (expected));
+        };
+
+        while (! headerHasCompleteSuffix())
+            header << "\r\n";
 
         if (hasPostData)
             header << postData;

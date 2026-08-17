@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -553,7 +553,7 @@ SynthesiserVoice* Synthesiser::findVoiceToSteal (SynthesiserSound* soundToPlay,
             usableVoicesToStealArray.add (voice);
 
             // NB: Using a functor rather than a lambda here due to scare-stories about
-            // compilers generating code containing heap allocations..
+            // compilers generating code containing heap allocations.
             struct Sorter
             {
                 bool operator() (const SynthesiserVoice* a, const SynthesiserVoice* b) const noexcept { return a->wasStartedBefore (*b); }
@@ -578,7 +578,7 @@ SynthesiserVoice* Synthesiser::findVoiceToSteal (SynthesiserSound* soundToPlay,
     if (top == low)
         top = nullptr;
 
-    // The oldest note that's playing with the target pitch is ideal..
+    // The oldest note that's playing with the target pitch is ideal.
     for (auto* voice : usableVoicesToStealArray)
         if (voice->getCurrentlyPlayingNote() == midiNoteNumber)
             return voice;

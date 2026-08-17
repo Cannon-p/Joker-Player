@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -92,12 +92,15 @@ private:
             const int pw = getParentWidth();
             const int ph = getParentHeight();
 
+            setBounds (0, 0, getParentWidth(), getParentHeight());
+
             nativeSelectorComponent.setBounds (Rectangle<int> (pw, ph)
                                                  .withSizeKeepingCentre (jmin (400, pw),
                                                                          jmin (450, ph - 40)));
         }
         else
         {
+            setBounds (bounds);
             nativeSelectorComponent.setBounds (bounds.withZeroOrigin());
         }
     }

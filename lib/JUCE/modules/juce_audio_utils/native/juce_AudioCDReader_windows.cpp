@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -427,7 +427,7 @@ DWORD performScsiPassThroughCommand (SRB_ExecSCSICmd* const srb, const char driv
 
 
 //==============================================================================
-// Controller types..
+// controller types
 
 class ControllerType1 final : public CDController
 {
@@ -1130,7 +1130,7 @@ bool AudioCDReader::readSamples (int* const* destSamples, int numDestChannels, i
                 }
 
                 // sometimes the read fails for just the very last couple of blocks, so
-                // we'll ignore and errors in the last half-second of the disk..
+                // we'll ignore and errors in the last half-second of the disk
                 ok = startSampleInFile > (trackStartSamples [getNumTracks()] - 20000);
                 break;
             }
@@ -1241,7 +1241,7 @@ Array<int> AudioCDReader::findIndexesInTrack (const int trackNumber)
 
             if (index == 0)
             {
-                // lead-out, so skip back a bit if we've not found any indexes yet..
+                // lead-out, so skip back a bit if we've not found any indexes yet
                 if (seenAnIndex)
                     break;
 

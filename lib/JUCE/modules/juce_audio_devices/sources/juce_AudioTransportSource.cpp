@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -168,8 +168,13 @@ double AudioTransportSource::getLengthInSeconds() const
 
 bool AudioTransportSource::hasStreamFinished() const noexcept
 {
-    return positionableSource->getNextReadPosition() > positionableSource->getTotalLength() + 1
-              && ! positionableSource->isLooping();
+    if (positionableSource == nullptr)
+        return true;
+
+    if (positionableSource->isLooping())
+        return false;
+
+    return positionableSource->getNextReadPosition() >= positionableSource->getTotalLength();
 }
 
 void AudioTransportSource::setNextReadPosition (int64 newPosition)
@@ -264,7 +269,7 @@ void AudioTransportSource::getNextAudioBlock (const AudioSourceChannelInfo& info
 
         if (! playing)
         {
-            // just stopped playing, so fade out the last block..
+            // just stopped playing, so fade out the last block
             for (int i = info.buffer->getNumChannels(); --i >= 0;)
                 info.buffer->applyGainRamp (i, info.startSample, jmin (256, info.numSamples), 1.0f, 0.0f);
 

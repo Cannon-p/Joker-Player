@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -75,13 +75,18 @@ namespace ActiveXHelpers
         JUCE_COMRESULT GetBorder (LPRECT)                                       override { return E_NOTIMPL; }
         JUCE_COMRESULT RequestBorderSpace (LPCBORDERWIDTHS)                     override { return E_NOTIMPL; }
         JUCE_COMRESULT SetBorderSpace (LPCBORDERWIDTHS)                         override { return E_NOTIMPL; }
-        JUCE_COMRESULT SetActiveObject (IOleInPlaceActiveObject* a, LPCOLESTR)  override { activeObject = addComSmartPtrOwner (a); return S_OK; }
         JUCE_COMRESULT InsertMenus (HMENU, LPOLEMENUGROUPWIDTHS)                override { return E_NOTIMPL; }
         JUCE_COMRESULT SetMenu (HMENU, HOLEMENU, HWND)                          override { return S_OK; }
         JUCE_COMRESULT RemoveMenus (HMENU)                                      override { return E_NOTIMPL; }
         JUCE_COMRESULT SetStatusText (LPCOLESTR)                                override { return S_OK; }
         JUCE_COMRESULT EnableModeless (BOOL)                                    override { return S_OK; }
         JUCE_COMRESULT TranslateAccelerator (LPMSG, WORD)                       override { return E_NOTIMPL; }
+
+        JUCE_COMRESULT SetActiveObject (IOleInPlaceActiveObject* a, LPCOLESTR)  override
+        {
+            activeObject = ComSmartPtr (a, IncrementRef::yes);
+            return S_OK;
+        }
 
         HRESULT OfferKeyTranslation (LPMSG lpmsg)
         {
@@ -116,8 +121,8 @@ namespace ActiveXHelpers
 
         JUCE_COMRESULT GetWindowContext (LPOLEINPLACEFRAME* lplpFrame, LPOLEINPLACEUIWINDOW* lplpDoc, LPRECT, LPRECT, LPOLEINPLACEFRAMEINFO lpFrameInfo) override
         {
-            /* Note: If you call AddRef on the frame here, then some types of object (e.g. web browser control) cause leaks..
-               If you don't call AddRef then others crash (e.g. QuickTime).. Bit of a catch-22, so letting it leak is probably preferable.
+            /* Note: If you call AddRef on the frame here, then some types of object (e.g. web browser control) cause leaks.
+               If you don't call AddRef then others crash (e.g. QuickTime). Bit of a catch-22, so letting it leak is probably preferable.
             */
             if (lplpFrame != nullptr) { frame->AddRef(); *lplpFrame = frame; }
             if (lplpDoc != nullptr)   *lplpDoc = nullptr;
@@ -282,8 +287,7 @@ namespace ActiveXHelpers
 }
 
 //==============================================================================
-class ActiveXControlComponent::Pimpl  : public ComponentMovementWatcher,
-                                        public ComponentPeer::ScaleFactorListener
+class ActiveXControlComponent::Pimpl  : public ComponentMovementWatcher
 {
 public:
     Pimpl (HWND hwnd, ActiveXControlComponent& activeXComp)
@@ -309,9 +313,6 @@ public:
 
         clientSite->Release();
         storage->Release();
-
-        if (currentPeer != nullptr)
-            currentPeer->removeScaleFactorListener (this);
     }
 
     void setControlBounds (Rectangle<int> newBounds) const
@@ -340,28 +341,16 @@ public:
             setControlBounds (peer->getAreaCoveredBy (owner));
     }
 
-    void componentPeerChanged() override
-    {
-        if (currentPeer != nullptr)
-            currentPeer->removeScaleFactorListener (this);
-
-        componentMovedOrResized (true, true);
-
-        currentPeer = owner.getTopLevelComponent()->getPeer();
-
-        if (currentPeer != nullptr)
-            currentPeer->addScaleFactorListener (this);
-    }
+    void componentPeerChanged() override {}
 
     using ComponentMovementWatcher::componentVisibilityChanged;
 
     void componentVisibilityChanged() override
     {
         setControlVisible (owner.isShowing());
-        componentPeerChanged();
     }
 
-    void nativeScaleFactorChanged (double /*newScaleFactor*/) override
+    void nativeScaleFactorChanged()
     {
         componentMovedOrResized (true, true);
     }
@@ -415,6 +404,7 @@ public:
     ActiveXHelpers::JuceIOleClientSite* clientSite = nullptr;
     IOleObject* control = nullptr;
     WNDPROC originalWndProc = nullptr;
+    NativeScaleFactorNotifier notifier { &owner, [this] (auto) { nativeScaleFactorChanged(); } };
 };
 
 //==============================================================================

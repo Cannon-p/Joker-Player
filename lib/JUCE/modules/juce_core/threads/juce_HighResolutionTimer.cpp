@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -366,6 +366,7 @@ public:
 
         beginBehaviourTest ("A timer can be restarted externally, after being stopped internally");
         {
+            WaitableEvent stopTimer;
             WaitableEvent timerStopped;
             WaitableEvent timerFiredAfterRestart;
 
@@ -374,6 +375,7 @@ public:
                 switch (++callbackCount)
                 {
                     case 1:
+                        stopTimer.wait (maximumTimeoutMs);
                         timer.stopTimer();
                         timerStopped.signal();
                         return;
@@ -391,6 +393,7 @@ public:
             timer.startTimer (1);
             expect (timer.isTimerRunning());
 
+            stopTimer.signal();
             expect (timerStopped.wait (maximumTimeoutMs));
             expect (! timer.isTimerRunning());
 

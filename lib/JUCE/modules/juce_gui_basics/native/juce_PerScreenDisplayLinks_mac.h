@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -37,69 +37,6 @@ namespace juce
 
 //==============================================================================
 /*
-    Forwards NSNotificationCenter callbacks to a std::function<void()>.
-*/
-class FunctionNotificationCenterObserver
-{
-public:
-    FunctionNotificationCenterObserver (NSNotificationName notificationName,
-                                        id objectToObserve,
-                                        std::function<void()> callback)
-        : onNotification (std::move (callback)),
-          observer (observerObject.get(), getSelector(), notificationName, objectToObserve)
-    {}
-
-private:
-    struct ObserverClass
-    {
-        ObserverClass()
-        {
-            klass.addIvar<FunctionNotificationCenterObserver*> ("owner");
-
-            klass.addMethod (getSelector(), [] (id self, SEL, NSNotification*)
-            {
-                getIvar<FunctionNotificationCenterObserver*> (self, "owner")->onNotification();
-            });
-
-            klass.registerClass();
-        }
-
-        NSObject* createInstance() const { return klass.createInstance(); }
-
-    private:
-        ObjCClass<NSObject> klass { "JUCEObserverClass_" };
-    };
-
-    static SEL getSelector()
-    {
-        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
-        return @selector (notificationFired:);
-        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
-    }
-
-    std::function<void()> onNotification;
-
-    NSUniquePtr<NSObject> observerObject
-    {
-        [this]
-        {
-            static ObserverClass observerClass;
-            auto* result = observerClass.createInstance();
-            object_setInstanceVariable (result, "owner", this);
-            return result;
-        }()
-    };
-
-    ScopedNotificationCenterObserver observer;
-
-    // Instances can't be copied or moved, because 'this' is stored as a member of the ObserverClass
-    // object.
-    JUCE_DECLARE_NON_COPYABLE (FunctionNotificationCenterObserver)
-    JUCE_DECLARE_NON_MOVEABLE (FunctionNotificationCenterObserver)
-};
-
-//==============================================================================
-/*
     Manages the lifetime of a CVDisplayLinkRef for a single display, and automatically starts and
     stops it.
 */
@@ -109,7 +46,7 @@ private:
 // NSScreen.displayLink(target:selector:) all of which were only introduced in macOS 14+ however,
 // it's not clear how these methods can be used to replace all use cases
 
-JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
 
 class ScopedDisplayLink
 {
@@ -188,7 +125,7 @@ private:
     JUCE_DECLARE_NON_MOVEABLE (ScopedDisplayLink)
 };
 
-JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
 //==============================================================================
 /*

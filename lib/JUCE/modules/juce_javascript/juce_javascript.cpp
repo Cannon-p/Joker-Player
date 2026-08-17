@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -47,6 +47,8 @@
  JUCE_COMPILER_WARNING ("The QuickJS version embedded inside of JUCE does not support the CONFIG_BIGNUM setting.")
  #undef CONFIG_BIGNUM
 #endif
+
+#define CHOC_QUICKJS_NO_STACK_CHECK 1
 
 #define choc juce::detail::choc
 #include <juce_javascript/choc/javascript/choc_javascript_QuickJS.h>

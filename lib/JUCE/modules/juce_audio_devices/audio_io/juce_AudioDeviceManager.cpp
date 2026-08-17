@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -73,12 +73,88 @@ bool AudioDeviceManager::AudioDeviceSetup::operator!= (const AudioDeviceManager:
 }
 
 //==============================================================================
-class AudioDeviceManager::CallbackHandler final : public AudioIODeviceCallback,
-                                                  public MidiInputCallback,
-                                                  public AudioIODeviceType::Listener
+/*  This class is used to ensure that audio callbacks use buffers with a
+    predictable maximum size.
+
+    On some platforms (such as iOS 10), the expected buffer size reported in
+    audioDeviceAboutToStart may be smaller than the blocks passed to
+    audioDeviceIOCallbackWithContext. This can lead to out-of-bounds reads if
+    the render callback depends on additional buffers which were initialised
+    using the smaller size.
+
+    As a workaround, this class will ensure that the render callback will only
+    ever be called with a block with a length less than or equal to the
+    expected block size.
+*/
+class CallbackMaxSizeEnforcer  : public AudioIODeviceCallback
 {
 public:
-    CallbackHandler (AudioDeviceManager& adm) noexcept  : owner (adm) {}
+    explicit CallbackMaxSizeEnforcer (AudioIODeviceCallback& callbackIn)
+        : inner (callbackIn) {}
+
+    void audioDeviceAboutToStart (AudioIODevice* device) override
+    {
+        maximumSize = device->getCurrentBufferSizeSamples();
+        storedInputChannels .resize ((size_t) device->getActiveInputChannels() .countNumberOfSetBits());
+        storedOutputChannels.resize ((size_t) device->getActiveOutputChannels().countNumberOfSetBits());
+
+        inner.audioDeviceAboutToStart (device);
+    }
+
+    void audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
+                                           [[maybe_unused]] int numInputChannels,
+                                           float* const* outputChannelData,
+                                           [[maybe_unused]] int numOutputChannels,
+                                           int numSamples,
+                                           const AudioIODeviceCallbackContext& context) override
+    {
+        jassert ((int) storedInputChannels.size()  == numInputChannels);
+        jassert ((int) storedOutputChannels.size() == numOutputChannels);
+
+        int position = 0;
+
+        while (position < numSamples)
+        {
+            const auto blockLength = jmin (maximumSize, numSamples - position);
+
+            const auto addOffset = [position] (auto ptr) { return ptr + position; };
+            std::transform (inputChannelData,  inputChannelData  + numInputChannels,  storedInputChannels .begin(), addOffset);
+            std::transform (outputChannelData, outputChannelData + numOutputChannels, storedOutputChannels.begin(), addOffset);
+
+            inner.audioDeviceIOCallbackWithContext (storedInputChannels.data(),
+                                                    (int) storedInputChannels.size(),
+                                                    storedOutputChannels.data(),
+                                                    (int) storedOutputChannels.size(),
+                                                    blockLength,
+                                                    context);
+
+            position += blockLength;
+        }
+    }
+
+    void audioDeviceStopped() override
+    {
+        inner.audioDeviceStopped();
+    }
+
+private:
+    std::vector<const float*> storedInputChannels;
+    std::vector<float*> storedOutputChannels;
+    AudioIODeviceCallback& inner;
+    int maximumSize = 0;
+};
+
+//==============================================================================
+class AudioDeviceManager::CallbackHandler final : private MidiInputCallback,
+                                                  private AudioIODeviceType::Listener,
+                                                  private AudioIODeviceCallback
+{
+public:
+    explicit CallbackHandler (AudioDeviceManager& adm) noexcept  : owner (adm) {}
+
+    MidiInputCallback* getMidiInputCallback() { return this; }
+    AudioIODeviceType::Listener* getAudioIODeviceTypeListener() { return this; }
+    AudioIODeviceCallback* getAudioIODeviceCallback() { return &enforcer; }
 
 private:
     void audioDeviceIOCallbackWithContext (const float* const* ins,
@@ -117,6 +193,7 @@ private:
     }
 
     AudioDeviceManager& owner;
+    CallbackMaxSizeEnforcer enforcer { *this };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CallbackHandler)
 };
@@ -129,6 +206,7 @@ AudioDeviceManager::AudioDeviceManager()
 
 AudioDeviceManager::~AudioDeviceManager()
 {
+    enabledMidiInputs.clear();
     currentAudioDevice.reset();
     defaultMidiOutput.reset();
 }
@@ -194,7 +272,7 @@ void AudioDeviceManager::audioDeviceListChanged()
 {
     if (currentAudioDevice != nullptr)
     {
-        auto currentDeviceStillAvailable = [&]
+        auto currentDeviceStillAvailable = std::invoke ([&]
         {
             auto currentTypeName = currentAudioDevice->getTypeName();
             auto currentDeviceName = currentAudioDevice->getName();
@@ -214,7 +292,7 @@ void AudioDeviceManager::audioDeviceListChanged()
             }
 
             return false;
-        }();
+        });
 
         if (! currentDeviceStillAvailable)
         {
@@ -254,7 +332,6 @@ void AudioDeviceManager::createAudioDeviceTypes (OwnedArray<AudioIODeviceType>& 
     addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_ASIO());
     addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_CoreAudio());
     addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_iOSAudio());
-    addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_Bela());
     addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_ALSA());
     addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_JACK());
     addIfNotNull (list, AudioIODeviceType::createAudioIODeviceType_Oboe());
@@ -271,7 +348,7 @@ void AudioDeviceManager::addAudioDeviceType (std::unique_ptr<AudioIODeviceType> 
         availableDeviceTypes.add (newDeviceType.release());
         lastDeviceTypeConfigs.add (new AudioDeviceSetup());
 
-        availableDeviceTypes.getLast()->addListener (callbackHandler.get());
+        availableDeviceTypes.getLast()->addListener (callbackHandler->getAudioIODeviceTypeListener());
     }
 }
 
@@ -285,7 +362,7 @@ void AudioDeviceManager::removeAudioDeviceType (AudioIODeviceType* deviceTypeToR
 
         if (auto removed = std::unique_ptr<AudioIODeviceType> (availableDeviceTypes.removeAndReturn (index)))
         {
-            removed->removeListener (callbackHandler.get());
+            removed->removeListener (callbackHandler->getAudioIODeviceTypeListener());
             lastDeviceTypeConfigs.remove (index, true);
         }
     }
@@ -587,6 +664,10 @@ void AudioDeviceManager::insertDefaultDeviceNames (AudioDeviceSetup& setup) cons
         if (setup.inputDeviceName.isEmpty() && ! inputsToTest.isEmpty())
             setup.inputDeviceName = inputsToTest[0];
 
+        // No pairs to validate
+        if (outputsToTest.size() < 2 && inputsToTest.size() < 2)
+            return;
+
         // We check all possible in-out pairs until the first validation pass. If no pair passes we
         // leave the setup unchanged.
         for (const auto& out : outputsToTest)
@@ -802,19 +883,34 @@ String AudioDeviceManager::setAudioDeviceSetup (const AudioDeviceSetup& newSetup
         return {};
     }
 
-    currentSetup.sampleRate = chooseBestSampleRate (currentSetup.sampleRate);
-    currentSetup.bufferSize = chooseBestBufferSize (currentSetup.bufferSize);
+    const auto sampleRate = findNearestValue (Span { currentAudioDevice->getAvailableSampleRates() }, currentSetup.sampleRate);
+    const auto preBufferSize = findNearestValue (Span { currentAudioDevice->getAvailableBufferSizes() }, currentSetup.bufferSize);
 
     error = currentAudioDevice->open (currentSetup.inputChannels,
                                       currentSetup.outputChannels,
-                                      currentSetup.sampleRate,
-                                      currentSetup.bufferSize);
+                                      sampleRate,
+                                      preBufferSize);
+
+    if (error.isEmpty())
+    {
+        // The available buffer sizes may have changed, if the sample rate has
+        // changed. If so we'll need to reconfigure with a different buffer size.
+        const auto postBufferSize = findNearestValue (Span { currentAudioDevice->getAvailableBufferSizes() }, currentSetup.bufferSize);
+
+        if (preBufferSize != postBufferSize)
+        {
+            error = currentAudioDevice->open (currentSetup.inputChannels,
+                                              currentSetup.outputChannels,
+                                              currentSetup.sampleRate,
+                                              postBufferSize);
+        }
+    }
 
     if (error.isEmpty())
     {
         currentDeviceType = currentAudioDevice->getTypeName();
 
-        currentAudioDevice->start (callbackHandler.get());
+        currentAudioDevice->start (callbackHandler->getAudioIODeviceCallback());
 
         error = currentAudioDevice->getLastError();
     }
@@ -836,46 +932,6 @@ String AudioDeviceManager::setAudioDeviceSetup (const AudioDeviceSetup& newSetup
     }
 
     return error;
-}
-
-double AudioDeviceManager::chooseBestSampleRate (double rate) const
-{
-    jassert (currentAudioDevice != nullptr);
-
-    auto rates = currentAudioDevice->getAvailableSampleRates();
-
-    if (rate > 0 && rates.contains (rate))
-        return rate;
-
-    rate = currentAudioDevice->getCurrentSampleRate();
-
-    if (rate > 0 && rates.contains (rate))
-        return rate;
-
-    double lowestAbove44 = 0.0;
-
-    for (int i = rates.size(); --i >= 0;)
-    {
-        auto sr = rates[i];
-
-        if (sr >= 44100.0 && (lowestAbove44 < 1.0 || sr < lowestAbove44))
-            lowestAbove44 = sr;
-    }
-
-    if (lowestAbove44 > 0.0)
-        return lowestAbove44;
-
-    return rates[0];
-}
-
-int AudioDeviceManager::chooseBestBufferSize (int bufferSize) const
-{
-    jassert (currentAudioDevice != nullptr);
-
-    if (bufferSize > 0 && currentAudioDevice->getAvailableBufferSizes().contains (bufferSize))
-        return bufferSize;
-
-    return currentAudioDevice->getDefaultBufferSize();
 }
 
 void AudioDeviceManager::stopDevice()
@@ -922,10 +978,8 @@ void AudioDeviceManager::updateXml()
 
     if (currentAudioDevice != nullptr)
     {
-        lastExplicitSettings->setAttribute ("audioDeviceRate", currentAudioDevice->getCurrentSampleRate());
-
-        if (currentAudioDevice->getDefaultBufferSize() != currentAudioDevice->getCurrentBufferSizeSamples())
-            lastExplicitSettings->setAttribute ("audioDeviceBufferSize", currentAudioDevice->getCurrentBufferSizeSamples());
+        lastExplicitSettings->setAttribute ("audioDeviceRate",       currentAudioDevice->getCurrentSampleRate());
+        lastExplicitSettings->setAttribute ("audioDeviceBufferSize", currentAudioDevice->getCurrentBufferSizeSamples());
 
         if (! currentSetup.useDefaultInputChannels)
             lastExplicitSettings->setAttribute ("audioDeviceInChans", currentSetup.inputChannels.toString (2));
@@ -1120,7 +1174,7 @@ void AudioDeviceManager::setMidiInputDeviceEnabled (const String& identifier, bo
     {
         if (enabled)
         {
-            if (auto midiIn = MidiInput::openDevice (identifier, callbackHandler.get()))
+            if (auto midiIn = MidiInput::openDevice (identifier, callbackHandler->getMidiInputCallback()))
             {
                 enabledMidiInputs.push_back (std::move (midiIn));
                 enabledMidiInputs.back()->start();
@@ -1272,7 +1326,7 @@ double AudioDeviceManager::LevelMeter::getCurrentLevel() const noexcept
 
 void AudioDeviceManager::playTestSound()
 {
-    { // cunningly nested to swap, unlock and delete in that order.
+    { // cunningly nested to swap, unlock and delete in that order
         std::unique_ptr<AudioBuffer<float>> oldSound;
 
         {
@@ -1398,6 +1452,8 @@ public:
 
     void runTest() override
     {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
         beginTest ("When the AudioDeviceSetup has non-empty device names, initialise uses the requested devices");
         {
             AudioDeviceManager manager;

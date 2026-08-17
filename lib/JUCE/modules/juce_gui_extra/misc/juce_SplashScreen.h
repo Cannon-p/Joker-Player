@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -65,9 +65,9 @@ namespace juce
 
     void MyApp::myInitialisationWorkFinished()
     {
-        // ..assuming this is some kind of callback method that is triggered when
+        // ...assuming this is some kind of callback method that is triggered when
         // your background initialisation threads have finished, and it's time to open
-        // your main window, etc..
+        // your main window, etc.
 
         splash->deleteAfterDelay (RelativeTime::seconds (4), false);
 

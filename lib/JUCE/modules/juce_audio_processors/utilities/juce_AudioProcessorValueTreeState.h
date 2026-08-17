@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -279,7 +279,7 @@ public:
     ~AudioProcessorValueTreeState() override;
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     /** Previous calls to
 
         @code
@@ -326,7 +326,7 @@ public:
                                                  bool isDiscrete = false,
                                                  AudioProcessorParameter::Category parameterCategory = AudioProcessorParameter::genericParameter,
                                                  bool isBoolean = false);
-   #endif
+    /** @endcond */
 
     /** This function adds a parameter to the attached AudioProcessor and that parameter will
         be managed by this AudioProcessorValueTreeState object.

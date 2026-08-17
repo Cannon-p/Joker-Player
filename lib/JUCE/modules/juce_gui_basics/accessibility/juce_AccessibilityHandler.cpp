@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -34,8 +34,6 @@
 
 namespace juce
 {
-
-AccessibilityHandler* AccessibilityHandler::currentlyFocusedHandler = nullptr;
 
 class NativeChildHandler
 {
@@ -403,10 +401,24 @@ void AccessibilityHandler::setNativeChildForComponent (Component& component, voi
     NativeChildHandler::getInstance().setNativeChild (component, nativeChild);
 }
 
+#if JUCE_MODULE_AVAILABLE_juce_gui_extra
+void privatePostSystemNotification (const String&, const String&);
+#endif
+
+void AccessibilityHandler::postSystemNotification ([[maybe_unused]] const String& notificationTitle,
+                                                   [[maybe_unused]] const String& notificationBody)
+{
+   #if JUCE_MODULE_AVAILABLE_juce_gui_extra
+    if (areAnyAccessibilityClientsActive())
+        privatePostSystemNotification (notificationTitle, notificationBody);
+   #endif
+}
+
 #if ! JUCE_NATIVE_ACCESSIBILITY_INCLUDED
  void AccessibilityHandler::notifyAccessibilityEvent (AccessibilityEvent) const {}
  void AccessibilityHandler::postAnnouncement (const String&, AnnouncementPriority) {}
  AccessibilityNativeHandle* AccessibilityHandler::getNativeImplementation() const { return nullptr; }
+ bool AccessibilityHandler::areAnyAccessibilityClientsActive() { return false; }
 #endif
 
 } // namespace juce

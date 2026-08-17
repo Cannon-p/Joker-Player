@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -134,7 +134,7 @@ void ResamplingAudioSource::getNextAudioBlock (const AudioSourceChannelInfo& inf
 
         if (localRatio > 1.0001)
         {
-            // for down-sampling, pre-apply the filter..
+            // for down-sampling, pre-apply the filter
 
             for (int i = channelsToProcess; --i >= 0;)
                 applyFilter (buffer.getWritePointer (i, endOfBufferPos), numToDo, filterStates[i]);
@@ -178,7 +178,7 @@ void ResamplingAudioSource::getNextAudioBlock (const AudioSourceChannelInfo& inf
 
     if (localRatio < 0.9999)
     {
-        // for up-sampling, apply the filter after transposing..
+        // for up-sampling, apply the filter after transposing
         for (int i = channelsToProcess; --i >= 0;)
             applyFilter (info.buffer->getWritePointer (i, info.startSample), info.numSamples, filterStates[i]);
     }

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -211,9 +211,10 @@ namespace AiffFileHelpers
     //==============================================================================
     namespace CATEChunk
     {
-        static bool isValidTag (const char* d) noexcept
+        static bool isValidTag (const char* d, const char* end) noexcept
         {
-            return CharacterFunctions::isLetterOrDigit (d[0]) && CharacterFunctions::isUpperCase (static_cast<juce_wchar> (d[0]))
+            return 3 <= std::distance (d, end)
+                && CharacterFunctions::isLetterOrDigit (d[0]) && CharacterFunctions::isUpperCase (static_cast<juce_wchar> (d[0]))
                 && CharacterFunctions::isLetterOrDigit (d[1]) && CharacterFunctions::isLowerCase (static_cast<juce_wchar> (d[1]))
                 && CharacterFunctions::isLetterOrDigit (d[2]) && CharacterFunctions::isLowerCase (static_cast<juce_wchar> (d[2]));
         }
@@ -256,7 +257,7 @@ namespace AiffFileHelpers
             {
                 bool isGenre = false;
 
-                if (isValidTag (data))
+                if (isValidTag (data, dataEnd))
                 {
                     auto tag = String (CharPointer_UTF8 (data), CharPointer_UTF8 (dataEnd));
                     isGenre = isAppleGenre (tag);
@@ -267,9 +268,14 @@ namespace AiffFileHelpers
 
                 if (data < dataEnd && data[0] == 0)
                 {
-                    if      (data + 52  < dataEnd && isValidTag (data + 50))   data += 50;
-                    else if (data + 120 < dataEnd && isValidTag (data + 118))  data += 118;
-                    else if (data + 170 < dataEnd && isValidTag (data + 168))  data += 168;
+                    for (const auto& offset : { 50, 118, 168 })
+                    {
+                        if (isValidTag (data + offset, dataEnd))
+                        {
+                            data += offset;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -426,6 +432,15 @@ public:
                 {
                     auto type = input->readInt();
                     auto length = (uint32) input->readIntBigEndian();
+
+                    const auto numBytesAvailable = input->getNumBytesRemaining();
+
+                    if (numBytesAvailable >= 0 && length > numBytesAvailable)
+                    {
+                        // Malformed chunk, its length is longer than the stream itself
+                        break;
+                    }
+
                     auto chunkEnd = input->getPosition() + length;
 
                     if (type == chunkName ("FVER"))
@@ -551,6 +566,10 @@ public:
                     {
                         HeapBlock<InstChunk> inst;
                         inst.calloc (jmax ((size_t) length + 1, sizeof (InstChunk)), 1);
+
+                        if (inst.getData() == nullptr)
+                            break;
+
                         input->read (inst, (int) length);
                         inst->copyTo (metadataValuesMap);
                     }
@@ -707,9 +726,9 @@ public:
         if (bytesWritten + bytes >= (size_t) 0xfff00000
              || ! output->write (tempBlock.getData(), bytes))
         {
-            // failed to write to disk, so let's try writing the header.
+            // Failed to write to disk, so let's try writing the header.
             // If it's just run out of disk space, then if it does manage
-            // to write the header, we'll still have a useable file..
+            // to write the header, we'll still have a useable file.
             writeHeader();
             writeFailed = true;
             return false;
@@ -848,7 +867,7 @@ public:
 
         if (map == nullptr || ! mappedSection.contains (Range<int64> (startSampleInFile, startSampleInFile + numSamples)))
         {
-            jassertfalse; // you must make sure that the window contains all the samples you're going to attempt to read.
+            jassertfalse; // you must make sure that the window contains all the samples you're going to attempt to read
             return false;
         }
 
@@ -870,7 +889,7 @@ public:
 
         if (map == nullptr || ! mappedSection.contains (sample))
         {
-            jassertfalse; // you must make sure that the window contains all the samples you're going to attempt to read.
+            jassertfalse; // you must make sure that the window contains all the samples you're going to attempt to read
 
             zeromem (result, (size_t) num * sizeof (float));
             return;
@@ -913,7 +932,7 @@ public:
 
         if (map == nullptr || numSamples <= 0 || ! mappedSection.contains (Range<int64> (startSampleInFile, startSampleInFile + numSamples)))
         {
-            jassert (numSamples <= 0); // you must make sure that the window contains all the samples you're going to attempt to read.
+            jassert (numSamples <= 0); // you must make sure that the window contains all the samples you're going to attempt to read
 
             for (int i = 0; i < numChannelsToRead; ++i)
                 results[i] = Range<float>();
@@ -1017,18 +1036,20 @@ MemoryMappedAudioFormatReader* AiffAudioFormat::createMemoryMappedReader (FileIn
     return nullptr;
 }
 
-AudioFormatWriter* AiffAudioFormat::createWriterFor (OutputStream* out,
-                                                     double sampleRate,
-                                                     unsigned int numberOfChannels,
-                                                     int bitsPerSample,
-                                                     const StringPairArray& metadataValues,
-                                                     int /*qualityOptionIndex*/)
+std::unique_ptr<AudioFormatWriter> AiffAudioFormat::createWriterFor (std::unique_ptr<OutputStream>& streamToWriteTo,
+                                                                     const AudioFormatWriterOptions& options)
 {
-    if (out != nullptr && getPossibleBitDepths().contains (bitsPerSample))
-        return new AiffAudioFormatWriter (out, sampleRate, numberOfChannels,
-                                          (unsigned int) bitsPerSample, metadataValues);
+    if (streamToWriteTo == nullptr || ! getPossibleBitDepths().contains (options.getBitsPerSample()))
+        return nullptr;
 
-    return nullptr;
+    StringPairArray metadata;
+    metadata.addUnorderedMap (options.getMetadataValues());
+
+    return std::make_unique<AiffAudioFormatWriter> (std::exchange (streamToWriteTo, {}).release(),
+                                                    options.getSampleRate(),
+                                                    (unsigned int) options.getNumChannels(),
+                                                    (unsigned int) options.getBitsPerSample(),
+                                                    metadata);
 }
 
 } // namespace juce

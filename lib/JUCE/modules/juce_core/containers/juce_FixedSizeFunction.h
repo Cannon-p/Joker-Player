@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,8 +35,7 @@
 namespace juce
 {
 
-#ifndef DOXYGEN
-
+/** @cond */
 namespace detail
 {
     template <typename Ret, typename... Args>
@@ -91,8 +90,7 @@ namespace detail
 
 template <size_t len, typename T>
 class FixedSizeFunction;
-
-#endif
+/** @endcond */
 
 /**
     A type similar to `std::function` that holds a callable object.

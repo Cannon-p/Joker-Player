@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -32,20 +32,29 @@
   ==============================================================================
 */
 
-#ifndef DOXYGEN
-
+/** @cond */
 namespace juce::universal_midi_packets
 {
 
-/** The kinds of MIDI protocol that can be formatted into Universal MIDI Packets. */
-enum class PacketProtocol
+/** Kinds of MIDI message transport.
+*/
+enum class Transport : uint8_t
+{
+    bytestream, ///< A stream of variable-length messages. Suitable for MIDI 1.0.
+    ump,        ///< A stream of 32-bit words. Suitable for MIDI-1UP and MIDI 2.0.
+};
+
+/** The kinds of MIDI protocol that can be formatted into Universal MIDI Packets.
+*/
+enum class PacketProtocol : uint8_t
 {
     MIDI_1_0,
     MIDI_2_0,
 };
 
-/** All kinds of MIDI protocol understood by JUCE. */
-enum class MidiProtocol
+/** All kinds of MIDI protocol understood by JUCE.
+*/
+enum class MidiProtocol : uint8_t
 {
     bytestream,
     UMP_MIDI_1_0,
@@ -53,5 +62,4 @@ enum class MidiProtocol
 };
 
 } // namespace juce::universal_midi_packets
-
-#endif
+/** @endcond */

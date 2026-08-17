@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -135,12 +135,12 @@ public:
                                                        bool registerForCurrentUserOnly,
                                                        WoW64Mode mode = WoW64_Default);
 
-   #ifndef DOXYGEN
+    /** @cond */
     // DEPRECATED: use the other methods with a WoW64Mode parameter of WoW64_64bit instead.
     [[deprecated]] static String getValueWow64 (const String&, const String& defaultValue = String());
     [[deprecated]] static bool valueExistsWow64 (const String&);
     [[deprecated]] static bool keyExistsWow64 (const String&);
-   #endif
+    /** @endcond */
 
 private:
     WindowsRegistry() = delete;

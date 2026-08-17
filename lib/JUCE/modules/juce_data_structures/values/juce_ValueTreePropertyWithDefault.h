@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -141,8 +141,8 @@ public:
     /** Removes the property from the referenced ValueTree. */
     void resetToDefault() noexcept           { targetTree.removeProperty (targetProperty, nullptr); }
 
-    /** You can assign a lambda to this callback and it will called when the default
-        value is changed.
+    /** You can assign a lambda to this callback and it will be called when the
+        default value is changed.
 
         @see setDefault
     */
@@ -229,6 +229,9 @@ public:
 
     /** Returns the property ID of the referenced property. */
     Identifier& getPropertyID() noexcept                    { return targetProperty; }
+
+    /** Returns the property ID of the referenced property. */
+    const Identifier& getPropertyID() const noexcept        { return targetProperty; }
 
     /** Returns the UndoManager that is being used. */
     UndoManager* getUndoManager() noexcept                  { return undoManager; }
@@ -332,11 +335,11 @@ private:
 };
 
 //==============================================================================
-#ifndef DOXYGEN
+/** @cond */
 using ValueWithDefault  [[deprecated ("This class has been renamed to better describe what is does. "
                                       "This declaration is here for backwards compatibility and new "
                                       "code should use the new class name.")]]
     = ValueTreePropertyWithDefault;
-#endif
+/** @endcond */
 
 } // namespace juce

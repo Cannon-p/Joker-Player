@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -142,11 +142,11 @@ struct AppDelegateClass final : public ObjCClass<NSObject>
         {
             if (notification.userInfo != nil)
             {
-                JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+                JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
                 // NSUserNotification is deprecated from macOS 11, but there doesn't seem to be a
                 // replacement for NSApplicationLaunchUserNotificationKey returning a non-deprecated type
                 NSUserNotification* userNotification = notification.userInfo[NSApplicationLaunchUserNotificationKey];
-                JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+                JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
                 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wnullable-to-nonnull-conversion")
                 if (userNotification != nil && userNotification.userInfo != nil)
@@ -322,31 +322,31 @@ public:
 //==============================================================================
 void MessageManager::runDispatchLoop()
 {
-    if (quitMessagePosted.get() == 0) // check that the quit message wasn't already posted..
-    {
-        JUCE_AUTORELEASEPOOL
-        {
-            // must only be called by the message thread!
-            jassert (isThisTheMessageThread());
+    if (quitMessagePosted)
+        return;
 
-           #if JUCE_CATCH_UNHANDLED_EXCEPTIONS
-            @try
-            {
-                [NSApp run];
-            }
-            @catch (NSException* e)
-            {
-                // An AppKit exception will kill the app, but at least this provides a chance to log it.,
-                std::runtime_error ex (std::string ("NSException: ") + [[e name] UTF8String] + ", Reason:" + [[e reason] UTF8String]);
-                JUCEApplicationBase::sendUnhandledException (&ex, __FILE__, __LINE__);
-            }
-            @finally
-            {
-            }
-           #else
+    JUCE_AUTORELEASEPOOL
+    {
+        // must only be called by the message thread!
+        jassert (isThisTheMessageThread());
+
+       #if JUCE_CATCH_UNHANDLED_EXCEPTIONS
+        @try
+        {
             [NSApp run];
-           #endif
         }
+        @catch (NSException* e)
+        {
+            // An AppKit exception will kill the app, but at least this provides a chance to log it.,
+            std::runtime_error ex (std::string ("NSException: ") + [[e name] UTF8String] + ", Reason:" + [[e reason] UTF8String]);
+            JUCEApplicationBase::sendUnhandledException (&ex, __FILE__, __LINE__);
+        }
+        @finally
+        {
+        }
+       #else
+        [NSApp run];
+       #endif
     }
 }
 
@@ -360,8 +360,8 @@ void MessageManager::stopDispatchLoop()
 {
     if (isThisTheMessageThread())
     {
-        quitMessagePosted = true;
-        shutdownNSApp();
+        if (! quitMessagePosted.exchange (true))
+            shutdownNSApp();
     }
     else
     {
@@ -383,7 +383,7 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
 
     auto endTime = Time::currentTimeMillis() + millisecondsToRunFor;
 
-    while (quitMessagePosted.get() == 0)
+    while (! quitMessagePosted)
     {
         JUCE_AUTORELEASEPOOL
         {
@@ -392,7 +392,7 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
             if (msRemaining <= 0)
                 break;
 
-            CFRunLoopRunInMode (kCFRunLoopDefaultMode, jmin (1.0, msRemaining * 0.001), true);
+            CFRunLoopRunInMode (kCFRunLoopDefaultMode, jmin (1.0, (double) msRemaining * 0.001), true);
 
             if (NSEvent* e = [NSApp nextEventMatchingMask: NSEventMaskAny
                                                 untilDate: [NSDate dateWithTimeIntervalSinceNow: 0.001]
@@ -403,7 +403,7 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
         }
     }
 
-    return quitMessagePosted.get() == 0;
+    return ! quitMessagePosted;
 }
 #endif
 
@@ -432,9 +432,14 @@ void MessageManager::doPlatformSpecificShutdown()
 
 bool MessageManager::postMessageToSystemQueue (MessageBase* message)
 {
-    jassert (appDelegate != nil);
-    appDelegate->messageQueue.post (message);
-    return true;
+    if (appDelegate != nullptr)
+    {
+        appDelegate->messageQueue.post (message);
+        return true;
+    }
+
+    jassertfalse;
+    return false;
 }
 
 void MessageManager::broadcastMessage (const String& message)

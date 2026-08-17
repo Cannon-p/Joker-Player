@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -66,6 +66,20 @@ Array<UnitTest*> UnitTest::getTestsInCategory (const String& category)
     return unitTests;
 }
 
+Array<UnitTest*> UnitTest::getTestsWithName (const String& name)
+{
+    if (name.isEmpty())
+        return getAllTests();
+
+    Array<UnitTest*> unitTests;
+
+    for (auto* test : getAllTests())
+        if (test->getName() == name)
+            unitTests.add (test);
+
+    return unitTests;
+}
+
 StringArray UnitTest::getAllCategories()
 {
     StringArray categories;
@@ -102,6 +116,10 @@ void UnitTest::beginTest (const String& testName)
 {
     // This method's only valid while the test is being run!
     jassert (runner != nullptr);
+
+    // Calling beginTest() or testCase() from inside another testCase() is not
+    // supported!
+    jassert (! isRunningTestCase);
 
     runner->beginNewTest (this, testName);
 }
@@ -194,6 +212,11 @@ void UnitTestRunner::runAllTests (int64 randomSeed)
 void UnitTestRunner::runTestsInCategory (const String& category, int64 randomSeed)
 {
     runTests (UnitTest::getTestsInCategory (category), randomSeed);
+}
+
+void UnitTestRunner::runTestsWithName (const String& name, int64 randomSeed)
+{
+    runTests (UnitTest::getTestsWithName (name), randomSeed);
 }
 
 void UnitTestRunner::logMessage (const String& message)

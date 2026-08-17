@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -93,12 +93,12 @@ public:
     const Result& getStatus() const noexcept            { return status; }
 
     /** Returns true if the stream couldn't be opened for some reason.
-        @see getResult()
+        @see getStatus()
     */
     bool failedToOpen() const noexcept                  { return status.failed(); }
 
     /** Returns true if the stream opened without problems.
-        @see getResult()
+        @see getStatus()
     */
     bool openedOk() const noexcept                      { return status.wasOk(); }
 
@@ -119,7 +119,7 @@ public:
 private:
     //==============================================================================
     File file;
-    void* fileHandle = nullptr;
+    detail::NativeFileHandle fileHandle{};
     Result status { Result::ok() };
     int64 currentPosition = 0;
     size_t bufferSize, bytesInBuffer = 0;

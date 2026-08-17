@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -73,9 +73,9 @@ public:
         This gives you slightly more control over the sound playback compared
         to  the other playSound methods. For example, if you would like to
         stop the sound prematurely you can call this method with a
-        TransportAudioSource and then call audioSource->stop. Note that,
+        AudioTransportSource and then call audioSource->stop. Note that,
         you must call audioSource->start to start the playback, if your
-        audioSource is a TransportAudioSource.
+        audioSource is a AudioTransportSource.
 
         The audio device manager will not hold any references to this audio
         source once the audio source has stopped playing for any reason,

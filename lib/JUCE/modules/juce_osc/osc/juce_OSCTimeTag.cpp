@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -144,7 +144,7 @@ public:
             // in the raw time tag, the most significant 32 bits are seconds,
             // so let's verify that the difference is right:
             uint64 diff = laterTimeTagRaw - currentTimeTagRaw;
-            double acceptableErrorInSeconds = 0.000001; // definitely not audible anymore.
+            double acceptableErrorInSeconds = 0.000001; // definitely not audible anymore
 
             expect ((float) diff / float (1ULL << 32) < deltaInSeconds + acceptableErrorInSeconds );
             expect ((float) diff / float (1ULL << 32) > deltaInSeconds - acceptableErrorInSeconds );

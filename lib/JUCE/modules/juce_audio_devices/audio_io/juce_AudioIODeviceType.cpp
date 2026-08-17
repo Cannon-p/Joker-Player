@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -100,16 +100,10 @@ void AudioIODeviceType::callDeviceChangeListeners()
  AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_ALSA()         { return nullptr; }
 #endif
 
-#if (JUCE_LINUX || JUCE_BSD) && JUCE_JACK
+#if (JUCE_LINUX || JUCE_BSD || JUCE_MAC || JUCE_WINDOWS) && JUCE_JACK
  AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_JACK()         { return new JackAudioIODeviceType(); }
 #else
  AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_JACK()         { return nullptr; }
-#endif
-
-#if JUCE_LINUX && JUCE_BELA
- AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_Bela()         { return new BelaAudioIODeviceType(); }
-#else
- AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_Bela()         { return nullptr; }
 #endif
 
 #if JUCE_ANDROID

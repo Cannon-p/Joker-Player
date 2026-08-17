@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -128,10 +128,10 @@ public:
     /** Returns a reference to the shared object. */
     SharedObjectType& operator*() const noexcept        { return *sharedObject; }
 
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("If you are relying on this function please inform the JUCE team as we are planing on removing this in a subsequent release")]]
     int getReferenceCount() const noexcept              { return (int) sharedObject.use_count(); }
-   #endif
+    /** @endcond */
 
     /** Returns the SharedResourcePointer if one already exists, or a null optional otherwise. */
     static std::optional<SharedResourcePointer> getSharedObjectWithoutCreating()

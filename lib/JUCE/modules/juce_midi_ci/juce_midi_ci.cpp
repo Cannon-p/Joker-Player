@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -53,13 +53,17 @@
 #include <juce_midi_ci/detail/juce_CIPropertyDataMessageChunker.cpp>
 #include <juce_midi_ci/detail/juce_CIResponder.cpp>
 
+#include <juce_midi_ci/ci/juce_CIChannelAddress.cpp>
 #include <juce_midi_ci/ci/juce_CIDevice.cpp>
 #include <juce_midi_ci/ci/juce_CIEncodings.cpp>
+#include <juce_midi_ci/ci/juce_CIMessages.cpp>
 #include <juce_midi_ci/ci/juce_CIParser.cpp>
+#include <juce_midi_ci/ci/juce_CIProfileAtAddress.cpp>
 #include <juce_midi_ci/ci/juce_CIProfileHost.cpp>
 #include <juce_midi_ci/ci/juce_CIProfileStates.cpp>
 #include <juce_midi_ci/ci/juce_CIPropertyDelegate.cpp>
 #include <juce_midi_ci/ci/juce_CIPropertyExchangeCache.cpp>
 #include <juce_midi_ci/ci/juce_CIPropertyHost.cpp>
 #include <juce_midi_ci/ci/juce_CIResponderOutput.cpp>
+#include <juce_midi_ci/ci/juce_CISubscription.cpp>
 #include <juce_midi_ci/ci/juce_CISubscriptionManager.cpp>

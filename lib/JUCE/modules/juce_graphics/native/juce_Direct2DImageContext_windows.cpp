@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -93,6 +93,11 @@ Direct2DImageContext::Direct2DImageContext (ComSmartPtr<ID2D1DeviceContext1> con
 }
 
 Direct2DImageContext::~Direct2DImageContext() = default;
+
+ComSmartPtr<ID2D1DeviceContext1> Direct2DImageContext::getDeviceContext() const
+{
+    return getPimpl()->getDeviceContext();
+}
 
 Direct2DGraphicsContext::Pimpl* Direct2DImageContext::getPimpl() const noexcept
 {

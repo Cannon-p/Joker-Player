@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -84,9 +84,9 @@ public:
     };
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     JUCE_DECLARE_SINGLETON_SINGLETHREADED_MINIMAL_INLINE (ModalComponentManager)
-   #endif
+    /** @endcond */
 
     //==============================================================================
     /** Returns the number of components currently being shown modally.
@@ -277,7 +277,7 @@ public:
         E.g. @code
         static void myCallbackFunction (int modalResult, Slider* mySlider)
         {
-            if (modalResult == 1 && mySlider != nullptr) // (must check that mySlider isn't null in case it was deleted..)
+            if (modalResult == 1 && mySlider != nullptr) // must check that mySlider isn't null in case it was deleted
                 mySlider->setValue (0.0);
         }
 
@@ -310,7 +310,7 @@ public:
         E.g. @code
         static void myCallbackFunction (int modalResult, Slider* mySlider, String customParam)
         {
-            if (modalResult == 1 && mySlider != nullptr) // (must check that mySlider isn't null in case it was deleted..)
+            if (modalResult == 1 && mySlider != nullptr) // must check that mySlider isn't null in case it was deleted
                 mySlider->setName (customParam);
         }
 

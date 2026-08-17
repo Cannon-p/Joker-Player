@@ -50,6 +50,9 @@ PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
 
     mixSlider.setRange (0.0, 1.0, 0.01);
     mixSlider.setValue (1.0, juce::dontSendNotification);
+    mixSlider.setColour (juce::Slider::textBoxTextColourId, aur::Theme::text());
+    mixSlider.setColour (juce::Slider::textBoxBackgroundColourId, aur::Theme::inputBg());
+    mixSlider.setColour (juce::Slider::textBoxOutlineColourId, aur::Theme::border());
     mixSlider.onValueChange = [this]
     {
         engine.setMix ((float) mixSlider.getValue());
@@ -97,9 +100,39 @@ PluginChain& PluginRackComponent::chainFor (int pathIndex) const
 }
 
 //==============================================================================
+void PluginRackComponent::applyTheme()
+{
+    title.setColour (juce::Label::textColourId, aur::Theme::text());
+    countLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    latencyLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    mixLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    mixSlider.setColour (juce::Slider::textBoxTextColourId, aur::Theme::text());
+    mixSlider.setColour (juce::Slider::textBoxBackgroundColourId, aur::Theme::inputBg());
+    mixSlider.setColour (juce::Slider::textBoxOutlineColourId, aur::Theme::border());
+
+    for (auto* child : rowContainer.getChildren())
+    {
+        if (auto* header = dynamic_cast<PathHeader*> (child))
+            header->applyTheme();
+    }
+
+    repaint();
+    rowContainer.repaint();
+}
+
+//==============================================================================
 void PluginRackComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff141922));
+    const auto b = getLocalBounds().toFloat().reduced (2.0f);
+
+    juce::DropShadow shadow (juce::Colour (0x40000000), 10, { 0, 3 });
+    shadow.drawForRectangle (g, b.toNearestInt());
+
+    g.setGradientFill (aur::Theme::panelGradient (b));
+    g.fillRoundedRectangle (b, 10.0f);
+
+    g.setColour (aur::Theme::border().withAlpha (0.6f));
+    g.drawRoundedRectangle (b, 10.0f, 1.0f);
 }
 
 //==============================================================================
@@ -180,7 +213,7 @@ void PluginRackComponent::rebuildRows()
 
     count += engine.getBusChain().getNumSlots();
 
-    countLabel.setText (juce::String (count) + " \u4E2A\u63D2\u4EF6", juce::dontSendNotification);
+    countLabel.setText (juce::String (count) + juce::String (juce::CharPointer_UTF8 (" \u4E2A\u63D2\u4EF6")), juce::dontSendNotification);
 
     resized();
 }
@@ -210,7 +243,7 @@ void PluginRackComponent::timerCallback()
     const double latencyMs = rate > 0.0 ? (double) engine.getCurrentLatencySamples() * 1000.0 / rate
                                         : 0.0;
 
-    latencyLabel.setText (juce::String::formatted ("\u94FE\u5EF6\u8FDF %.1f ms", latencyMs),
+    latencyLabel.setText (juce::String (juce::CharPointer_UTF8 ("\u94FE\u5EF6\u8FDF ")) + juce::String::formatted ("%.1f ms", latencyMs),
                           juce::dontSendNotification);
 }
 
@@ -427,12 +460,16 @@ PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int 
 {
     const bool bus = isBusPath (pathIndex);
 
-    static const juce::String pathNames[] = { "\u63D2\u5165 1", "\u63D2\u5165 2", "\u53D1\u9001" };
+    static const juce::String pathNames[] = {
+        juce::String (juce::CharPointer_UTF8 ("\u63D2\u5165 1")),
+        juce::String (juce::CharPointer_UTF8 ("\u63D2\u5165 2")),
+        juce::String (juce::CharPointer_UTF8 ("\u53D1\u9001"))
+    };
     const juce::String pathName = (pathIndex >= 0 && pathIndex < 3)
                                       ? pathNames[pathIndex]
                                       : juce::String();
 
-    title.setText (bus ? "\u603B\u7EBF"
+    title.setText (bus ? juce::String (juce::CharPointer_UTF8 ("\u603B\u7EBF"))
                        : pathName,
                    juce::dontSendNotification);
     title.setFont (aur::Theme::uiFont (12.5f).boldened());
@@ -475,6 +512,12 @@ PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int 
     setInterceptsMouseClicks (true, true);
 }
 
+void PluginRackComponent::PathHeader::applyTheme()
+{
+    title.setColour (juce::Label::textColourId, aur::Theme::text());
+    repaint();
+}
+
 void PluginRackComponent::PathHeader::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat().reduced (1.0f);
@@ -483,10 +526,10 @@ void PluginRackComponent::PathHeader::paint (juce::Graphics& g)
     const bool on = bus ? owner.engine.isBusEnabled()
                         : owner.engine.isPathEnabled (pathIndex);
 
-    g.setColour (on ? juce::Colour (0xff20283a) : juce::Colour (0xff171b24));
+    g.setColour (on ? aur::Theme::panelActive() : aur::Theme::panel());
     g.fillRoundedRectangle (b, 8.0f);
 
-    g.setColour (on ? aur::Theme::accent() : juce::Colour (0xff39414f));
+    g.setColour (on ? aur::Theme::accent() : aur::Theme::border());
     g.fillRoundedRectangle (b.withWidth (3.0f), 1.5f);
 }
 
@@ -548,7 +591,7 @@ void PluginRackComponent::RackRow::paint (juce::Graphics& g)
     const bool isEnabled = slot != nullptr && slot->enabled;
 
     // Panel background.
-    g.setColour (isEnabled ? juce::Colour (0xff1d2330) : juce::Colour (0xff171b24));
+    g.setColour (isEnabled ? aur::Theme::panelHover() : aur::Theme::panel());
     g.fillRoundedRectangle (b, 10.0f);
 
     // Bypass / enabled indicator.
@@ -559,7 +602,7 @@ void PluginRackComponent::RackRow::paint (juce::Graphics& g)
     }
     else
     {
-        g.setColour (juce::Colour (0xff39414f));
+        g.setColour (aur::Theme::border());
         g.fillRoundedRectangle (b.withWidth (3.0f), 1.5f);
     }
 
@@ -570,7 +613,7 @@ void PluginRackComponent::RackRow::paint (juce::Graphics& g)
     auto left = b.reduced (14, 0);
     auto chip = left.removeFromLeft (26.0f).withTrimmedTop (b.getHeight() * 0.5f - 11.0f);
     chip.setHeight (22.0f);
-    g.setColour (isEnabled ? aur::Theme::accentSoft() : juce::Colour (0xff2a3140));
+    g.setColour (isEnabled ? aur::Theme::accentSoft() : aur::Theme::panelActive());
     g.fillRoundedRectangle (chip, 6.0f);
     g.setColour (isEnabled ? aur::Theme::accent() : aur::Theme::textDim());
     g.setFont (aur::Theme::uiFont (11.0f).boldened());

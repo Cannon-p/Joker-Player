@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -74,7 +74,7 @@ namespace juce::dsp::StateVariableFilter
         using ParametersPtr = typename Parameters<NumericType>::Ptr;
 
         //==============================================================================
-       #ifndef DOXYGEN
+        /** @cond */
         /** Creates a filter with default parameters. */
         [[deprecated ("The classes in the StateVariableFilter namespace are deprecated. you should "
                      "use the equivalent functionality in the StateVariableTPTFilter class.")]]
@@ -84,7 +84,7 @@ namespace juce::dsp::StateVariableFilter
         [[deprecated ("The classes in the StateVariableFilter namespace are deprecated. you should "
                      "use the equivalent functionality in the StateVariableTPTFilter class.")]]
         Filter (ParametersPtr parametersToUse) : parameters (std::move (parametersToUse)) { reset(); }
-       #endif
+        /** @endcond */
 
         /** Creates a copy of another filter. */
         Filter (const Filter&) = default;

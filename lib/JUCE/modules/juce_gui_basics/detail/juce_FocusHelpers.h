@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -45,10 +45,10 @@ struct FocusHelpers
         return order > 0 ? order : std::numeric_limits<int>::max();
     }
 
-    template <typename FocusContainerFn>
     static void findAllComponents (const Component* parent,
                                    std::vector<Component*>& components,
-                                   FocusContainerFn isFocusContainer)
+                                   bool (Component::* isFocusContainer)() const,
+                                   FocusTraverser::SkipDisabledComponents skipDisabledComponents)
     {
         if (parent == nullptr || parent->getNumChildComponents() == 0)
             return;
@@ -56,8 +56,12 @@ struct FocusHelpers
         std::vector<Component*> localComponents;
 
         for (auto* c : parent->getChildren())
-            if (c->isVisible() && c->isEnabled())
+        {
+            constexpr auto no = FocusTraverser::SkipDisabledComponents::no;
+
+            if (c->isVisible() && (c->isEnabled() || skipDisabledComponents == no))
                 localComponents.push_back (c);
+        }
 
         const auto compareComponents = [&] (const Component* a, const Component* b)
         {
@@ -81,23 +85,23 @@ struct FocusHelpers
             components.push_back (c);
 
             if (! (c->*isFocusContainer)())
-                findAllComponents (c, components, isFocusContainer);
+                findAllComponents (c, components, isFocusContainer, skipDisabledComponents);
         }
     }
 
     enum class NavigationDirection { forwards, backwards };
 
-    template <typename FocusContainerFn>
     static Component* navigateFocus (const Component* current,
                                      const Component* focusContainer,
                                      NavigationDirection direction,
-                                     FocusContainerFn isFocusContainer)
+                                     bool (Component::* isFocusContainer)() const,
+                                     FocusTraverser::SkipDisabledComponents skipDisabledComponents)
     {
         if (focusContainer == nullptr)
             return nullptr;
 
         std::vector<Component*> components;
-        findAllComponents (focusContainer, components, isFocusContainer);
+        findAllComponents (focusContainer, components, isFocusContainer, skipDisabledComponents);
 
         const auto iter = std::find (components.cbegin(), components.cend(), current);
 

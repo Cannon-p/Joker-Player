@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -126,7 +126,7 @@ public:
                 finalTarget->itemDropped (details);
             }
 
-            // careful - this object could now be deleted..
+            // careful - this object could now be deleted
         }
     }
 
@@ -257,7 +257,7 @@ private:
 
     void updateSize()
     {
-        const auto bounds = image.getScaledBounds().toNearestInt();
+        const auto bounds = image.getScaledBounds().getLargestIntegerWithin();
         setSize (bounds.getWidth(), bounds.getHeight());
     }
 
@@ -324,12 +324,20 @@ private:
 
     void setNewScreenPos (Point<int> screenPos)
     {
-        auto newPos = screenPos - imageOffset;
-
         if (auto* p = getParentComponent())
-            newPos = p->getLocalPoint (nullptr, newPos);
+        {
+            setTopLeftPosition (p->getLocalPoint (nullptr, screenPos - imageOffset));
+            return;
+        }
 
-        setTopLeftPosition (newPos);
+        if (auto* peer = isOnDesktop() ? getPeer() : nullptr)
+        {
+            const auto globalMouseDown = localPointToGlobal (imageOffset.toFloat());
+            const auto peerSpaceMouseDown = peer->globalToLocal (detail::ScalingHelpers::scaledScreenPosToUnscaled (globalMouseDown));
+            const auto [multimonitor, logical] = detail::ComponentHelpers::getTopLeftForPeer (*peer, screenPos.toFloat(), peerSpaceMouseDown);
+            const auto scope = peer->setMultimonitorPositionOverride (multimonitor.roundToInt());
+            setTopLeftPosition (logical.roundToInt());
+        }
     }
 
     void sendDragMove (DragAndDropTarget::SourceDetails& details) const
@@ -453,7 +461,11 @@ void DragAndDropContainer::startDragging (const var& sourceDescription,
         const auto relPos = sourceComponent->getLocalPoint (nullptr, lastMouseDown).toDouble();
         const auto clipped = (image.getBounds().toDouble() / scaleFactor).getConstrainedPoint (relPos);
 
-        Image fade (Image::SingleChannel, image.getWidth(), image.getHeight(), true);
+        Image fade (Image::SingleChannel,
+                    image.getWidth(),
+                    image.getHeight(),
+                    true,
+                    *image.getPixelData()->createType());
         {
             Graphics fadeContext (fade);
 
@@ -469,7 +481,11 @@ void DragAndDropContainer::startDragging (const var& sourceDescription,
             fadeContext.fillAll();
         }
 
-        Image composite (Image::ARGB, image.getWidth(), image.getHeight(), true);
+        Image composite (Image::ARGB,
+                         image.getWidth(),
+                         image.getHeight(),
+                         true,
+                         *image.getPixelData()->createType());
         {
             Graphics compositeContext (composite);
 
@@ -509,7 +525,7 @@ void DragAndDropContainer::startDragging (const var& sourceDescription,
 
    #if JUCE_WINDOWS
     // Under heavy load, the layered window's paint callback can often be lost by the OS,
-    // so forcing a repaint at least once makes sure that the window becomes visible..
+    // so forcing a repaint at least once makes sure that the window becomes visible.
     if (auto* peer = dragImageComponent->getPeer())
         peer->performAnyPendingRepaintsNow();
    #endif

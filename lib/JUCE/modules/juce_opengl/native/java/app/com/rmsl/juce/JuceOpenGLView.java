@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -61,24 +61,6 @@ public class JuceOpenGLView extends SurfaceView
         // Returning true indicates that the view is opaque at this point.
         // Without this, the green TalkBack borders cannot be seen on OpenGL views.
         return true;
-    }
-
-    @Override
-    protected void onAttachedToWindow ()
-    {
-        super.onAttachedToWindow ();
-
-        if (host != 0)
-            onAttchedWindowNative (host);
-    }
-
-    @Override
-    protected void onDetachedFromWindow ()
-    {
-        if (host != 0)
-            onDetachedFromWindowNative (host);
-
-        super.onDetachedFromWindow ();
     }
 
     @Override

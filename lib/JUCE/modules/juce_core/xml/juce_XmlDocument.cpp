@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -146,7 +146,7 @@ std::unique_ptr<XmlElement> XmlDocument::getDocumentElement (const bool onlyRead
                     if (CharPointer_UTF8::isByteOrderMark (text))
                         text += 3;
 
-                    // parse the input buffer directly to avoid copying it all to a string..
+                    // parse the input buffer directly to avoid copying it all to a string
                     return parseDocumentElement (String::CharPointerType (text), onlyReadOuterDocumentElement);
                 }
             }
@@ -257,7 +257,7 @@ bool XmlDocument::parseHeader()
                           .trim();
 
         /* If you load an XML document with a non-UTF encoding type, it may have been
-           loaded wrongly.. Since all the files are read via the normal juce file streams,
+           loaded wrongly. Since all the files are read via the normal juce file streams,
            they're treated as UTF-8, so by the time it gets to the parser, the encoding will
            have been lost. Best plan is to stick to utf-8 or if you have specific files to
            read, use your own code to convert them to a unicode String, and pass that to the
@@ -299,6 +299,46 @@ bool XmlDocument::parseDTD()
     return true;
 }
 
+template <typename CharPtr>
+static auto skipIgnoredElement (CharPtr p)
+{
+    struct SkipIgnoredElementResult
+    {
+        CharPtr next;
+        bool exhausted;
+    };
+
+    jassert (*p == '<');
+
+    if (p[1] == '!' && p[2] == '-' && p[3] == '-')
+    {
+        p += 4;
+        const auto close = p.indexOf (CharPointer_ASCII ("-->"));
+
+        if (close < 0)
+        {
+            return SkipIgnoredElementResult { p.findTerminatingNull(), true };
+        }
+
+        return SkipIgnoredElementResult { p + close + 3, false };
+    }
+
+    if (p[1] == '?')
+    {
+        p += 2;
+        const auto close = p.indexOf (CharPointer_ASCII ("?>"));
+
+        if (close < 0)
+        {
+            return SkipIgnoredElementResult { p.findTerminatingNull(), true };
+        }
+
+        return SkipIgnoredElementResult { p + close + 2, false };
+    }
+
+    return SkipIgnoredElementResult { p, false };
+}
+
 void XmlDocument::skipNextWhiteSpace()
 {
     for (;;)
@@ -313,37 +353,14 @@ void XmlDocument::skipNextWhiteSpace()
 
         if (*input == '<')
         {
-            if (input[1] == '!'
-                 && input[2] == '-'
-                 && input[3] == '-')
-            {
-                input += 4;
-                auto closeComment = input.indexOf (CharPointer_ASCII ("-->"));
+            const auto prevInput = input;
+            const auto result = skipIgnoredElement (input);
+            std::tie (input, outOfData) = std::tie (result.next, result.exhausted);
 
-                if (closeComment < 0)
-                {
-                    outOfData = true;
-                    break;
-                }
+            if (outOfData || input == prevInput)
+                break;
 
-                input += closeComment + 3;
-                continue;
-            }
-
-            if (input[1] == '?')
-            {
-                input += 2;
-                auto closeBracket = input.indexOf (CharPointer_ASCII ("?>"));
-
-                if (closeBracket < 0)
-                {
-                    outOfData = true;
-                    break;
-                }
-
-                input += closeBracket + 2;
-                continue;
-            }
+            continue;
         }
 
         break;
@@ -437,14 +454,14 @@ XmlElement* XmlDocument::readNextElement (const bool alsoParseSubElements)
             skipNextWhiteSpace();
             auto c = *input;
 
-            // empty tag..
+            // empty tag
             if (c == '/' && input[1] == '>')
             {
                 input += 2;
                 break;
             }
 
-            // parse the guts of the element..
+            // parse the guts of the element
             if (c == '>')
             {
                 ++input;
@@ -455,7 +472,7 @@ XmlElement* XmlDocument::readNextElement (const bool alsoParseSubElements)
                 break;
             }
 
-            // get an attribute..
+            // get an attribute
             if (XmlIdentifierChars::isIdentifierChar (c))
             {
                 auto attNameEnd = XmlIdentifierChars::findEndOfToken (input);
@@ -474,7 +491,7 @@ XmlElement* XmlDocument::readNextElement (const bool alsoParseSubElements)
                         if (nextChar == '"' || nextChar == '\'')
                         {
                             auto* newAtt = new XmlElement::XmlAttributeNode (attNameStart, attNameEnd);
-                            readQuotedString (newAtt->value);
+                            readQuotedString (newAtt->attribute.value);
                             attributeAppender.append (newAtt);
                             continue;
                         }
@@ -521,7 +538,7 @@ void XmlDocument::readChildElements (XmlElement& parent)
 
             if (c1 == '/')
             {
-                // our close tag..
+                // our close tag
                 auto closeTag = input.indexOf ((juce_wchar) '>');
 
                 if (closeTag >= 0)
@@ -558,7 +575,7 @@ void XmlDocument::readChildElements (XmlElement& parent)
             }
             else
             {
-                // this is some other element, so parse and add it..
+                // this is some other element, so parse and add it
                 if (auto* n = readNextElement (true))
                     childAppender.append (n);
                 else
@@ -577,23 +594,20 @@ void XmlDocument::readChildElements (XmlElement& parent)
 
                 if (c == '<')
                 {
-                    if (input[1] == '!' && input[2] == '-' && input[3] == '-')
+                    const auto prevInput = input;
+                    const auto result = skipIgnoredElement (input);
+                    std::tie (input, outOfData) = std::tie (result.next, result.exhausted);
+
+                    if (outOfData)
                     {
-                        input += 4;
-                        auto closeComment = input.indexOf (CharPointer_ASCII ("-->"));
-
-                        if (closeComment < 0)
-                        {
-                            setLastError ("unterminated comment", false);
-                            outOfData = true;
-                            return;
-                        }
-
-                        input += closeComment + 3;
-                        continue;
+                        setLastError ("unexpected end of stream", false);
+                        return;
                     }
 
-                    break;
+                    if (prevInput == input)
+                        break;
+
+                    continue;
                 }
 
                 if (c == 0)
@@ -861,7 +875,7 @@ String XmlDocument::expandExternalEntity (const String& entity)
             {
                 auto ent = tokenisedDTD [i + 1].trimCharactersAtEnd (">").trim().unquoted();
 
-                // check for sub-entities..
+                // check for sub-entities
                 auto ampersand = ent.indexOfChar ('&');
 
                 while (ampersand >= 0)

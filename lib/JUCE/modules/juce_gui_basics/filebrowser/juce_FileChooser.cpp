@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -205,7 +205,7 @@ std::shared_ptr<FileChooser::Pimpl> FileChooser::createPimpl (int flags, FilePre
 {
     results.clear();
 
-    // the preview component needs to be the right size before you pass it in here..
+    // the preview component needs to be the right size before you pass it in here
     jassert (previewComp == nullptr || (previewComp->getWidth() > 10
                                          && previewComp->getHeight() > 10));
 

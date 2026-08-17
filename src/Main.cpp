@@ -17,7 +17,8 @@ public:
     void initialise (const juce::String& /*commandLine*/) override
     {
         aur::traceStep ("initialise start");
-        juce::LookAndFeel::setDefaultLookAndFeel (&customLookAndFeel);
+        aur::Theme::loadSavedMode();
+        juce::LookAndFeel::setDefaultLookAndFeel (&aur::CustomLookAndFeel::instance());
         aur::traceStep ("default LAF set");
         mainWindow.reset (new MainWindow());
         aur::traceStep ("main window created");
@@ -59,7 +60,6 @@ private:
     };
 
     std::unique_ptr<MainWindow> mainWindow;
-    aur::CustomLookAndFeel customLookAndFeel;
 };
 
 //==============================================================================

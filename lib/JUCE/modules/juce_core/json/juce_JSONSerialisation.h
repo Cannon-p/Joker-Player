@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -499,16 +499,14 @@ struct VariantConverter
     }
 };
 
-#ifndef DOXYGEN
-
+/** @cond */
 template <>
 struct VariantConverter<String>
 {
     static String fromVar (const var& v)           { return v.toString(); }
     static var toVar (const String& s)             { return s; }
 };
-
-#endif
+/** @endcond */
 
 /**
     A helper type that can be used to implement specialisations of VariantConverter that use

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -47,10 +47,14 @@ void GlowEffect::setGlowProperties (float newRadius, Colour newColour, Point<int
 
 void GlowEffect::applyEffect (Image& image, Graphics& g, float scaleFactor, float alpha)
 {
-    ImageEffects::applyGaussianBlurEffect (radius * scaleFactor, image, cachedImage);
+    auto blurred = image.createCopy();
+    blurred.setBackupEnabled (false);
+
+    if (auto ptr = blurred.getPixelData())
+        ptr->applyGaussianBlurEffect (radius * scaleFactor);
 
     g.setColour (colour.withMultipliedAlpha (alpha));
-    g.drawImageAt (cachedImage, offset.x, offset.y, true);
+    g.drawImageAt (blurred, offset.x, offset.y, true);
 
     g.setOpacity (alpha);
     g.drawImageAt (image, offset.x, offset.y, false);

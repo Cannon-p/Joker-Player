@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -254,7 +254,7 @@ void TabbedButtonBar::addTab (const String& tabName,
                               Colour tabBackgroundColour,
                               int insertIndex)
 {
-    jassert (tabName.isNotEmpty()); // you have to give them all a name..
+    jassert (tabName.isNotEmpty()); // you have to give them all a name
 
     if (tabName.isNotEmpty())
     {

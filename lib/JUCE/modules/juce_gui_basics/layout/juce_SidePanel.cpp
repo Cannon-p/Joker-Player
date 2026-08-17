@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -130,6 +130,24 @@ void SidePanel::resized()
     auto bounds = getLocalBounds();
 
     calculateAndRemoveShadowBounds (bounds);
+
+    const auto fullScreen = std::invoke ([&]
+    {
+        if (auto* peer = getPeer())
+            return peer->isFullScreen();
+
+        return false;
+    });
+
+    if (fullScreen && isContentRestrictedToSafeArea() && parent != nullptr)
+    {
+        if (auto* display = Desktop::getInstance().getDisplays().getDisplayForRect (parent->getScreenBounds()))
+        {
+            const auto safeArea = display->safeAreaInsets.subtractedFrom (display->keyboardInsets.subtractedFrom (display->userBounds.getLargestIntegerWithin()));
+            const auto safeAreaInLocalSpace = getLocalArea (nullptr, safeArea) + getCurrentOffset();
+            bounds = bounds.getIntersection (safeAreaInLocalSpace);
+        }
+    }
 
     auto titleBounds = bounds.removeFromTop (titleBarHeight);
 
@@ -268,18 +286,25 @@ void SidePanel::changeListenerCallback (ChangeBroadcaster*)
     }
 }
 
-Rectangle<int> SidePanel::calculateBoundsInParent (Component& parentComp) const
+Rectangle<int> SidePanel::calculateShowingBoundsInParent (Component& parentComp) const
 {
     auto parentBounds = parentComp.getLocalBounds();
 
-    if (isOnLeft)
-    {
-        return isShowing ? parentBounds.removeFromLeft (panelWidth)
-                         : parentBounds.withX (parentBounds.getX() - panelWidth).withWidth (panelWidth);
-    }
+    return isOnLeft ? parentBounds.removeFromLeft  (panelWidth)
+                    : parentBounds.removeFromRight (panelWidth);
+}
 
-    return isShowing ? parentBounds.removeFromRight (panelWidth)
-                     : parentBounds.withX (parentBounds.getRight()).withWidth (panelWidth);
+Point<int> SidePanel::getCurrentOffset() const
+{
+    if (isShowing)
+        return {};
+
+    return { isOnLeft ? -panelWidth : panelWidth, 0 };
+}
+
+Rectangle<int> SidePanel::calculateBoundsInParent (Component& parentComp) const
+{
+     return calculateShowingBoundsInParent (parentComp) + getCurrentOffset();
 }
 
 void SidePanel::calculateAndRemoveShadowBounds (Rectangle<int>& bounds)

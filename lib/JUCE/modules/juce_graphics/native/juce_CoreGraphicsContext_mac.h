@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -78,6 +78,7 @@ public:
     //==============================================================================
     void setFill (const FillType&) override;
     void setOpacity (float) override;
+    void setImageBlendMode (BlendMode) override;
     void setInterpolationQuality (Graphics::ResamplingQuality) override;
 
     //==============================================================================
@@ -99,6 +100,11 @@ public:
 
     uint64_t getFrameId() const override { return 0; }
 
+    std::unique_ptr<ImageType> getPreferredImageTypeForTemporaryImages() const override
+    {
+        return std::make_unique<NativeImageType>();
+    }
+
     void drawEllipse (const Rectangle<float>& area, float lineThickness) override;
     void fillEllipse (const Rectangle<float>& area) override;
 
@@ -109,6 +115,8 @@ public:
 
 private:
     //==============================================================================
+    BlendMode activateBlendMode (BlendMode mode);
+
     detail::ContextPtr context;
     const CGFloat flipHeight;
     detail::ColorSpacePtr rgbColourSpace, greyColourSpace;
@@ -118,10 +126,13 @@ private:
     std::unique_ptr<SavedState> state;
     OwnedArray<SavedState> stateStack;
 
+    BlendMode lastBlendMode = BlendMode::sourceOver;
+
     template <class RectType>
     CGRect convertToCGRectFlipped (RectType r) const noexcept;
     void setContextClipToCurrentPath (bool useNonZeroWinding);
     void drawCurrentPath (CGPathDrawingMode mode);
+    void dispatchDrawGradient();
     void drawGradient();
     void createPath (const Path&, const AffineTransform&) const;
     void flip() const;

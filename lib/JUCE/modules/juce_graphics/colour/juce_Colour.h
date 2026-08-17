@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -136,6 +136,17 @@ public:
                            float brightness,
                            float alpha) noexcept;
 
+    /** Creates a colour using floating point hue, saturation, brightness values, and an 8-bit alpha.
+
+        All values must be between 0.0 and 1.0.
+        An alpha of 0x00 is completely transparent, alpha of 0xff is opaque.
+        Numbers outside the valid range will be clipped.
+    */
+    static Colour fromHSV (float hue,
+                           float saturation,
+                           float brightness,
+                           uint8 alpha) noexcept;
+
     /** Creates a colour using floating point hue, saturation, lightness and alpha values.
 
         All values must be between 0.0 and 1.0.
@@ -145,6 +156,17 @@ public:
                            float saturation,
                            float lightness,
                            float alpha) noexcept;
+
+    /** Creates a colour using floating point hue, saturation, lightness values, and an 8-bit alpha.
+
+        All values must be between 0.0 and 1.0.
+        An alpha of 0x00 is completely transparent, alpha of 0xff is opaque.
+        Numbers outside the valid range will be clipped.
+    */
+    static Colour fromHSL (float hue,
+                           float saturation,
+                           float lightness,
+                           uint8 alpha) noexcept;
 
     /** Creates a colour using a PixelARGB object. This function assumes that the argb pixel is
         not premultiplied.

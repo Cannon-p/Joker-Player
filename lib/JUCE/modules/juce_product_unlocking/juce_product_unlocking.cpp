@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -45,9 +45,8 @@
 #define JUCE_CORE_INCLUDE_OBJC_HELPERS   1
 #define JUCE_CORE_INCLUDE_NATIVE_HEADERS 1
 
-// Set this flag to 1 to use test servers on iOS
-#ifndef JUCE_IN_APP_PURCHASES_USE_SANDBOX_ENVIRONMENT
-    #define JUCE_IN_APP_PURCHASES_USE_SANDBOX_ENVIRONMENT 0
+#ifdef JUCE_IN_APP_PURCHASES_USE_SANDBOX_ENVIRONMENT
+ JUCE_COMPILER_WARNING ("JUCE_IN_APP_PURCHASES_USE_SANDBOX_ENVIRONMENT is no longer supported")
 #endif
 
 #include "juce_product_unlocking.h"

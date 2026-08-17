@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -60,21 +60,20 @@ public:
         executable at the location given.
     */
     LAMEEncoderAudioFormat (const File& lameExecutableToUse);
-    ~LAMEEncoderAudioFormat();
 
-    bool canHandleFile (const File&);
-    Array<int> getPossibleSampleRates();
-    Array<int> getPossibleBitDepths();
-    bool canDoStereo();
-    bool canDoMono();
-    bool isCompressed();
-    StringArray getQualityOptions();
+    bool canHandleFile (const File&) override;
+    Array<int> getPossibleSampleRates() override;
+    Array<int> getPossibleBitDepths() override;
+    bool canDoStereo() override;
+    bool canDoMono() override;
+    bool isCompressed() override;
+    StringArray getQualityOptions() override;
 
-    AudioFormatReader* createReaderFor (InputStream*, bool deleteStreamIfOpeningFails);
+    std::unique_ptr<AudioFormatWriter> createWriterFor (std::unique_ptr<OutputStream>& streamToWriteTo,
+                                                        const AudioFormatWriterOptions& options) override;
 
-    AudioFormatWriter* createWriterFor (OutputStream*, double sampleRateToUse,
-                                        unsigned int numberOfChannels, int bitsPerSample,
-                                        const StringPairArray& metadataValues, int qualityOptionIndex);
+    AudioFormatReader* createReaderFor (InputStream*, bool deleteStreamIfOpeningFails) override;
+
     using AudioFormat::createWriterFor;
 
 private:

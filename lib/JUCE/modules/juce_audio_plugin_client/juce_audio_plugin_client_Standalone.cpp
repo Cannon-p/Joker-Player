@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -87,7 +87,7 @@ public:
     bool moreThanOneInstanceAllowed() override              { return true; }
     void anotherInstanceStarted (const String&) override    {}
 
-    virtual StandaloneFilterWindow* createWindow()
+    StandaloneFilterWindow* createWindow()
     {
         if (Desktop::getInstance().getDisplays().displays.isEmpty())
         {
@@ -101,7 +101,7 @@ public:
                                            createPluginHolder());
     }
 
-    virtual std::unique_ptr<StandalonePluginHolder> createPluginHolder()
+    std::unique_ptr<StandalonePluginHolder> createPluginHolder()
     {
         constexpr auto autoOpenMidiDevices =
        #if (JUCE_ANDROID || JUCE_IOS) && ! JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE

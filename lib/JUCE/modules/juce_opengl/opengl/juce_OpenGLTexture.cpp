@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -80,31 +80,34 @@ void OpenGLTexture::create (const int w, const int h, const void* pixels, GLenum
     glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
     JUCE_CHECK_OPENGL_ERROR
 
-    const auto textureNpotSupported = ownerContext->isTextureNpotSupported();
-
-    const auto getAllowedTextureSize = [&] (int n)
+    if (! tryAllocTexture (w, h, type))
     {
-        return textureNpotSupported ? n : nextPowerOfTwo (n);
-    };
-
-    width  = getAllowedTextureSize (w);
-    height = getAllowedTextureSize (h);
-
-    const GLint internalformat = type == GL_ALPHA ? GL_ALPHA : GL_RGBA;
-
-    if (width != w || height != h)
-    {
-        glTexImage2D (GL_TEXTURE_2D, 0, internalformat,
-                      width, height, 0, type, GL_UNSIGNED_BYTE, nullptr);
-
-        glTexSubImage2D (GL_TEXTURE_2D, 0, 0, topLeft ? (height - h) : 0, w, h,
-                         type, GL_UNSIGNED_BYTE, pixels);
+        // Completely failed to create a workable texture
+        jassertfalse;
+        return;
     }
-    else
+
+    GLint detectedWidth{}, detectedHeight{};
+    glGetTexLevelParameteriv (GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &detectedWidth);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &detectedHeight);
+    std::tie (width, height) = std::tie (detectedWidth, detectedHeight);
+
+    if (width < w || height < h)
     {
-        glTexImage2D (GL_TEXTURE_2D, 0, internalformat,
-                      w, h, 0, type, GL_UNSIGNED_BYTE, pixels);
+        // Created a texture, but it's not large enough, somehow
+        jassertfalse;
+        return;
     }
+
+    glTexSubImage2D (GL_TEXTURE_2D,
+                     0,
+                     0,
+                     topLeft ? (height - h) : 0,
+                     w,
+                     h,
+                     type,
+                     GL_UNSIGNED_BYTE,
+                     pixels);
 
     JUCE_CHECK_OPENGL_ERROR
 }
@@ -112,20 +115,25 @@ void OpenGLTexture::create (const int w, const int h, const void* pixels, GLenum
 template <class PixelType>
 struct Flipper
 {
-    static void flip (HeapBlock<PixelARGB>& dataCopy, const uint8* srcData, const int lineStride,
-                      const int w, const int h)
+    static void flip (HeapBlock<PixelARGB>& dataCopy,
+                      const uint8* srcData,
+                      const int lineStride,
+                      const int pixelStride,
+                      const int w,
+                      const int h)
     {
         dataCopy.malloc (w * h);
 
         for (int y = 0; y < h; ++y)
         {
-            auto* src = (const PixelType*) srcData;
-            auto* dst = (PixelARGB*) (dataCopy + w * (h - 1 - y));
+            auto* srcLine = srcData + lineStride * y;
+            auto* dstLine = dataCopy.get() + w * (h - 1 - y);
 
             for (int x = 0; x < w; ++x)
-                dst[x].set (src[x]);
-
-            srcData += lineStride;
+            {
+                auto* srcPixel = srcLine + x * pixelStride;
+                dstLine[x].set (*unalignedPointerCast<const PixelType*> (srcPixel));
+            }
         }
     }
 };
@@ -140,9 +148,9 @@ void OpenGLTexture::loadImage (const Image& image)
 
     switch (srcData.pixelFormat)
     {
-        case Image::ARGB:           Flipper<PixelARGB> ::flip (dataCopy, srcData.data, srcData.lineStride, imageW, imageH); break;
-        case Image::RGB:            Flipper<PixelRGB>  ::flip (dataCopy, srcData.data, srcData.lineStride, imageW, imageH); break;
-        case Image::SingleChannel:  Flipper<PixelAlpha>::flip (dataCopy, srcData.data, srcData.lineStride, imageW, imageH); break;
+        case Image::ARGB:           Flipper<PixelARGB> ::flip (dataCopy, srcData.data, srcData.lineStride, srcData.pixelStride, imageW, imageH); break;
+        case Image::RGB:            Flipper<PixelRGB>  ::flip (dataCopy, srcData.data, srcData.lineStride, srcData.pixelStride, imageW, imageH); break;
+        case Image::SingleChannel:  Flipper<PixelAlpha>::flip (dataCopy, srcData.data, srcData.lineStride, srcData.pixelStride, imageW, imageH); break;
         case Image::UnknownFormat:
         default: break;
     }
@@ -163,7 +171,7 @@ void OpenGLTexture::loadAlpha (const uint8* pixels, int w, int h)
 void OpenGLTexture::loadARGBFlipped (const PixelARGB* pixels, int w, int h)
 {
     HeapBlock<PixelARGB> flippedCopy;
-    Flipper<PixelARGB>::flip (flippedCopy, (const uint8*) pixels, 4 * w, w, h);
+    Flipper<PixelARGB>::flip (flippedCopy, (const uint8*) pixels, 4 * w, 4, w, h);
 
     create (w, h, flippedCopy, JUCE_RGBA_FORMAT, true);
 }

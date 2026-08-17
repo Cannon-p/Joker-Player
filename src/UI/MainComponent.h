@@ -46,6 +46,21 @@ private:
         juce::AudioThumbnail thumbnail { 512, formatManager, thumbnailCache };
         double position = 0.0;    };
 
+    /** A small icon-only button that toggles between day and night themes
+        (draws a sun when in day mode, a crescent moon when in night mode). */
+    class ThemeButton : public juce::Button
+    {
+    public:
+        ThemeButton();
+
+        void setTheme (aur::Theme::Mode m) { mode = m; repaint(); }
+
+    private:
+        void paintButton (juce::Graphics&, bool shouldDrawButtonAsHighlighted,
+                          bool shouldDrawButtonAsDown) override;
+        aur::Theme::Mode mode = aur::Theme::Mode::Night;
+    };
+
     class TransportButton : public juce::TextButton
     {
     public:
@@ -72,19 +87,21 @@ private:
     void setBufferSelection();
     void updateNowPlaying();
     void updateTransportUi();
+    void applyTheme();
 
     PlayerEngine engine;
 
     // --- header ---
     juce::Label appTitle { {}, "Joker Player" };
-    juce::Label deviceLabel { {}, "输出设备" };
+    ThemeButton themeButton;
+    juce::Label deviceLabel { {}, juce::String (juce::CharPointer_UTF8 ("输出设备")) };
     juce::ComboBox deviceCombo;
-    juce::Label bufferLabel { {}, "缓冲区" };
+    juce::Label bufferLabel { {}, juce::String (juce::CharPointer_UTF8 ("缓冲区")) };
     juce::ComboBox bufferCombo;
     juce::Slider volumeSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
 
     // --- now playing card ---
-    juce::Label trackName { {}, "未加载曲目" };
+    juce::Label trackName { {}, juce::String (juce::CharPointer_UTF8 ("未加载曲目")) };
     juce::Label trackMeta;
     juce::Label timeLabel { {}, "--:-- / --:--" };
     WaveformBar waveformBar;
@@ -106,6 +123,8 @@ private:
     bool isSeeking = false;
     int playingIndex = -1;
     bool wasPlaying = false;
+    float playPulsePhase = 0.0f;
+    juce::Rectangle<int> nowPlayingBounds;
 
     struct DeviceEntry
     {

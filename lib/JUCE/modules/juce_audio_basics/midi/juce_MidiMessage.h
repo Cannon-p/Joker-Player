@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -78,7 +78,7 @@ public:
     template <typename... Data>
     MidiMessage (int byte1, int byte2, int byte3, Data... otherBytes)  : size (3 + sizeof... (otherBytes))
     {
-        // this checks that the length matches the data..
+        // this checks that the length matches the data
         jassert (size > 3 || byte1 >= 0xf0 || getMessageLengthFromFirstByte ((uint8) byte1) == size);
 
         const uint8 data[] = { (uint8) byte1, (uint8) byte2, (uint8) byte3, static_cast<uint8> (otherBytes)... };
@@ -843,23 +843,49 @@ public:
     /** Creates an MMC message. */
     static MidiMessage midiMachineControlCommand (MidiMachineControlCommand command);
 
-    /** Checks whether this is an MMC "goto" message.
+    /** @deprecated
+        Checks whether this is an MMC "goto" message.
         If it is, the parameters passed-in are set to the time that the message contains.
         @see midiMachineControlGoto
     */
+    [[deprecated ("Use getMidiMachineControlGoto")]]
     bool isMidiMachineControlGoto (int& hours,
                                    int& minutes,
                                    int& seconds,
                                    int& frames) const noexcept;
 
-    /** Creates an MMC "goto" message.
+    struct MidiMachineControlGoto
+    {
+        uint8_t deviceId;
+        uint8_t hours;
+        uint8_t minutes;
+        uint8_t seconds;
+        uint8_t frames;
+        uint8_t subframes;
+    };
+
+    /** If the message is a MIDI Machine Control LOCATE command with FORMAT 2,
+        returns the data content of the message. Otherwise, returns nullopt.
+        @see midiMachineControlGoto()
+    */
+    std::optional<MidiMachineControlGoto> getMidiMachineControlGoto() const noexcept;
+
+    /** @deprecated
+        Creates an MMC "goto" message.
         This messages tells the device to go to a specific frame.
         @see isMidiMachineControlGoto
     */
+    [[deprecated ("Use the overload taking a MidiMachineControlGoto instance")]]
     static MidiMessage midiMachineControlGoto (int hours,
                                                int minutes,
                                                int seconds,
                                                int frames);
+
+    /** Creates an MMC "goto" (LOCATE) message with FORMAT 2.
+        This messages tells the device to go to a specific subframe.
+        @see getMidiMachineControlGoto
+    */
+    static MidiMessage midiMachineControlGoto (MidiMachineControlGoto);
 
     //==============================================================================
     /** Creates a master-volume change message.
@@ -880,7 +906,7 @@ public:
     static MidiMessage createSysExMessage (Span<const std::byte> data);
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     /** Reads a midi variable-length integer.
 
         The `data` argument indicates the data to read the number from,
@@ -889,7 +915,7 @@ public:
     */
     [[deprecated ("This signature has been deprecated in favour of the safer readVariableLengthValue.")]]
     static int readVariableLengthVal (const uint8* data, int& numBytesUsed) noexcept;
-   #endif
+    /** @endcond */
 
     /** Holds information about a variable-length value which was parsed
         from a stream of bytes.
@@ -987,19 +1013,26 @@ public:
     static uint16 pitchbendToPitchwheelPos (float pitchbendInSemitones,
                                             float pitchbendRangeInSemitones) noexcept;
 
+    Span<const std::byte> asSpan() const&
+    {
+        return { reinterpret_cast<const std::byte*> (getRawData()), (size_t) getRawDataSize() };
+    }
+
+    Span<const std::byte> asSpan() const&& = delete;
+
 private:
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     union PackedData
     {
         uint8* allocatedData;
         uint8 asBytes[sizeof (uint8*)];
     };
+    /** @endcond */
 
     PackedData packedData;
     double timeStamp = 0;
     int size;
-   #endif
 
     inline bool isHeapAllocated() const noexcept  { return size > (int) sizeof (packedData); }
     inline uint8* getData() const noexcept        { return isHeapAllocated() ? packedData.allocatedData : (uint8*) packedData.asBytes; }

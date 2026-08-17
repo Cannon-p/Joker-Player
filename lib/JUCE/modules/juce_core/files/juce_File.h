@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,9 +35,11 @@
 namespace juce
 {
 
-#if ! DOXYGEN && (JUCE_MAC || JUCE_IOS)
+/** @cond */
+#if JUCE_MAC || JUCE_IOS
  using OSType = unsigned int;
 #endif
+/** @endcond */
 
 //==============================================================================
 /**
@@ -361,6 +363,9 @@ public:
     bool hasReadAccess() const;
 
     /** Changes the write-permission of a file or directory.
+
+        Note that on Windows, there is no notion of a directory itself being read-only or not, and
+        the function will always return true when called with the non-recursive option.
 
         @param shouldBeReadOnly     whether to add or remove write-permission
         @param applyRecursively     if the file is a directory and this is true, it will
@@ -751,7 +756,7 @@ public:
         the file first and then re-writing it, it creates a new temporary file,
         writes the data to that, and then moves the new file to replace the existing
         file. This means that if the power gets pulled out or something crashes,
-        you're a lot less likely to end up with a corrupted or unfinished file..
+        you're a lot less likely to end up with a corrupted or unfinished file.
 
         Returns true if the operation succeeds, or false if it fails.
 
@@ -786,7 +791,7 @@ public:
         the file first and then re-writing it, it creates a new temporary file,
         writes the text to that, and then moves the new file to replace the existing
         file. This means that if the power gets pulled out or something crashes,
-        you're a lot less likely to end up with an empty file..
+        you're a lot less likely to end up with an empty file.
 
         For an explanation of the parameters here, see the appendText() method.
 
@@ -986,7 +991,10 @@ public:
         globalApplicationsDirectoryX86,
 
         /** On a Windows machine returns the %LOCALAPPDATA% folder. */
-        windowsLocalAppData
+        windowsLocalAppData,
+
+        /** On a Windows machine returns the %COMMONPROGRAMFILES% folder. */
+        windowsProgramFilesCommon,
        #endif
     };
 
@@ -1150,7 +1158,8 @@ public:
         bool foldersFirst;
     };
 
-   #if JUCE_ALLOW_STATIC_NULL_VARIABLES && ! defined (DOXYGEN)
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
+    /** @cond */
     /* These static objects are deprecated because it's too easy to accidentally use them indirectly
        during a static constructor, which leads to very obscure order-of-initialisation bugs.
        Use File::getSeparatorChar() and File::getSeparatorString(), and instead of File::nonexistent,
@@ -1159,6 +1168,7 @@ public:
     [[deprecated]] static const juce_wchar separator;
     [[deprecated]] static const StringRef separatorString;
     [[deprecated]] static const File nonexistent;
+    /** @endcond */
    #endif
 
 private:

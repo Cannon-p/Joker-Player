@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -53,9 +53,6 @@ public:
     //==============================================================================
     /** Creates a new unique ID, compliant with RFC 4122 version 4. */
     Uuid();
-
-    /** Destructor. */
-    ~Uuid() noexcept;
 
     /** Creates a copy of another UUID. */
     Uuid (const Uuid&) noexcept;
@@ -145,13 +142,14 @@ private:
     uint8 uuid[sizeInBytes];
     String getHexRegion (int, int) const;
     int compare (Uuid) const noexcept;
+    void swap (Uuid&) noexcept;
 
     JUCE_LEAK_DETECTOR (Uuid)
 };
 
 } // namespace juce
 
-#ifndef DOXYGEN
+/** @cond */
 namespace std
 {
     template <> struct hash<juce::Uuid>
@@ -159,4 +157,4 @@ namespace std
         size_t operator() (const juce::Uuid& u) const noexcept   { return (size_t) u.hash(); }
     };
 }
-#endif
+/** @endcond */

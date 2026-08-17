@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -289,18 +289,18 @@ auto toVector (const RectangleList<Number>& list)
     #define JUCE_TRACE_EVENT_INT_RECT_LIST(code, keyword, frameNumber, rect) \
         { \
             const std::vector<INT32> vec = ::juce::etw::toVector (rect); \
-            JUCE_WRITE_TRACE_LOG (code,                              \
-                                  etw::softwareRendererKeyword,      \
-                                  TraceLoggingValue ((UINT64) frameNumber, "frame"), \
-                                  TraceLoggingInt32Array (vec.data(), (UINT16) vec.size(), "rect")); \
+            JUCE_WRITE_TRACE_LOG_VA (code,                              \
+                                     etw::softwareRendererKeyword,      \
+                                     TraceLoggingValue ((UINT64) frameNumber, "frame"), \
+                                     TraceLoggingInt32Array (vec.data(), (UINT16) vec.size(), "rect")); \
         }
 
     #define JUCE_TRACE_EVENT_INT_RECT(code, keyword, rect) \
         { \
             const std::vector<INT32> vec = ::juce::etw::toVector (rect); \
-            JUCE_WRITE_TRACE_LOG (code,                              \
-                                  etw::softwareRendererKeyword,      \
-                                  TraceLoggingInt32Array (vec.data(), (UINT16) vec.size(), "rect")); \
+            JUCE_WRITE_TRACE_LOG_VA (code,                              \
+                                     etw::softwareRendererKeyword,      \
+                                     TraceLoggingInt32Array (vec.data(), (UINT16) vec.size(), "rect")); \
         }
 #else
     #define JUCE_TRACE_EVENT_INT_RECT_LIST(code, keyword, frameNumber, rect)

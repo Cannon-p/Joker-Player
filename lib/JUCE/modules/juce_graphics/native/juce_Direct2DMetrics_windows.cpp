@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -52,7 +52,7 @@ void Direct2DMetricsHub::HubPipeServer::messageReceived (const MemoryBlock& mess
         {
             ScopedLock locker { owner.lock };
 
-            auto foregroundWindow = GetForegroundWindow();
+            auto foregroundWindow = GetFocus();
             Direct2DMetrics::Ptr metrics = nullptr;
             for (int i = 0; i < owner.metricsArray.size(); ++i)
             {

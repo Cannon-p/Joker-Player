@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -44,7 +44,7 @@
 
   ID:                 juce_dsp
   vendor:             juce
-  version:            8.0.4
+  version:            9.0.1
   name:               JUCE DSP classes
   description:        Classes for audio buffer manipulation, digital audio processing, filtering, oversampling, fast math functions etc.
   website:            http://www.juce.com/juce
@@ -85,13 +85,25 @@
 #elif JUCE_ARM
 
  #ifndef JUCE_USE_SIMD
-  #define JUCE_USE_SIMD 1
+  #if JUCE_USE_ARM_NEON
+   #define JUCE_USE_SIMD 1
+  #else
+   #define JUCE_USE_SIMD 0
+  #endif
  #endif
 
- #if JUCE_64BIT && JUCE_WINDOWS
-  #include <arm64_neon.h>
- #else
-  #include <arm_neon.h>
+ #if JUCE_USE_SIMD
+  #if JUCE_WINDOWS
+   #if JUCE_64BIT
+    #if ! JUCE_CLANG
+     #include <arm64_neon.h>
+    #endif
+   #else
+    #include <arm_neon.h>
+   #endif
+  #else
+   #include <arm_neon.h>
+  #endif
  #endif
 
 #else
@@ -213,19 +225,19 @@ namespace util
     /** Use this function to prevent denormals on intel CPUs.
         This function will work with both primitives and simple containers.
     */
-  #if JUCE_DSP_ENABLE_SNAP_TO_ZERO
+   #if JUCE_DSP_ENABLE_SNAP_TO_ZERO
     inline void snapToZero (float&       x) noexcept            { JUCE_SNAP_TO_ZERO (x); }
-   #ifndef DOXYGEN
+    /** @cond */
     inline void snapToZero (double&      x) noexcept            { JUCE_SNAP_TO_ZERO (x); }
     inline void snapToZero (long double& x) noexcept            { JUCE_SNAP_TO_ZERO (x); }
-   #endif
-  #else
+    /** @endcond */
+   #else
     inline void snapToZero ([[maybe_unused]] float&       x) noexcept            {}
-   #ifndef DOXYGEN
+    /** @cond */
     inline void snapToZero ([[maybe_unused]] double&      x) noexcept            {}
     inline void snapToZero ([[maybe_unused]] long double& x) noexcept            {}
+    /** @endcond */
    #endif
-  #endif
 }
 
 }
@@ -259,6 +271,7 @@ namespace util
 #include "maths/juce_LookupTable.h"
 #include "maths/juce_LogRampedValue.h"
 #include "containers/juce_AudioBlock.h"
+#include "containers/juce_SIMDInterleavingHelpers.h"
 #include "processors/juce_ProcessContext.h"
 #include "processors/juce_ProcessorWrapper.h"
 #include "processors/juce_ProcessorChain.h"

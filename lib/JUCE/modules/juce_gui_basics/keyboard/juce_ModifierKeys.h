@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -98,6 +98,10 @@ public:
 
     inline bool isMiddleButtonDown() const noexcept     { return testFlags (middleButtonModifier); }
 
+    inline bool isBackButtonDown() const noexcept       { return testFlags (backButtonModifier); }
+
+    inline bool isForwardButtonDown() const noexcept    { return testFlags (forwardButtonModifier); }
+
     /** Tests for any of the mouse-button flags. */
     inline bool isAnyMouseButtonDown() const noexcept   { return testFlags (allMouseButtonModifiers); }
 
@@ -144,6 +148,12 @@ public:
         /** Middle mouse button flag. */
         middleButtonModifier                    = 64,
 
+        /* Back mouse button flag. Otherwise known as button 4. */
+        backButtonModifier                      = 128,
+
+        /* Forward mouse button flag. Otherwise known as button 5. */
+        forwardButtonModifier                   = 256,
+
        #if JUCE_MAC || JUCE_IOS
         /** Command key flag - on windows this is the same as the CTRL key flag. */
         commandModifier                         = 8,
@@ -164,7 +174,11 @@ public:
         allKeyboardModifiers                    = shiftModifier | ctrlModifier | altModifier | commandModifier,
 
         /** Represents a combination of all the mouse buttons at once. */
-        allMouseButtonModifiers                 = leftButtonModifier | rightButtonModifier | middleButtonModifier,
+        allMouseButtonModifiers                 = leftButtonModifier
+                                                | rightButtonModifier
+                                                | middleButtonModifier
+                                                | backButtonModifier
+                                                | forwardButtonModifier,
 
         /** Represents a combination of all the alt, ctrl and command key modifiers. */
         ctrlAltCommandModifiers                 = ctrlModifier | altModifier | commandModifier

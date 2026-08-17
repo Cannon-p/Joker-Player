@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -95,10 +95,10 @@ struct SHA256Processor
         finalBlocks[numBytes++] = 128; // append a '1' bit
 
         while (numBytes != 56 && numBytes < 64 + 56)
-            finalBlocks[numBytes++] = 0; // pad with zeros..
+            finalBlocks[numBytes++] = 0; // pad with zeros
 
         for (int i = 8; --i >= 0;)
-            finalBlocks[numBytes++] = (uint8_t) (length >> (i * 8)); // append the length.
+            finalBlocks[numBytes++] = (uint8_t) (length >> (i * 8)); // append the length
 
         jassert (numBytes == 64 || numBytes == 128);
 

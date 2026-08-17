@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "CustomLookAndFeel.h"
+#include "UIAnimator.h"
 
 #include "../Player/PlayerEngine.h"
 #include "../Trace.h"
@@ -123,6 +124,18 @@ MainComponent::MainComponent()
     appTitle.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (appTitle);
 
+    themeButton.setColour (juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    themeButton.setTooltip (juce::String (juce::CharPointer_UTF8 ("切换日间 / 夜间模式")));
+    themeButton.onClick = [this]
+    {
+        aur::Theme::setMode (aur::Theme::getMode() == aur::Theme::Mode::Night
+                                 ? aur::Theme::Mode::Day
+                                 : aur::Theme::Mode::Night);
+        aur::Theme::saveMode();
+        applyTheme();
+    };
+    addAndMakeVisible (themeButton);
+
     deviceLabel.setFont (aur::Theme::uiFont (15.0f));
     deviceLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
     deviceLabel.setJustificationType (juce::Justification::centredLeft);
@@ -189,7 +202,23 @@ MainComponent::MainComponent()
     stopButton.onClick = [this]
     {
         engine.stop();
-        updateTransportUi();
+    updateTransportUi();
+
+    // --- breathing glow on the play button while playing ----------------------
+    if (engine.isPlaying())
+    {
+        playPulsePhase += 0.04f;
+        if (playPulsePhase >= 1.0f)
+            playPulsePhase -= 1.0f;
+        playButton.getProperties().set ("pulse", playPulsePhase);
+        playButton.repaint();
+    }
+    else if (playPulsePhase != 0.0f)
+    {
+        playPulsePhase = 0.0f;
+        playButton.getProperties().set ("pulse", 0.0f);
+        playButton.repaint();
+    }
     };
     addAndMakeVisible (stopButton);
 
@@ -204,6 +233,7 @@ MainComponent::MainComponent()
     updateTransportUi();
 
     startTimer (60);
+    applyTheme();
     aur::traceStep ("MainComponent ctor done");
 }
 
@@ -226,14 +256,41 @@ void MainComponent::paint (juce::Graphics& g)
     if (! traced) { traced = true; aur::traceStep ("first paint"); }
     const auto area = getLocalBounds().toFloat();
 
-    juce::ColourGradient bg (aur::Theme::bgTop(), 0.0f, 0.0f,
-                             aur::Theme::bg(), 0.0f, area.getHeight(), false);
+    juce::ColourGradient bg = aur::Theme::windowBackgroundGradient (area);
     g.setGradientFill (bg);
+    g.fillAll();
+
+    // Vivid accent glows: a cool blue tint near the top-left, warm violet near the bottom-right.
+    juce::ColourGradient topGlow (aur::Theme::accent().withAlpha (0.16f), 0.0f, 0.0f,
+                                  aur::Theme::accent().withAlpha (0.0f),
+                                  (float) getWidth() * 0.6f, (float) getHeight() * 0.5f, true);
+    g.setGradientFill (topGlow);
+    g.fillAll();
+
+    juce::ColourGradient bottomGlow (aur::Theme::accent2().withAlpha (0.13f),
+                                     (float) getWidth(), (float) getHeight(),
+                                     aur::Theme::accent2().withAlpha (0.0f),
+                                     (float) getWidth() * 0.5f, (float) getHeight() * 0.5f, true);
+    g.setGradientFill (bottomGlow);
     g.fillAll();
 
     // Subtle header underline.
     g.setColour (aur::Theme::border().withAlpha (0.6f));
     g.fillRect (0.0f, 64.0f, (float) getWidth(), 1.0f);
+
+    // Now-playing card.
+    if (! nowPlayingBounds.isEmpty())
+    {
+        const auto card = nowPlayingBounds.toFloat();
+
+        juce::DropShadow shadow (juce::Colour (0x40000000), 10, { 0, 3 });
+        shadow.drawForRectangle (g, nowPlayingBounds);
+
+        g.setGradientFill (aur::Theme::panelGradient (card));
+        g.fillRoundedRectangle (card, 10.0f);
+        g.setColour (aur::Theme::border().withAlpha (0.6f));
+        g.drawRoundedRectangle (card, 10.0f, 1.0f);
+    }
 }
 
 //==============================================================================
@@ -246,6 +303,8 @@ void MainComponent::resized()
 
     auto titleArea = header.removeFromLeft (240);
     appTitle.setBounds (titleArea.removeFromBottom (40));
+
+    themeButton.setBounds (header.removeFromLeft (38).withTrimmedTop (20).withHeight (24));
 
     auto right = header.removeFromRight (360);
     deviceLabel.setBounds (right.removeFromLeft (72).withTrimmedTop (22).withHeight (20));
@@ -278,13 +337,17 @@ void MainComponent::resized()
                             footer.getRight() - nextButton.getRight() - 20 - 18, 8);
 
     // --- main content ---
-    auto mainArea = b.reduced (18, 12);
+    auto mainArea = b.reduced (18, 14);
+    mainArea.removeFromTop (6);       // breathing room below the header
 
     auto rightColumn = mainArea.removeFromRight (juce::jmax (280, mainArea.getWidth() / 3));
+    rightColumn.removeFromLeft (14);  // gap between the two columns
+
     auto leftColumn = mainArea;
 
     // now playing card
     auto card = leftColumn.removeFromTop (118);
+    nowPlayingBounds = card;
     trackName.setBounds (card.removeFromTop (48).reduced (8, 4));
     trackMeta.setBounds (card.removeFromTop (26).reduced (8, 2));
 
@@ -292,11 +355,11 @@ void MainComponent::resized()
     timeLabel.setBounds (timeArea.removeFromRight (70).reduced (0, 2));
     waveformBar.setBounds (timeArea.reduced (2, 4));
 
-    // playlist
-    playlist.setBounds (leftColumn.reduced (0, 6));
+    // playlist fills the rest of the left column
+    playlist.setBounds (leftColumn.reduced (0, 14));
 
-    // effect rack
-    rack.setBounds (rightColumn.reduced (0, 0));
+    // effect rack fills the right column, top-aligned with the now-playing card
+    rack.setBounds (rightColumn.reduced (0, 14));
 }
 
 //==============================================================================
@@ -355,8 +418,8 @@ void MainComponent::playTrack (int index)
     if (! engine.loadFile (playlist.getTrack (index).file))
     {
         juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
-                                                "\u65E0\u6CD5\u64AD\u653E",
-                                                "\u8BE5\u6587\u4EF6\u683C\u5F0F\u4E0D\u53D7\u652F\u6301\uFF0C\u6216\u6587\u4EF6\u5DF2\u635F\u574F\u3002");
+                                                juce::String (juce::CharPointer_UTF8 ("无法播放")),
+                                                juce::String (juce::CharPointer_UTF8 ("该文件格式不受支持，或文件已损坏。")));
         return;
     }
 
@@ -576,8 +639,8 @@ void MainComponent::updateNowPlaying()
 {
     if (! engine.hasTrack())
     {
-        trackName.setText ("\u672A\u52A0\u8F7D\u66F2\u76EE", juce::dontSendNotification);
-        trackMeta.setText ("\u6253\u5F00\u6587\u4EF6\u3001\u62D6\u5165\u97F3\u9891\uFF0C\u6216\u53CC\u51FB\u64AD\u653E\u5217\u8868\u4E2D\u7684\u66F2\u76EE\u3002", juce::dontSendNotification);
+        trackName.setText (juce::String (juce::CharPointer_UTF8 ("未加载曲目")), juce::dontSendNotification);
+        trackMeta.setText (juce::String (juce::CharPointer_UTF8 ("打开文件、拖入音频，或双击播放列表中的曲目。")), juce::dontSendNotification);
         timeLabel.setText ("--:-- / --:--", juce::dontSendNotification);
         waveformBar.clear();
         return;
@@ -590,11 +653,13 @@ void MainComponent::updateNowPlaying()
     const int mins = (int) (len / 60.0);
     const int secs = (int) std::fmod (len, 60.0);
 
-    trackMeta.setText (juce::String::formatted ("%.1f kHz \u00B7 %d:%02d \u00B7 %s",
-                                                engine.getSampleRate() / 1000.0,
-                                                mins, secs,
-                                                file.getParentDirectory().getFileName()),
-                       juce::dontSendNotification);
+    const auto rateStr = juce::String (engine.getSampleRate() / 1000.0, 1);
+        trackMeta.setText (rateStr
+                               + juce::String (juce::CharPointer_UTF8 (" kHz · "))
+                               + juce::String::formatted ("%d:%02d", mins, secs)
+                               + juce::String (juce::CharPointer_UTF8 (" · "))
+                               + file.getParentDirectory().getFileName(),
+                           juce::dontSendNotification);
 
     timeLabel.setText ("0:00 / " + formatClock (len), juce::dontSendNotification);
 }
@@ -618,6 +683,97 @@ void MainComponent::updateTransportUi()
     }
 }
 
+void MainComponent::applyTheme()
+{
+    const bool day = (aur::Theme::getMode() == aur::Theme::Mode::Day);
+
+    themeButton.setTheme (aur::Theme::getMode());
+
+    aur::CustomLookAndFeel::instance().refreshScheme();
+    setLookAndFeel (&aur::CustomLookAndFeel::instance());
+    sendLookAndFeelChange();
+
+    // Header labels.
+    appTitle.setColour (juce::Label::textColourId, aur::Theme::text());
+    deviceLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    bufferLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+
+    // Now-playing card labels.
+    trackName.setColour (juce::Label::textColourId, aur::Theme::text());
+    trackMeta.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    timeLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+
+    playlist.applyTheme();
+    rack.applyTheme();
+
+    if (pluginBrowser != nullptr)
+        pluginBrowser->applyTheme();
+
+    repaint();
+}
+
+//==============================================================================
+MainComponent::ThemeButton::ThemeButton()
+    : juce::Button ({})
+{
+    setClickingTogglesState (false);
+    setColour (juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+}
+
+void MainComponent::ThemeButton::paintButton (juce::Graphics& g,
+                                              bool shouldDrawButtonAsHighlighted,
+                                              bool shouldDrawButtonAsDown)
+{
+    // Soft rounded backdrop so the icon reads clearly on both themes.
+    auto bg = getLocalBounds().toFloat().reduced (2.0f);
+    juce::Colour bgCol = shouldDrawButtonAsDown ? aur::Theme::panelActive()
+                        : shouldDrawButtonAsHighlighted ? aur::Theme::panelHover()
+                        : aur::Theme::panel();
+    g.setColour (bgCol);
+    g.fillRoundedRectangle (bg, bg.getHeight() * 0.5f);
+    g.setColour (aur::Theme::border());
+    g.drawRoundedRectangle (bg, bg.getHeight() * 0.5f, 1.0f);
+
+    juce::Colour icon = shouldDrawButtonAsDown ? aur::Theme::accent()
+                       : shouldDrawButtonAsHighlighted ? aur::Theme::accent()
+                       : aur::Theme::text();
+    g.setColour (icon);
+
+    const auto centre = bg.getCentre();
+    const float stroke = juce::jmax (1.3f, bg.getHeight() * 0.08f);
+
+    if (mode == aur::Theme::Mode::Day)
+    {
+        // Sun: small disc + four compact rays.
+        const float r = bg.getWidth() * 0.16f;
+        g.fillEllipse (centre.x - r, centre.y - r, r * 2.0f, r * 2.0f);
+
+        const float rayLen = bg.getWidth() * 0.10f;
+        for (int i = 0; i < 4; ++i)
+        {
+            const float angle = juce::MathConstants<float>::halfPi * i + juce::MathConstants<float>::halfPi * 0.5f;
+            const float cx = std::cos (angle);
+            const float sy = std::sin (angle);
+            g.drawLine (centre.x + cx * (r + 2.0f), centre.y + sy * (r + 2.0f),
+                        centre.x + cx * (r + 2.0f + rayLen), centre.y + sy * (r + 2.0f + rayLen),
+                        stroke);
+        }
+    }
+    else
+    {
+        // Crescent moon: a filled disc with the backdrop colour carved out of
+        // its upper-left so only a smooth crescent remains.
+        const float r = bg.getHeight() * 0.40f;
+        const float xc = centre.x;
+        const float yc = centre.y;
+
+        g.fillEllipse (xc - r, yc - r, r * 2.0f, r * 2.0f);
+
+        g.setColour (bgCol);
+        g.fillEllipse (xc - r * 0.40f, yc - r * 0.90f, r * 2.0f, r * 2.0f);
+    }
+}
+
 //==============================================================================
 MainComponent::TransportButton::TransportButton (Icon i)
     : icon (i)
@@ -634,18 +790,18 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
 
     auto area = getLocalBounds().toFloat().reduced (isMain ? 1.0f : 3.0f);
 
-    juce::Colour base = juce::Colour (0xff232a39);
+    juce::Colour base = aur::Theme::panel();
 
     if (isMain)
     {
         if (isOn)
             base = aur::Theme::accent();
         else if (shouldDrawButtonAsHighlighted)
-            base = juce::Colour (0xff2d3550);
+            base = aur::Theme::panelHover();
     }
     else if (shouldDrawButtonAsHighlighted)
     {
-        base = juce::Colour (0xff2a3244);
+        base = aur::Theme::panelHover();
     }
 
     if (shouldDrawButtonAsDown)
@@ -654,10 +810,28 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
     if (! isEnabled())
         base = base.withAlpha (0.35f);
 
+    // Breathing accent glow behind the play button while playing.
+    if (isMain && isOn && isEnabled())
+    {
+        const float pulse = aur::UIAnimator::value (*this, "pulse", 0.0f);
+        const float glowA = 0.28f + 0.22f * std::sin (pulse * juce::MathConstants<float>::twoPi);
+        juce::ColourGradient glow (aur::Theme::accent().withAlpha (glowA),
+                                   area.getCentreX(), area.getCentreY(),
+                                   aur::Theme::accent().withAlpha (0.0f),
+                                   area.getCentreX(), area.getCentreY(),
+                                   true);
+        g.setGradientFill (glow);
+        g.fillEllipse (area.expanded (area.getWidth() * 0.35f));
+    }
+
     g.setColour (base);
     g.fillEllipse (area);
 
-    g.setColour (juce::Colours::white.withAlpha (isEnabled() ? 0.95f : 0.4f));
+    // Icons on an accent (playing) button read best in white on both themes.
+    const bool iconOnAccent = isMain && isOn && isEnabled();
+    const juce::Colour iconCol = iconOnAccent ? juce::Colours::white
+                                              : aur::Theme::text().withAlpha (isEnabled() ? 0.95f : 0.4f);
+    g.setColour (iconCol);
 
     const float cx = area.getCentreX();
     const float cy = area.getCentreY();

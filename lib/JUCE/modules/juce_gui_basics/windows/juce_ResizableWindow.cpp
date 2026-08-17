@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -52,7 +52,7 @@ ResizableWindow::~ResizableWindow()
 {
     // Don't delete or remove the resizer components yourself! They're managed by the
     // ResizableWindow, and you should leave them alone! You may have deleted them
-    // accidentally by careless use of deleteAllChildren()..?
+    // accidentally by careless use of deleteAllChildren()?
     jassert (resizableCorner == nullptr || getIndexOfChildComponent (resizableCorner.get()) >= 0);
     jassert (resizableBorder == nullptr || getIndexOfChildComponent (resizableBorder.get()) >= 0);
 
@@ -60,7 +60,7 @@ ResizableWindow::~ResizableWindow()
     resizableBorder.reset();
     clearContentComponent();
 
-    // have you been adding your own components directly to this window..? tut tut tut.
+    // Maybe you've added your own components directly to this window, which isn't supported.
     // Read the instructions for using a ResizableWindow!
     jassert (getNumChildComponents() == 0);
 }
@@ -77,10 +77,13 @@ void ResizableWindow::initialise (const bool shouldAddToDesktop)
 
 int ResizableWindow::getDesktopWindowStyleFlags() const
 {
-    int styleFlags = TopLevelWindow::getDesktopWindowStyleFlags();
+    const auto styleFlags = TopLevelWindow::getDesktopWindowStyleFlags();
 
-    if (isResizable() && Desktop::getInstance().supportsBorderlessNonClientResize())
-        styleFlags |= ComponentPeer::windowIsResizable;
+    if (isResizable()
+        && (isUsingNativeTitleBar() || Desktop::getInstance().supportsBorderlessNonClientResize()))
+    {
+        return styleFlags | ComponentPeer::windowIsResizable;
+    }
 
     return styleFlags;
 }
@@ -152,7 +155,7 @@ void ResizableWindow::setContentComponent (Component* const newContentComponent,
 
 void ResizableWindow::setContentComponentSize (int width, int height)
 {
-    jassert (width > 0 && height > 0); // not a great idea to give it a zero size..
+    jassert (width > 0 && height > 0); // not a great idea to give it a zero size
 
     auto border = getContentComponentBorder();
 
@@ -299,7 +302,7 @@ void ResizableWindow::setResizeLimits (int newMinimumWidth,
                                        int newMaximumWidth,
                                        int newMaximumHeight) noexcept
 {
-    // if you've set up a custom constrainer then these settings won't have any effect..
+    // if you've set up a custom constrainer then these settings won't have any effect
     jassert (constrainer == &defaultConstrainer || constrainer == nullptr);
 
     if (constrainer == nullptr)
@@ -583,7 +586,7 @@ bool ResizableWindow::restoreWindowStateFromString (const String& s)
 
         if (onScreenArea.getWidth() * onScreenArea.getHeight() < 32 * 32)
         {
-            auto screen = desktop.getDisplays().getDisplayForRect (newPos)->userArea;
+            auto screen = desktop.getDisplays().getDisplayForRect (newPos)->userBounds.getLargestIntegerWithin();
 
             newPos.setSize (jmin (newPos.getWidth(),  screen.getWidth()),
                             jmin (newPos.getHeight(), screen.getHeight()));

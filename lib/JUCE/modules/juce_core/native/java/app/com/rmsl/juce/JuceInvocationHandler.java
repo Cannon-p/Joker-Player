@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -38,35 +38,35 @@ import java.lang.reflect.*;
 
 public class JuceInvocationHandler implements InvocationHandler
 {
-        public JuceInvocationHandler (long nativeContextRef)
-        {
-                nativeContext = nativeContextRef;
-        }
+    public JuceInvocationHandler (long nativeContextRef)
+    {
+        nativeContext = nativeContextRef;
+    }
 
-        public void clear()
-        {
-                nativeContext = 0;
-        }
+    public void clear()
+    {
+        nativeContext = 0;
+    }
 
-        @Override
-        public void finalize()
-        {
-                if (nativeContext != 0)
-                        dispatchFinalize (nativeContext);
-        }
+    @Override
+    public void finalize()
+    {
+        if (nativeContext != 0)
+            dispatchFinalize (nativeContext);
+    }
 
-        @Override
-        public Object invoke (Object proxy, Method method, Object[] args) throws Throwable
-        {
-                if (nativeContext != 0)
-                        return dispatchInvoke (nativeContext, proxy, method, args);
+    @Override
+    public Object invoke (Object proxy, Method method, Object[] args) throws Throwable
+    {
+        if (nativeContext != 0)
+            return dispatchInvoke (nativeContext, proxy, method, args);
 
-                return null;
-        }
+        return null;
+    }
 
-        //==============================================================================
-        private long nativeContext = 0;
+    //==============================================================================
+    private long nativeContext = 0;
 
-        private native void dispatchFinalize (long nativeContextRef);
-        private native Object dispatchInvoke (long nativeContextRef, Object proxy, Method method, Object[] args);
+    private native void dispatchFinalize (long nativeContextRef);
+    private native Object dispatchInvoke (long nativeContextRef, Object proxy, Method method, Object[] args);
 }

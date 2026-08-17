@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -48,7 +48,7 @@ namespace juce
         void foo();
 
         // This is a neat way of declaring a typedef for a pointer class,
-        // rather than typing out the full templated name each time..
+        // rather than typing out the full templated name each time.
         using Ptr = ReferenceCountedObjectPtr<MyClass>;
     };
 
@@ -440,10 +440,10 @@ public:
     operator ReferencedType*() const noexcept               { return referencedObject; }
    #endif
 
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("Use the get method instead.")]]
     ReferencedType* getObject() const { return get(); }
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,7 +35,7 @@
 namespace juce
 {
 
-#ifndef DOXYGEN
+/** @cond */
 namespace detail
 {
     template <typename...>
@@ -46,8 +46,10 @@ namespace detail
 
     template <typename T>
     constexpr auto equalityComparableToNullptr<T, Void<decltype (std::declval<T>() != nullptr)>> = true;
+
+    template <typename> struct Tag {};
 } // namespace detail
-#endif
+/** @endcond */
 
 //==============================================================================
 /** Some helper methods for checking a callable object before invoking with
@@ -80,6 +82,8 @@ struct NullCheckedInvocation
 
     template <typename... Args>
     static void invoke (std::nullptr_t, Args&&...) {}
+
+    NullCheckedInvocation() = delete;
 };
 
 /** Can be used to disable template constructors that would otherwise cause ambiguity with
@@ -98,7 +102,7 @@ template <typename Object, typename OtherObject, typename Member, typename Other
     return copy;
 }
 
-#ifndef DOXYGEN
+/** @cond */
 namespace detail
 {
 template <typename Functor, typename Return, typename... Args>
@@ -107,7 +111,7 @@ static constexpr auto toFnPtr (Functor functor, Return (Functor::*) (Args...) co
     return static_cast<Return (*) (Args...)> (functor);
 }
 } // namespace detail
-#endif
+/** @endcond */
 
 /** Converts a captureless lambda to its equivalent function pointer type. */
 template <typename Functor>

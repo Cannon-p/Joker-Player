@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,23 +35,33 @@
 namespace juce::build_tools
 {
 
-    struct Icons
+    class Icons
     {
+    public:
+        Icons() = default;
+
+        static Icons fromFilesSmallAndBig (const File& small, const File& big);
+
+        const Drawable* getSmall() const { return small.get(); }
+        const Drawable* getBig()   const { return big.get(); }
+
+    private:
         std::unique_ptr<Drawable> small;
         std::unique_ptr<Drawable> big;
     };
 
-    Array<Drawable*> asArray (const Icons&);
+    Array<const Drawable*> asArray (const Icons&);
     void writeMacIcon (const Icons&, const File&);
     void writeWinIcon (const Icons&, const File&);
 
     Image getBestIconForSize (const Icons& icons,
                               int size,
                               bool returnNullIfNothingBigEnough);
-    Image rescaleImageForIcon (Drawable& d, int size);
+    Image rescaleImageForIcon (const Drawable& d, int size);
 
     RelativePath createXcassetsFolderFromIcons (const Icons& icons,
                                                 const File& targetFolder,
-                                                String projectFilenameRootString);
+                                                String projectFilenameRootString,
+                                                String iconName);
 
 } // namespace juce::build_tools

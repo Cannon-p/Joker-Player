@@ -93,12 +93,12 @@ public:
             const int real = mapping[rowNumber];
 
             juce::PopupMenu menu;
-            menu.addItem ("从列表移除", [this, real]
+            menu.addItem (juce::String (juce::CharPointer_UTF8 ("从列表移除")), [this, real]
             {
                 if (onRemove)
                     onRemove (real);
             });
-            menu.addItem ("显示所在文件夹", [this, real]
+            menu.addItem (juce::String (juce::CharPointer_UTF8 ("显示所在文件夹")), [this, real]
             {
                 if (real >= 0 && real < list.getNumTypes())
                     juce::File (list.getTypes()[real].fileOrIdentifier).revealToUser();
@@ -165,11 +165,12 @@ private:
 PluginBrowserDialog::PluginBrowserDialog (PlayerEngine& engineRef,
                                           std::function<void (const juce::PluginDescription&)> onAdd,
                                           std::function<int()> getTargetPath)
-    : DocumentWindow ("Joker Player · 插件管理器", aur::Theme::bg(),
+    : DocumentWindow (juce::String (juce::CharPointer_UTF8 ("Joker Player · 插件管理器")), aur::Theme::bg(),
                       DocumentWindow::closeButton, true),
       engine (engineRef)
 {
     setUsingNativeTitleBar (true);
+    setLookAndFeel (&aur::CustomLookAndFeel::instance());
 
     auto* content = new ContentComponent (*this, engine, std::move (onAdd), std::move (getTargetPath));
     setContentOwned (content, true);
@@ -181,6 +182,18 @@ PluginBrowserDialog::PluginBrowserDialog (PlayerEngine& engineRef,
 }
 
 PluginBrowserDialog::~PluginBrowserDialog() = default;
+
+void PluginBrowserDialog::applyTheme()
+{
+    aur::CustomLookAndFeel::instance().refreshScheme();
+    setLookAndFeel (&aur::CustomLookAndFeel::instance());
+
+    if (auto* content = dynamic_cast<ContentComponent*> (getContentComponent()))
+        content->applyTheme();
+
+    sendLookAndFeelChange();
+    repaint();
+}
 
 void PluginBrowserDialog::closeButtonPressed()
 {
@@ -226,8 +239,9 @@ PluginBrowserDialog::ContentComponent::ContentComponent (
         juce::PluginListComponent::setLastSearchPath (*properties, *vst3, searchPath);
     }
 
-    pluginList->setOptionsButtonText ("扫描选项");
-    pluginList->setScanDialogText ("扫描插件", "正在扫描插件，请稍候…");
+    pluginList->setOptionsButtonText (juce::String (juce::CharPointer_UTF8 ("扫描选项")));
+    pluginList->setScanDialogText (juce::String (juce::CharPointer_UTF8 ("扫描插件")),
+                                   juce::String (juce::CharPointer_UTF8 ("正在扫描插件，请稍候…")));
     pluginList->setNumberOfThreadsForScanning (1);
     addAndMakeVisible (pluginList.get());
 
@@ -257,7 +271,7 @@ PluginBrowserDialog::ContentComponent::ContentComponent (
     searchBox.setColour (juce::TextEditor::backgroundColourId, aur::Theme::inputBg());
     searchBox.setColour (juce::TextEditor::outlineColourId, aur::Theme::border());
     searchBox.setColour (juce::TextEditor::focusedOutlineColourId, aur::Theme::accent());
-    searchBox.setTextToShowWhenEmpty ("搜索插件名称、厂商、分类…", aur::Theme::textDim());
+    searchBox.setTextToShowWhenEmpty (juce::String (juce::CharPointer_UTF8 ("搜索插件名称、厂商、分类…")), aur::Theme::textDim());
     searchBox.setJustification (juce::Justification::centredLeft);
     searchBox.setReturnKeyStartsNewLine (false);
     searchBox.onTextChange = [this]
@@ -284,9 +298,24 @@ PluginBrowserDialog::ContentComponent::ContentComponent (
 PluginBrowserDialog::ContentComponent::~ContentComponent() = default;
 
 //==============================================================================
+void PluginBrowserDialog::ContentComponent::applyTheme()
+{
+    title.setColour (juce::Label::textColourId, aur::Theme::text());
+    statusLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    searchBox.setColour (juce::TextEditor::textColourId, aur::Theme::text());
+    searchBox.setColour (juce::TextEditor::backgroundColourId, aur::Theme::inputBg());
+    searchBox.setColour (juce::TextEditor::outlineColourId, aur::Theme::border());
+    searchBox.setColour (juce::TextEditor::focusedOutlineColourId, aur::Theme::accent());
+    searchBox.applyColourToAllText (aur::Theme::text());
+    searchBox.setTextToShowWhenEmpty (juce::String (juce::CharPointer_UTF8 ("搜索插件名称、厂商、分类…")), aur::Theme::textDim());
+    repaint();
+}
+
+//==============================================================================
 void PluginBrowserDialog::ContentComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (aur::Theme::bg());
+    g.setGradientFill (aur::Theme::windowBackgroundGradient (getLocalBounds().toFloat()));
+    g.fillAll();
 }
 
 void PluginBrowserDialog::ContentComponent::resized()
@@ -315,7 +344,7 @@ void PluginBrowserDialog::ContentComponent::addPlugin (const juce::PluginDescrip
 
     if (error.isEmpty())
     {
-        statusLabel.setText ("已添加： " + desc.name, juce::dontSendNotification);
+        statusLabel.setText (juce::String (juce::CharPointer_UTF8 ("已添加： ")) + desc.name, juce::dontSendNotification);
         engine.getPluginManager().saveCache();
 
         if (onAdd)
@@ -323,7 +352,7 @@ void PluginBrowserDialog::ContentComponent::addPlugin (const juce::PluginDescrip
     }
     else
     {
-        statusLabel.setText ("添加失败： " + error, juce::dontSendNotification);
+        statusLabel.setText (juce::String (juce::CharPointer_UTF8 ("添加失败： ")) + error, juce::dontSendNotification);
     }
 }
 

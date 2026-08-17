@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -54,7 +54,7 @@ private:
     size_t idx;
 };
 
-#ifndef DOXYGEN
+/** @cond */
 //==============================================================================
 /* This class is used internally by SIMDRegister to abstract away differences
    in operations which are different for complex and pure floating point types. */
@@ -167,7 +167,7 @@ struct CmplxSIMDOps<std::complex<Scalar>>
         return SIMDNativeOps<Scalar>::add (a, SIMDNativeOps<Scalar>::cmplxmul (b, c));
     }
 };
-#endif
+/** @endcond */
 
 //==============================================================================
  namespace util

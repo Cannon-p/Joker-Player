@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -148,9 +148,9 @@ struct CameraDevice::Pimpl
     {
         if (@available (macOS 10.15, *))
         {
-            JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+            JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
             const auto deviceType = AVCaptureDeviceTypeExternalUnknown;
-            JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+            JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
             auto* discovery = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes: @[AVCaptureDeviceTypeBuiltInWideAngleCamera, deviceType]
                                                                                      mediaType: AVMediaTypeVideo
@@ -159,9 +159,9 @@ struct CameraDevice::Pimpl
             return [discovery devices];
         }
 
-        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+        JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
         return [AVCaptureDevice devicesWithMediaType: AVMediaTypeVideo];
-        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+        JUCE_END_IGNORE_DEPRECATION_WARNINGS
     }
 
     static StringArray getAvailableDevices()
@@ -200,7 +200,8 @@ private:
     //==============================================================================
     struct DelegateClass  : public ObjCClass<NSObject>
     {
-        DelegateClass()  : ObjCClass<NSObject> ("JUCECameraDelegate_")
+        DelegateClass()
+            : ObjCClass ("JUCECameraDelegate_")
         {
             addIvar<Pimpl*> ("owner");
             addProtocol (@protocol (AVCaptureFileOutputRecordingDelegate));
@@ -331,7 +332,7 @@ private:
         NSUniquePtr<NSObject<AVCapturePhotoCaptureDelegate>> delegate;
     };
 
-    JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+    JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
     class PreCatalinaStillImageOutput  : public ImageOutputBase
     {
     public:
@@ -397,7 +398,7 @@ private:
     private:
         AVCaptureStillImageOutput* imageOutput = nil;
     };
-    JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+    JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
     //==============================================================================
     void addImageCapture()
@@ -542,7 +543,7 @@ private:
 
         startSession();
 
-        if (auto* videoConnection = getVideoConnection())
+        if (getVideoConnection() != nullptr)
             imageOutput->triggerImageCapture (*this);
     }
 

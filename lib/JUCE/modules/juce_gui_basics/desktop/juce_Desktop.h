@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -89,6 +89,12 @@ public:
     //==============================================================================
     /** There's only one desktop object, and this method will return it. */
     static Desktop& JUCE_CALLTYPE getInstance();
+
+    /** This function may return a nullptr if the desktop object hasn't been created yet, and more
+        importantly, if it has already been destroyed during shutdown. This function should be used
+        in destructors that want to unregister a listener from the Desktop instance.
+    */
+    static Desktop* JUCE_CALLTYPE getInstanceWithoutCreating();
 
     //==============================================================================
     /** Returns the mouse position.
@@ -406,10 +412,12 @@ public:
     /** True if the OS supports semitransparent windows */
     static bool canUseSemiTransparentWindows() noexcept;
 
-   #if JUCE_MAC && ! defined (DOXYGEN)
+   #if JUCE_MAC
+    /** @cond */
     [[deprecated ("This macOS-specific method has been deprecated in favour of the cross-platform "
                   " isDarkModeActive() method.")]]
     static bool isOSXDarkModeActive()  { return Desktop::getInstance().isDarkModeActive(); }
+    /** @endcond */
    #endif
 
     /** Returns true if the desktop environment allows resizing the window by clicking and dragging
@@ -456,7 +464,7 @@ private:
 
     std::unique_ptr<FocusOutline> focusOutline;
 
-    Component* kioskModeComponent = nullptr;
+    Component::SafePointer<Component> kioskModeComponent;
     Rectangle<int> kioskComponentOriginalBounds;
     bool kioskModeReentrant = false;
 

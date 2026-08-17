@@ -61,9 +61,9 @@ of the target you wish to build.
 
 #### Building JUCE Projects
 
-- __C++ Standard__: 17
+- __C++ Standard__: 17 (20 when building with JUCE_USE_WINDOWS_MIDI_SERVICES enabled)
 - __macOS/iOS__: Xcode 12.4 (Intel macOS 10.15.4, Apple Silicon macOS 11.0)
-- __Windows__: Visual Studio 2019 (Windows 10)
+- __Windows__: Visual Studio 2019 (Windows 10 version 1607)
 - __Linux__: g++ 7.0 or Clang 6.0 (for a full list of dependencies, see
 [here](/docs/Linux%20Dependencies.md)).
 - __Android__: Android Studio (NDK 26) on Windows, macOS or Linux
@@ -71,10 +71,10 @@ of the target you wish to build.
 #### Deployment Targets
 
 - __macOS__: macOS 10.11 (x86_64, Arm64)
-- __Windows__: Windows 10 (x86_64, x86, Arm64, Arm64EC)
+- __Windows__: Windows 10 version 1607 (x86_64, x86, Arm64, Arm64EC)
 - __Linux__: Mainstream Linux distributions (x86_64, Arm64/aarch64, (32 bit Arm systems like armv7 should work but are not regularly tested))
 - __iOS__: iOS 12 (Arm64, Arm64e, x86_64 (Simulator))
-- __Android__: Android 5 - Lollipop (API Level 21) (arm64-v8a, armeabi-v7a, x86_64, x86)
+- __Android__: Android 7 - Nougat (API Level 24) (arm64-v8a, armeabi-v7a, x86_64, x86)
 
 ## Contributing
 

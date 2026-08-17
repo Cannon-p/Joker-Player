@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -78,6 +78,8 @@ public:
         MacOS_12        = MacOSX | 17,
         MacOS_13        = MacOSX | 18,
         MacOS_14        = MacOSX | 19,
+        MacOS_15        = MacOSX | 20,
+        MacOS_26        = MacOSX | 21,
 
         Win2000         = Windows | 1,
         WinXP           = Windows | 2,
@@ -202,7 +204,7 @@ public:
     static StringArray getMachineIdentifiers (MachineIdFlags flags);
 
     //==============================================================================
-    // CPU and memory information..
+    // CPU and memory information
 
     /** Returns the number of logical CPU cores. */
     static int getNumCpus() noexcept;
@@ -292,10 +294,10 @@ public:
    #endif
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("This method was spelt wrong! Please change your code to use getCpuSpeedInMegahertz instead.")]]
     static int getCpuSpeedInMegaherz() { return getCpuSpeedInMegahertz(); }
-   #endif
+    /** @endcond */
 
 private:
     SystemStats() = delete; // uses only static methods

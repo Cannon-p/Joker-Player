@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -86,7 +86,7 @@ public:
         }
         else
         {
-            assignNewKey();  // + button pressed..
+            assignNewKey();  // + button pressed
         }
     }
 
@@ -118,7 +118,7 @@ public:
             addButton (TRANS ("OK"), 1);
             addButton (TRANS ("Cancel"), 0);
 
-            // (avoid return + escape keys getting processed by the buttons..)
+            // avoid return + escape keys getting processed by the buttons
             for (auto* child : getChildren())
                 child->setWantsKeyboardFocus (false);
 

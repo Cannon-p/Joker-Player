@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -42,19 +42,19 @@ namespace juce::midi_ci
 */
 class ProfileAtAddress
 {
-    auto tie() const { return std::tie (profile, address); }
+    auto tie() const;
 
 public:
     Profile profile;            ///< The id of a MIDI-CI profile
     ChannelAddress address;     ///< A group and channel
 
-    bool operator== (const ProfileAtAddress& x) const { return tie() == x.tie(); }
-    bool operator!= (const ProfileAtAddress& x) const { return tie() != x.tie(); }
+    bool operator== (const ProfileAtAddress& x) const;
+    bool operator!= (const ProfileAtAddress& x) const;
 
-    bool operator<  (const ProfileAtAddress& x) const { return tie() <  x.tie(); }
-    bool operator<= (const ProfileAtAddress& x) const { return tie() <= x.tie(); }
-    bool operator>  (const ProfileAtAddress& x) const { return tie() >  x.tie(); }
-    bool operator>= (const ProfileAtAddress& x) const { return tie() >= x.tie(); }
+    bool operator<  (const ProfileAtAddress& x) const;
+    bool operator<= (const ProfileAtAddress& x) const;
+    bool operator>  (const ProfileAtAddress& x) const;
+    bool operator>= (const ProfileAtAddress& x) const;
 };
 
 } // namespace juce::midi_ci

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -69,7 +69,7 @@ void PluginDirectoryScanner::setFilesOrIdentifiersToScan (const StringArray& fil
     filesOrIdentifiersToScan = filesOrIdentifiers;
 
     // If any plugins have crashed recently when being loaded, move them to the
-    // end of the list to give the others a chance to load correctly..
+    // end of the list to give the others a chance to load correctly.
     for (auto& crashed : readDeadMansPedalFile (deadMansPedalFile))
         for (int j = filesOrIdentifiersToScan.size(); --j >= 0;)
             if (crashed == filesOrIdentifiersToScan[j])
@@ -112,7 +112,7 @@ bool PluginDirectoryScanner::scanNextFile (bool dontRescanIfAlreadyInList,
 
             list.scanAndAddFile (file, dontRescanIfAlreadyInList, typesFound, format);
 
-            // Managed to load without crashing, so remove it from the dead-man's-pedal..
+            // Managed to load without crashing, so remove it from the dead-man's-pedal.
             crashedPlugins.removeString (file);
             setDeadMansPedalFile (crashedPlugins);
 
@@ -140,7 +140,7 @@ void PluginDirectoryScanner::setDeadMansPedalFile (const StringArray& newContent
 void PluginDirectoryScanner::applyBlacklistingsFromDeadMansPedal (KnownPluginList& list, const File& file)
 {
     // If any plugins have crashed recently when being loaded, move them to the
-    // end of the list to give the others a chance to load correctly..
+    // end of the list to give the others a chance to load correctly.
     for (auto& crashedPlugin : readDeadMansPedalFile (file))
         list.addToBlacklist (crashedPlugin);
 }

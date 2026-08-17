@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -38,18 +38,18 @@ namespace juce
 #define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK) \
  STATICMETHOD (getAndroidBluetoothManager, "getAndroidBluetoothManager", "(Landroid/content/Context;)Lcom/rmsl/juce/JuceMidiSupport$BluetoothMidiManager;")
 
-DECLARE_JNI_CLASS_WITH_MIN_SDK (AndroidJuceMidiSupport, "com/rmsl/juce/JuceMidiSupport", 23)
+DECLARE_JNI_CLASS (AndroidJuceMidiSupport, "com/rmsl/juce/JuceMidiSupport")
 #undef JNI_CLASS_MEMBERS
 
 #define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK) \
- METHOD (getMidiBluetoothAddresses, "getMidiBluetoothAddresses", "()[Ljava/lang/String;") \
+ METHOD (getMidiBluetoothAddresses, "getMidiBluetoothAddresses", "()Ljava/util/List;") \
  METHOD (pairBluetoothMidiDevice, "pairBluetoothMidiDevice", "(Ljava/lang/String;)Z") \
  METHOD (unpairBluetoothMidiDevice, "unpairBluetoothMidiDevice", "(Ljava/lang/String;)V") \
  METHOD (getHumanReadableStringForBluetoothAddress, "getHumanReadableStringForBluetoothAddress", "(Ljava/lang/String;)Ljava/lang/String;") \
  METHOD (getBluetoothDeviceStatus, "getBluetoothDeviceStatus", "(Ljava/lang/String;)I") \
  METHOD (startStopScan, "startStopScan", "(Z)V")
 
-DECLARE_JNI_CLASS_WITH_MIN_SDK (AndroidBluetoothManager, "com/rmsl/juce/JuceMidiSupport$BluetoothMidiManager", 23)
+DECLARE_JNI_CLASS (AndroidBluetoothManager, "com/rmsl/juce/JuceMidiSupport$BluetoothMidiManager")
 #undef JNI_CLASS_MEMBERS
 
 //==============================================================================
@@ -58,7 +58,9 @@ struct AndroidBluetoothMidiInterface
     static void startStopScan (bool startScanning)
     {
         JNIEnv* env = getEnv();
-        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                                  AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                                  getAppContext().get()));
 
         if (btManager.get() != nullptr)
             env->CallVoidMethod (btManager.get(), AndroidBluetoothManager.startStopScan, (jboolean) (startScanning ? 1 : 0));
@@ -70,21 +72,22 @@ struct AndroidBluetoothMidiInterface
 
         JNIEnv* env = getEnv();
 
-        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                                  AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                                  getAppContext().get()));
 
         // if this is null then bluetooth is not enabled
         if (btManager.get() == nullptr)
             return {};
 
-        jobjectArray jDevices = (jobjectArray) env->CallObjectMethod (btManager.get(),
-                                                                      AndroidBluetoothManager.getMidiBluetoothAddresses);
-        LocalRef<jobjectArray> devices (jDevices);
+        LocalRef<jobject> jDevices { (jobjectArray) env->CallObjectMethod (btManager.get(),
+                                                                           AndroidBluetoothManager.getMidiBluetoothAddresses) };
 
-        const int count = env->GetArrayLength (devices.get());
+        const auto count = env->CallIntMethod (jDevices, JavaList.size);
 
-        for (int i = 0; i < count; ++i)
+        for (auto i = (decltype (count)) 0; i < count; ++i)
         {
-            LocalRef<jstring> string ((jstring)  env->GetObjectArrayElement (devices.get(), i));
+            LocalRef<jstring> string { (jstring) env->CallObjectMethod (jDevices, JavaList.get, i) };
             retval.add (juceString (string));
         }
 
@@ -96,7 +99,9 @@ struct AndroidBluetoothMidiInterface
     {
         JNIEnv* env = getEnv();
 
-        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                                  AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                                  getAppContext().get()));
         if (btManager.get() == nullptr)
             return false;
 
@@ -110,7 +115,9 @@ struct AndroidBluetoothMidiInterface
     {
         JNIEnv* env = getEnv();
 
-        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                                  AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                                  getAppContext().get()));
 
         if (btManager.get() != nullptr)
             env->CallVoidMethod (btManager.get(), AndroidBluetoothManager.unpairBluetoothMidiDevice,
@@ -122,7 +129,9 @@ struct AndroidBluetoothMidiInterface
     {
         JNIEnv* env = getEnv();
 
-        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                                  AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                                  getAppContext().get()));
 
         if (btManager.get() == nullptr)
             return address;
@@ -150,7 +159,9 @@ struct AndroidBluetoothMidiInterface
     {
         JNIEnv* env = getEnv();
 
-        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+        LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                                  AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                                  getAppContext().get()));
 
         if (btManager.get() == nullptr)
             return unpaired;
@@ -501,9 +512,6 @@ bool BluetoothMidiDevicePairingDialogue::open (ModalComponentManager::Callback* 
 {
     std::unique_ptr<ModalComponentManager::Callback> exitCallback (exitCallbackPtr);
 
-    if (getAndroidSDKVersion() < 23)
-        return false;
-
     auto boundsToUse = (btBounds != nullptr ? *btBounds : Rectangle<int> {});
 
     if (! RuntimePermissions::isGranted (RuntimePermissions::bluetoothMidi))
@@ -521,12 +529,11 @@ bool BluetoothMidiDevicePairingDialogue::open (ModalComponentManager::Callback* 
 
 bool BluetoothMidiDevicePairingDialogue::isAvailable()
 {
-    if (getAndroidSDKVersion() < 23)
-        return false;
-
     auto* env = getEnv();
 
-    LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport, AndroidJuceMidiSupport.getAndroidBluetoothManager, getAppContext().get()));
+    LocalRef<jobject> btManager (env->CallStaticObjectMethod (AndroidJuceMidiSupport,
+                                                              AndroidJuceMidiSupport.getAndroidBluetoothManager,
+                                                              getAppContext().get()));
     return btManager != nullptr;
 }
 

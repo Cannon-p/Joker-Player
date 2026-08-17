@@ -36,6 +36,9 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    /** Re-applies theme colours to labels after a mode switch. */
+    void applyTheme();
+
 private:
     class RackRow : public juce::Component
     {
@@ -55,9 +58,9 @@ private:
         PluginRackComponent& owner;
         int pathIndex;
         int slotIndex;
-        juce::ToggleButton bypass { "旁路" };
-        juce::TextButton guiButton { "界面" };
-        juce::TextButton removeButton { "×" };
+        juce::ToggleButton bypass { juce::String (juce::CharPointer_UTF8 ("旁路")) };
+        juce::TextButton guiButton { juce::String (juce::CharPointer_UTF8 ("界面")) };
+        juce::TextButton removeButton { juce::String (juce::CharPointer_UTF8 ("×")) };
     };
 
     class PathHeader : public juce::Component
@@ -67,6 +70,7 @@ private:
 
         void paint (juce::Graphics&) override;
         void resized() override;
+        void applyTheme();
 
         int getPathIndex() const { return pathIndex; }
 
@@ -74,9 +78,9 @@ private:
         PluginRackComponent& owner;
         int pathIndex;
         juce::Label title;
-        juce::ToggleButton enable { "启用" };
+        juce::ToggleButton enable { juce::String (juce::CharPointer_UTF8 ("启用")) };
         juce::Slider volume { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
-        juce::TextButton addButton { "添加插件" };
+        juce::TextButton addButton { juce::String (juce::CharPointer_UTF8 ("添加插件")) };
     };
 
     /** A thin accent line shown between rows during a drag, marking where the
@@ -113,17 +117,17 @@ private:
     // Path the next "add plug-in" action targets (set by requestAddPlugin).
     int targetPath = 0;
 
-    juce::Label title { {}, "效果链" };
+    juce::Label title { {}, juce::String (juce::CharPointer_UTF8 ("效果链")) };
     juce::Label countLabel;
     juce::Label latencyLabel;
-    juce::TextButton addButton { "插件管理" };
+    juce::TextButton addButton { juce::String (juce::CharPointer_UTF8 ("插件管理")) };
 
     juce::Viewport viewport;
     juce::Component rowContainer;
     std::unique_ptr<DropIndicator> dropIndicator;
 
     juce::Slider mixSlider { juce::Slider::RotaryVerticalDrag, juce::Slider::TextBoxBelow };
-    juce::Label mixLabel { {}, "干湿比" };
+    juce::Label mixLabel { {}, juce::String (juce::CharPointer_UTF8 ("干湿比")) };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginRackComponent)
 };

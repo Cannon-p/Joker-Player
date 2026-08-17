@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -44,7 +44,7 @@
 
   ID:                 juce_graphics
   vendor:             juce
-  version:            8.0.4
+  version:            9.0.1
   name:               JUCE graphics classes
   description:        Classes for 2D vector graphics, image loading/saving, font handling, etc.
   website:            http://www.juce.com/juce
@@ -87,12 +87,36 @@
  #define JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING 0
 #endif
 
+/** Config: JUCE_INCLUDE_PNGLIB_CODE
+    This can be used to disable Juce's embedded 3rd-party pnglib code.
+    You might need to tweak this if you're linking to an external pnglib library in your app,
+    but for normal apps, this option should be left alone.
+
+    If you disable this, you might also want to set a value for JUCE_PNGLIB_INCLUDE_PATH, to
+    specify the path where your pnglib headers live.
+*/
 #ifndef JUCE_INCLUDE_PNGLIB_CODE
  #define JUCE_INCLUDE_PNGLIB_CODE 1
 #endif
 
+#ifndef JUCE_PNGLIB_INCLUDE_PATH
+ #define JUCE_PNGLIB_INCLUDE_PATH <png.h>
+#endif
+
+/** Config: JUCE_INCLUDE_JPEGLIB_CODE
+    This can be used to disable Juce's embedded 3rd-party jpeglib code.
+    You might need to tweak this if you're linking to an external jpeglib library in your app,
+    but for normal apps, this option should be left alone.
+
+    If you disable this, you might also want to set a value for JUCE_JPEGLIB_INCLUDE_PATH, to
+    specify the path where your jpeglib headers live.
+*/
 #ifndef JUCE_INCLUDE_JPEGLIB_CODE
  #define JUCE_INCLUDE_JPEGLIB_CODE 1
+#endif
+
+#ifndef JUCE_JPEGLIB_INCLUDE_PATH
+ #define JUCE_JPEGLIB_INCLUDE_PATH <jpeglib.h>
 #endif
 
 #ifndef USE_COREGRAPHICS_RENDERING
@@ -131,24 +155,42 @@ namespace juce
 #include "images/juce_ImageCache.h"
 #include "images/juce_ImageConvolutionKernel.h"
 #include "images/juce_ImageFileFormat.h"
+#include "fonts/juce_GlyphArrangementOptions.h"
 #include "contexts/juce_GraphicsContext.h"
 #include "images/juce_Image.h"
 #include "colour/juce_FillType.h"
+#include "fonts/juce_FontFeatures.h"
 #include "fonts/juce_Typeface.h"
 #include "fonts/juce_FontOptions.h"
 #include "fonts/juce_Font.h"
 #include "detail/juce_Ranges.h"
+#include "detail/juce_SimpleShapedText.h"
+#include "detail/juce_JustifiedText.h"
+#include "detail/juce_ShapedText.h"
 #include "fonts/juce_AttributedString.h"
 #include "fonts/juce_GlyphArrangement.h"
 #include "fonts/juce_TextLayout.h"
 #include "contexts/juce_LowLevelGraphicsContext.h"
+#include "contexts/juce_ScopedBlendContext.h"
 #include "images/juce_ScaledImage.h"
-#include "fonts/juce_LruCache.h"
-#include "native/juce_RenderingHelpers.h"
 #include "contexts/juce_LowLevelGraphicsSoftwareRenderer.h"
 #include "effects/juce_ImageEffectFilter.h"
 #include "effects/juce_DropShadowEffect.h"
 #include "effects/juce_GlowEffect.h"
+#include "detail/juce_Unicode.h"
+#include "detail/juce_TwoPointConicalGradient.h"
+#include "drawables/juce_Drawable.h"
+#include "drawables/juce_StrokeOptions.h"
+#include "drawables/juce_DrawableShape.h"
+#include "drawables/juce_DrawableComposite.h"
+#include "drawables/juce_DrawableImage.h"
+#include "drawables/juce_DrawablePath.h"
+#include "drawables/juce_DrawableRectangle.h"
+#include "drawables/juce_DrawableText.h"
+
+#if JUCE_GRAPHICS_INCLUDE_RENDERING_HELPERS
+ #include "native/juce_RenderingHelpers.h"
+#endif
 
 #if JUCE_GRAPHICS_INCLUDE_COREGRAPHICS_HELPERS && (JUCE_MAC || JUCE_IOS)
  #include "native/juce_CoreGraphicsHelpers_mac.h"

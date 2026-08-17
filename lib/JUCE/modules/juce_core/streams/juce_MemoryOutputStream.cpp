@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -93,7 +93,7 @@ char* MemoryOutputStream::prepareToWrite (size_t numBytes)
     if (blockToUse != nullptr)
     {
         if (storageNeeded >= blockToUse->getSize())
-            blockToUse->ensureSize ((storageNeeded + jmin (storageNeeded / 2, (size_t) (1024 * 1024)) + 32) & ~31u);
+            blockToUse->ensureSize ((storageNeeded + jmin (storageNeeded / 2, (size_t) (1024 * 1024)) + 32) & ~(size_t) 31);
 
         data = static_cast<char*> (blockToUse->getData());
     }
@@ -177,13 +177,13 @@ bool MemoryOutputStream::setPosition (int64 newPosition)
         return true;
     }
 
-    // can't move beyond the end of the stream..
+    // can't move beyond the end of the stream
     return false;
 }
 
 int64 MemoryOutputStream::writeFromInputStream (InputStream& source, int64 maxNumBytesToWrite)
 {
-    // before writing from an input, see if we can preallocate to make it more efficient..
+    // before writing from an input, see if we can preallocate to make it more efficient
     const auto availableData = source.getTotalLength() - source.getPosition();
 
     if (availableData > 0)

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -145,7 +145,7 @@ String File::parseAbsolutePath (const String& p)
         return {};
 
    #if JUCE_WINDOWS
-    // Windows..
+    // Windows
     auto path = normaliseSeparators (removeEllipsis (p.replaceCharacter ('/', '\\')));
 
     if (path.startsWithChar (getSeparatorChar()))
@@ -178,7 +178,7 @@ String File::parseAbsolutePath (const String& p)
         return File::getCurrentWorkingDirectory().getChildFile (path).getFullPathName();
     }
    #else
-    // Mac or Linux..
+    // Mac or Linux
 
     // Yes, I know it's legal for a unix pathname to contain a backslash, but this assertion is here
     // to catch anyone who's trying to run code that was written on Windows with hard-coded path names.
@@ -228,7 +228,7 @@ String File::parseAbsolutePath (const String& p)
     }
    #endif
 
-    while (path.endsWithChar (getSeparatorChar()) && path != getSeparatorString()) // careful not to turn a single "/" into an empty string.
+    while (path.endsWithChar (getSeparatorChar()) && path != getSeparatorString()) // careful not to turn a single "/" into an empty string
         path = path.dropLastCharacters (1);
 
     return path;
@@ -629,7 +629,7 @@ File File::getNonexistentChildFile (const String& suggestedPrefix,
         int number = 1;
         auto prefix = suggestedPrefix;
 
-        // remove any bracketed numbers that may already be on the end..
+        // remove any bracketed numbers that may already be on the end
         if (prefix.trim().endsWithChar (')'))
         {
             putNumbersInBrackets = true;
@@ -941,7 +941,7 @@ String File::getRelativePathFrom (const File& dir) const
         }
     }
 
-    // if the only common bit is the root, then just return the full path..
+    // if the only common bit is the root, then just return the full path
     if (commonBitLength == 0 || (commonBitLength == 1 && thisPath[1] == getSeparatorChar()))
         return fullPath;
 
@@ -1029,13 +1029,11 @@ File File::getLinkedTarget() const
 //==============================================================================
 #if JUCE_ALLOW_STATIC_NULL_VARIABLES
 
-JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
-JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4996)
+JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
 
 const File File::nonexistent{};
 
-JUCE_END_IGNORE_WARNINGS_GCC_LIKE
-JUCE_END_IGNORE_WARNINGS_MSVC
+JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
 #endif
 
@@ -1120,7 +1118,7 @@ public:
                 if (roots[i].exists())
                     ++numRootsExisting;
 
-            // (on windows, some of the drives may not contain media, so as long as at least one is ok..)
+            // on windows, some of the drives may not contain media, so as long as at least one is ok
             expect (numRootsExisting > 0);
         }
 
@@ -1158,10 +1156,10 @@ public:
         expect (home.getChildFile ("...xyz").getFileName() == "...xyz");
         expect (home.getChildFile ("./xyz") == home.getChildFile ("xyz"));
         expect (home.getChildFile ("././xyz") == home.getChildFile ("xyz"));
-        expect (home.getChildFile ("../xyz") == home.getParentDirectory().getChildFile ("xyz"));
-        expect (home.getChildFile (".././xyz") == home.getParentDirectory().getChildFile ("xyz"));
-        expect (home.getChildFile (".././xyz/./abc") == home.getParentDirectory().getChildFile ("xyz/abc"));
-        expect (home.getChildFile ("./../xyz") == home.getParentDirectory().getChildFile ("xyz"));
+        expect (home.getChildFile ("../xyz") == home.getSiblingFile ("xyz"));
+        expect (home.getChildFile (".././xyz") == home.getSiblingFile ("xyz"));
+        expect (home.getChildFile (".././xyz/./abc") == home.getSiblingFile ("xyz/abc"));
+        expect (home.getChildFile ("./../xyz") == home.getSiblingFile ("xyz"));
         expect (home.getChildFile ("a1/a2/a3/./../../a4") == home.getChildFile ("a1/a4"));
 
         expect (! File().hasReadAccess());

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -42,9 +42,9 @@ constexpr auto nullopt = std::nullopt;
 // link time code generation.
 JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4702)
 
-#ifndef DOXYGEN
+/** @cond */
 #define JUCE_OPTIONAL_OPERATORS X(==) X(!=) X(<) X(<=) X(>) X(>=)
-#endif
+/** @endcond */
 
 /**
     A simple optional type.
@@ -175,7 +175,7 @@ Optional<std::decay_t<Value>> makeOptional (Value&& v)
     return std::forward<Value> (v);
 }
 
-#ifndef DOXYGEN
+/** @cond */
 #define X(op) \
     template <typename T, typename U> bool operator op (const Optional<T>& lhs, const Optional<U>& rhs) { return lhs.opt op rhs.opt; } \
     template <typename T> bool operator op (const Optional<T>& lhs, Nullopt rhs) { return lhs.opt op rhs; } \
@@ -187,6 +187,6 @@ JUCE_OPTIONAL_OPERATORS
 
 #undef X
 #undef JUCE_OPTIONAL_OPERATORS
-#endif
+/** @endcond */
 
 } // namespace juce

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,51 +35,16 @@
 namespace juce
 {
 
-#if (JUCE_PLUGINHOST_LV2 && (! (JUCE_ANDROID || JUCE_IOS))) || DOXYGEN
+#if JUCE_INTERNAL_HAS_LV2 || DOXYGEN
 
 /**
     Implements a plugin format for LV2 plugins.
 
     @tags{Audio}
 */
-class JUCE_API LV2PluginFormat  : public AudioPluginFormat
+class JUCE_API LV2PluginFormat : public LV2PluginFormatHeadless
 {
-public:
-    LV2PluginFormat();
-    ~LV2PluginFormat() override;
-
-    static String getFormatName()       { return "LV2"; }
-    String getName() const override     { return getFormatName(); }
-
-    void findAllTypesForFile (OwnedArray<PluginDescription>& results,
-                              const String& fileOrIdentifier) override;
-
-    bool fileMightContainThisPluginType (const String& fileOrIdentifier) override;
-
-    String getNameOfPluginFromIdentifier (const String& fileOrIdentifier) override;
-
-    bool pluginNeedsRescanning (const PluginDescription&) override;
-
-    bool doesPluginStillExist (const PluginDescription&) override;
-
-    bool canScanForPlugins() const override;
-
-    bool isTrivialToScan() const override;
-
-    StringArray searchPathsForPlugins (const FileSearchPath& directoriesToSearch,
-                                       bool recursive,
-                                       bool allowPluginsWhichRequireAsynchronousInstantiation = false) override;
-
-    FileSearchPath getDefaultLocationsToSearch() override;
-
-private:
-    bool requiresUnblockedMessageThreadDuringCreation (const PluginDescription&) const override;
     void createPluginInstance (const PluginDescription&, double, int, PluginCreationCallback) override;
-
-    class Pimpl;
-    std::unique_ptr<Pimpl> pimpl;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LV2PluginFormat)
 };
 
 #endif

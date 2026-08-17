@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -52,7 +52,9 @@ struct Viewport::DragToScrollListener final : private MouseListener,
     ~DragToScrollListener() override
     {
         viewport.contentHolder.removeMouseListener (this);
-        Desktop::getInstance().removeGlobalMouseListener (this);
+
+        if (auto* desktop = Desktop::getInstanceWithoutCreating())
+            desktop->removeGlobalMouseListener (this);
     }
 
     void stopOngoingAnimation()
@@ -186,7 +188,7 @@ void Viewport::deleteOrRemoveContentComp()
         if (deleteContent)
         {
             // This sets the content comp to a null pointer before deleting the old one, in case
-            // anything tries to use the old one while it's in mid-deletion..
+            // anything tries to use the old one while it's in mid-deletion.
             std::unique_ptr<Component> oldCompDeleter (contentComp.get());
             contentComp = nullptr;
         }
@@ -409,7 +411,7 @@ void Viewport::updateVisibleArea()
         auto oldContentBounds = contentComp->getBounds();
         contentHolder.setBounds (contentArea);
 
-        // If the content has changed its size, that might affect our scrollbars, so go round again and re-calculate..
+        // If the content has changed its size, that might affect our scrollbars, so go round again and re-calculate.
         if (oldContentBounds == contentComp->getBounds())
             break;
     }

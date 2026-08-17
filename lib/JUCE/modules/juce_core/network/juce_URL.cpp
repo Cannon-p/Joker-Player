@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -507,7 +507,7 @@ void URL::createHeadersAndPostData (String& headers,
 
     if (filesToUpload.size() > 0)
     {
-        // (this doesn't currently support mixing custom post-data with uploads..)
+        // this doesn't currently support mixing custom post-data with uploads
         jassert (postData.isEmpty());
 
         auto boundary = String::toHexString (Random::getSystemRandom().nextInt64());
@@ -550,7 +550,7 @@ void URL::createHeadersAndPostData (String& headers,
 
         data << postData;
 
-        // if the user-supplied headers didn't contain a content-type, add one now..
+        // if the user-supplied headers didn't contain a content-type, add one now
         if (! headers.containsIgnoreCase ("Content-Type"))
             headers << "Content-Type: application/x-www-form-urlencoded\r\n";
 

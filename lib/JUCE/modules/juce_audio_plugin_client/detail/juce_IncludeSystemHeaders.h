@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -34,7 +34,7 @@
 
 #if JUCE_WINDOWS
  #undef _WIN32_WINNT
- #define _WIN32_WINNT 0x500
+ #define _WIN32_WINNT _WIN32_WINNT_WIN10
  #undef STRICT
  #define STRICT 1
  #include <windows.h>

@@ -15,7 +15,7 @@
 #  framework to you, and you must discontinue the installation or download
 #  process and cease use of the JUCE framework.
 #
-#  JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+#  JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
 #  JUCE Privacy Policy: https://juce.com/juce-privacy-policy
 #  JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 #
@@ -65,13 +65,13 @@ if(subdirs)
     set(WebView2_library "${WebView2_root_dir}/build/native/${WebView2_arch}/WebView2LoaderStatic.lib")
 elseif(NOT WebView2_FIND_QUIETLY)
     message(WARNING
-            "WebView2 wasn't found in the the local NuGet folder."
+            "WebView2 wasn't found in the local NuGet folder."
             "\n"
             "To install NuGet and the WebView2 package containing the statically linked library, "
             "open a PowerShell and issue the following commands"
             "\n"
             "> Register-PackageSource -provider NuGet -name nugetRepository -location https://www.nuget.org/api/v2\n"
-            "> Install-Package Microsoft.Web.WebView2 -Scope CurrentUser -RequiredVersion 1.0.1901.177 -Source nugetRepository\n"
+            "> Install-Package Microsoft.Web.WebView2 -Scope CurrentUser -RequiredVersion 1.0.3485.44 -Source nugetRepository\n"
             "\n"
             "Alternatively you can use the JUCE_WEBVIEW2_PACKAGE_LOCATION CMake variable to specify the directory "
             "where this find script is looking for the *Microsoft.Web.WebView2* package directory.")

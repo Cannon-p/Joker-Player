@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -124,6 +124,19 @@ public:
         can stringify themselves appropriately.
     */
     virtual void writeAsJSON (OutputStream&, const JSON::FormatOptions&);
+
+    /** Returns true if the properties of this object match the properties of the specified object,
+        or false otherwise.
+    */
+    bool equals (const DynamicObject& other) const;
+
+    /** Returns true if the properties of this object match the properties of the specified object,
+        or false otherwise.
+    */
+    bool operator== (const DynamicObject& other) const { return equals (other); }
+
+    /** The inverse of operator==() */
+    bool operator!= (const DynamicObject& other) const { return ! operator== (other); }
 
 private:
     /** Derived classes may override this function to take additional actions after

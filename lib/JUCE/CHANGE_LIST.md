@@ -3,6 +3,130 @@
 This file lists the more notable headline features. For more detailed info
 about changes and bugfixes please see the git log and BREAKING_CHANGES.md.
 
+## Version 9.0.1
+
+  - Added a new TypeScript npm package for WebView integrarion
+  - Added protection against malformed AudioFormat input
+  - Fixed iOS builds with Xcode 12.4
+  - Fixed Freetype compilation on older Linux distros
+  - Fixed missing macOS icons for associated documents
+  - Fixed unresponsive Linux GUIs
+  - Fixed a macOS CoreAudio compilation issue
+
+## Version 9.0.0
+
+  - Added a new SVG parser
+  - Added support for variable fonts
+  - Added a new macOS CoreAudio implementation
+  - Improved the performance of the software renderer
+  - Added OpenGL ES support to Linux
+  - Improved multi-touch support on Linux and Windows
+  - Improved the CMake build system for headless environments
+
+## Version 8.0.15
+
+  - Fixed the behaviour of loadFromHexString
+  - Fixed multiple Windows GUI scaling issues
+  - Updated Oboe to 1.10.0
+  - Improved handling of OpenGL textures
+  - Fixed a DropShadow issue with a tiny radius
+
+## Version 8.0.14
+
+  - Reduced the build tree depth to avoid Windows limits
+  - Fixed some MIDI issues
+  - Fixed some Projucer macOS code signing issues
+  - Fixed an iOS sample rate testing issue
+
+## Version 8.0.13
+
+  - Improved the compile time of the juce_gui_basics module
+  - Added support for Apple Icon Composer
+  - Improved the performance of Component painting
+  - Added a new ComponentDiagnosticsDemo
+  - Reduced the stack size of Component and ListenerList
+  - Improved macOS image tiling
+  - Bumped the minimum Windows target version to 1607
+  - Improved rendering performance on Windows
+  - Improved Windows resizing behaviour
+  - Improved iOS input support (touch, mouse, pencil)
+  - Added Linux FreeDesktop.org Trash support
+
+## Version 8.0.12
+
+  - Made Visual Studio 2026 the default in the Projucer
+  - Fixed a compilation error in Android In-App Purchases
+  - Fixed some MIDI device names
+
+## Version 8.0.11
+
+  - Added a new MIDI 2.0 Universal MIDI Packet demo
+  - Added a Visual Studio 2026 exporter
+  - Improved support for macOS/iOS 26
+  - Updated the VST3 SDK to 3.8.0 (MIT license)
+  - Updated the AAX SDK to 2.9.0
+  - Included the ASIO SDK source files directly (GPLv3 license)
+  - Updated Sheen Bidi to 2.9.0
+  - Improved rendering performance with a font and glyph cache
+  - Added a new juce_audio_processors_headless module
+
+## Version 8.0.10
+
+  - Avoided restarting Android Activities on system theme change
+  - Fixed an issue with PopupMenu item visibility
+  - Fixed iOS screen size detection in plug-ins
+  - Fixed some LLVM 21 compiler warnings
+  - Fixed some Direct2D drawning issues
+  - Fixed an XEmbedComponent issue
+
+## Version 8.0.9
+
+  - Added support for configurable font features (ligatures, kerning, ...)
+  - Multiple improvements to Android windowing
+  - Multiple improvements to text shaping
+  - Fixed clearing audio buffers on WASAPI device start/stop
+  - Fixed AU hosting of plug-ins with poorly implemented parameters
+  - Added macOS/iOS 26 support
+  - Added support for iOS UIScene lifecycle on iOS 13+
+  - Added support for 32-bit int WAV files
+  - Multiple Linux WebView improvements
+  - Fixed an issue with MIDI FX AAX plug-ins on any audio channel layouts
+  - Accessibility navigation is now enabled by default for disabled components
+
+## Version 8.0.8
+
+  - Improved the TextEditor layout behaviour
+  - Added new options to control text line spacing
+  - Added more Direct2D bug fixes and performance improvements
+  - Fixed a iOS simulator buffer size issue
+  - Moved the MIDI CapabilityInquiry Demo into the DemoRunner
+  - Updated the default Android toolchain version
+
+## Version 8.0.7
+
+  - Improved unicode handling and performance in TextEditor
+  - Fixed iOS external device sample rate handling in iOS 18
+  - Added many Direct2D bug fixes and performance improvements
+  - Added a new MessageManager::callSync counterpart to callAsync
+  - Fixed a crash in Ableton when closing a plug-in window
+  - Improved sscache compatibility
+  - Fixed some PopupMenu bugs
+  - Updated Zlib
+
+## Version 8.0.6
+
+  - Changed a Visual Studio toolchain error into a warning
+
+## Version 8.0.5
+
+  - Added Windows Arm support
+  - Added support for local notifications
+  - Added passthrough compiler options to juceaide
+  - Added support for VST3 parameter migrations
+  - Fixed some Windows mouse events and window dragging behaviour
+  - Added Ranges functionality
+  - Added VST2 and VST3 MIDI note names
+
 ## Version 8.0.4
 
   - Simplified singleton creation

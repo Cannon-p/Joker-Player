@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -49,7 +49,7 @@ CallOutBox::CallOutBox (Component& c, Rectangle<int> area, Component* const pare
     else
     {
         setAlwaysOnTop (WindowUtils::areThereAnyAlwaysOnTopWindows());
-        updatePosition (area, Desktop::getInstance().getDisplays().getDisplayForRect (area)->userArea);
+        updatePosition (area, Desktop::getInstance().getDisplays().getDisplayForRect (area)->userBounds.getLargestIntegerWithin());
         addToDesktop (ComponentPeer::windowIsTemporary);
 
         startTimer (100);
@@ -144,7 +144,7 @@ void CallOutBox::inputAttemptWhenModal()
     {
         // if you click on the area that originally popped-up the callout, you expect it
         // to get rid of the box, but deleting the box here allows the click to pass through and
-        // probably re-trigger it, so we need to dismiss the box asynchronously to consume the click..
+        // probably re-trigger it, so we need to dismiss the box asynchronously to consume the click
 
         // For touchscreens, we make sure not to dismiss the CallOutBox immediately,
         // as Windows still sends touch events before the CallOutBox had a chance
@@ -198,7 +198,7 @@ bool CallOutBox::keyPressed (const KeyPress& key)
 
 void CallOutBox::updatePosition (const Rectangle<int>& newAreaToPointTo, const Rectangle<int>& newAreaToFitIn)
 {
-    targetArea = newAreaToPointTo;
+    const auto targetAreaChanged = std::exchange (targetArea, newAreaToPointTo) != newAreaToPointTo;
     availableArea = newAreaToFitIn;
 
     auto borderSpace = getBorderSize();
@@ -246,6 +246,10 @@ void CallOutBox::updatePosition (const Rectangle<int>& newAreaToPointTo, const R
                                    (int) (centre.y - (float) hh));
         }
     }
+
+    // The path is refreshed already for bounds changes
+    if (targetAreaChanged && getBounds() == newBounds)
+        refreshPath();
 
     setBounds (newBounds);
 }

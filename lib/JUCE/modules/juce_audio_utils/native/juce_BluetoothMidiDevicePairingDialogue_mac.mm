@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -45,7 +45,8 @@ public:
         std::function<void()> windowClosed;
     };
 
-    BluetoothMidiPairingWindowClass()   : ObjCClass<NSObject> ("JUCEBluetoothMidiPairingWindowClass_")
+    BluetoothMidiPairingWindowClass()
+        : ObjCClass ("JUCEBluetoothMidiPairingWindowClass_")
     {
         addIvar<Callbacks*> ("callbacks");
         addIvar<CABTLEMIDIWindowController*> ("controller");
@@ -94,7 +95,7 @@ private:
     {
         if (bounds != nullptr)
         {
-            auto nsBounds = makeNSRect (*bounds);
+            auto nsBounds = makeCGRect (*bounds);
 
             auto mainScreenHeight = []
             {
@@ -111,6 +112,9 @@ private:
         }
 
         [getController (self) showWindow: nil];
+
+        if (WindowUtils::areThereAnyAlwaysOnTopWindows())
+            [getController (self).window setLevel: NSFloatingWindowLevel];
     }
 
     static void receivedWindowWillClose (id self, SEL, NSNotification*)

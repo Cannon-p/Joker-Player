@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -128,19 +128,31 @@ public:
     */
     void setSeedRandomly();
 
-    /** The overhead of creating a new Random object is fairly small, but if you want to avoid
-        it, you can call this method to get a global shared Random object.
+    /** The overhead of creating a new Random object is fairly small, but if you want
+        to avoid it, you can call this method to get a global shared Random object.
 
-        It's not thread-safe though, so threads should use their own Random object, otherwise
-        you run the risk of your random numbers becoming.. erm.. randomly corrupted..
+        Note this will return a different object per thread it's accessed from,
+        making it thread safe. However, it's therefore important not store a reference
+        to this object that will later be accessed from other threads.
     */
     static Random& getSystemRandom() noexcept;
 
 private:
     //==============================================================================
+    struct SystemRandomTag { bool value; };
+    explicit Random (SystemRandomTag x);
+
     int64 seed;
 
-    JUCE_LEAK_DETECTOR (Random)
+   #if JUCE_ASSERTIONS_ENABLED_OR_LOGGED
+    bool isSystemRandom = false;
+   #endif
+
+   #if JUCE_CHECK_MEMORY_LEAKS
+    friend class LeakedObjectDetector<Random>;
+    static const char* getLeakedObjectClassName() noexcept { return "Random"; }
+    std::optional<LeakedObjectDetector<Random>> optionalLeakDetector;
+   #endif
 };
 
 } // namespace juce

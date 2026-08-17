@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -34,6 +34,69 @@
 
 namespace juce
 {
+
+bool AudioPlayHead::FrameRate::operator== (const FrameRate& other) const
+{
+    const auto tie = [] (const FrameRate& x) { return std::tie (x.base, x.drop, x.pulldown); };
+    return tie (*this) == tie (other);
+}
+
+bool AudioPlayHead::TimeSignature::operator== (const TimeSignature& other) const
+{
+    const auto tie = [] (auto& x) { return std::tie (x.numerator, x.denominator); };
+    return tie (*this) == tie (other);
+}
+
+bool AudioPlayHead::LoopPoints::operator== (const LoopPoints& other) const
+{
+    const auto tie = [] (auto& x) { return std::tie (x.ppqStart, x.ppqEnd); };
+    return tie (*this) == tie (other);
+}
+
+bool AudioPlayHead::CurrentPositionInfo::operator== (const CurrentPositionInfo& other) const noexcept
+{
+    const auto tie = [] (const CurrentPositionInfo& i)
+    {
+        return std::tie (i.timeInSamples,
+                         i.ppqPosition,
+                         i.editOriginTime,
+                         i.ppqPositionOfLastBarStart,
+                         i.frameRate,
+                         i.isPlaying,
+                         i.isRecording,
+                         i.bpm,
+                         i.timeSigNumerator,
+                         i.timeSigDenominator,
+                         i.ppqLoopStart,
+                         i.ppqLoopEnd,
+                         i.isLooping);
+    };
+
+    return tie (*this) == tie (other);
+}
+
+bool AudioPlayHead::PositionInfo::operator== (const PositionInfo& other) const noexcept
+{
+    const auto tie = [] (const PositionInfo& i)
+    {
+        return std::make_tuple (i.getTimeInSamples(),
+                                i.getTimeInSeconds(),
+                                i.getPpqPosition(),
+                                i.getEditOriginTime(),
+                                i.getPpqPositionOfLastBarStart(),
+                                i.getFrameRate(),
+                                i.getBarCount(),
+                                i.getTimeSignature(),
+                                i.getBpm(),
+                                i.getLoopPoints(),
+                                i.getHostTimeNs(),
+                                i.getIsPlaying(),
+                                i.getIsRecording(),
+                                i.getIsLooping());
+    };
+
+    return tie (*this) == tie (other);
+}
 
 bool AudioPlayHead::canControlTransport()                                          { return false; }
 void AudioPlayHead::transportPlay ([[maybe_unused]] bool shouldStartPlaying)       {}

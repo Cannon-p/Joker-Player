@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -290,7 +290,14 @@ public:
         This is the maximum height, from the top of the ascent to the bottom of the
         descenders.
 
-        @see withHeight, setHeightWithoutChangingWidth, getAscent
+        There can be a notable exception to this rule however, if you use the
+        ascent/descent override feature. This feature follows CSS semantics and acts
+        on the point height of the Font. So if you specified the font's height using
+        setHeight() and also specified an ascent or descent override, then the visually
+        rendered height of the Font can be different from the value returned by
+        getHeight().
+
+        @see withHeight, setHeightWithoutChangingWidth, getAscent, setAscentOverride
     */
     float getHeight() const noexcept;
 
@@ -298,6 +305,7 @@ public:
         This is the maximum height, from the top of the ascent to the bottom of the
         descenders.
 
+        This value is not affected by the optional ascent or descent override.
         @see withPointHeight, getHeight
     */
     float getHeightInPoints() const;
@@ -310,7 +318,9 @@ public:
 
     /** Returns the height of the font above its baseline, in points.
         This is the maximum height from the baseline to the top.
-        @see getHeight, getDescent
+
+        This value is affected by the optional ascent override.
+        @see getAscentOverride, getHeightInPoints, getDescentInPoints
     */
     float getAscentInPoints() const;
 
@@ -322,9 +332,16 @@ public:
 
     /** Returns the amount that the font descends below its baseline, in points.
         This is calculated as (getHeight() - getAscent()).
-        @see getAscent, getHeight
+
+        This value is affected by the optional descent override.
+        @see getDescentOverride, getHeightInPoints, getAscentInPoints
     */
     float getDescentInPoints() const;
+
+    /** Returns a distance in points that should be used in addition to the
+        ascent and descent between the baselines of successive lines of text.
+    */
+    float getLineGapInPoints() const;
 
     //==============================================================================
     /** Returns the font's style flags.
@@ -372,6 +389,83 @@ public:
 
     /** Returns the kind of metrics used by this Font. */
     TypefaceMetricsKind getMetricsKind() const noexcept;
+
+    //==============================================================================
+    /** Returns an Span view of the features configured for this font instance.
+
+        Use Typeface::getSupportedFeatures() to determine what features this font supports.
+
+        @see setFeatureEnabled, setFeatureDisabled, removeFeature,
+             Typeface::getSupportedFeatures
+    */
+    Span<const FontFeatureSetting> getFeatureSettings() const&;
+    Span<const FontFeatureSetting> getFeatureSettings() const&& = delete;
+
+    /** Enables or disables a font feature.
+
+        Use Typeface::getSupportedFeatures() to determine what features this font
+        supports.
+
+        @see setFeatureEnabled, setFeatureDisabled, removeFeature, Typeface::getSupportedFeatures
+    */
+    void setFeatureSetting (FontFeatureSetting featureSetting);
+
+    /** Removes a specific feature setting from this font.
+
+        If `featureToRemove` corresponds to a feature that is typically enabled by default (e.g.,
+        "calt" for contextual alternates, "liga" for standard ligatures), calling this method will
+        reset it to its default-enabled state.
+
+        @see setFeatureEnabled, setFeatureDisabled, Typeface::getSupportedFeatures
+    */
+    void removeFeatureSetting (FontFeatureTag featureToRemove);
+
+    /** Replaces the current variable settings for this font.
+
+        Variable font settings control the interpolation between different font designs along axes
+        like weight, width, or slant.
+
+        Use Typeface::getSupportedVariables() to query which axes are available and their valid
+        ranges before setting values.
+
+        Unsupported or out-of-range variables will be removed or clamped respectively. This happens
+        at Typeface resolution (on first use or a call to getTypefacePtr).
+
+        @param variables  A span of variable settings to apply to the font
+
+        @see Typeface::getSupportedVariables
+    */
+    void setVariableSettings (Span<const FontVariableSetting> variables);
+
+    /** Removes a specific variable setting from this font.
+
+        @param variableToRemove  The tag identifying the variable axis to remove
+
+        @see setVariableSettings, getVariableSettings, Typeface::getSupportedVariables
+    */
+    void removeVariableSetting (FontFeatureTag variableToRemove);
+
+    /** Returns a copy of this font with the specified variable settings.
+
+        @param variables  A span of variable settings to apply to the font
+
+        @see setVariableSettings, getVariableSettings, Typeface::getSupportedVariables,
+             Typeface::getConfiguredVariables
+    */
+    [[nodiscard]] Font withVariableSettings (Span<const FontVariableSetting> variables) const;
+
+    /** Returns a Span of the variable settings configured for this font instance.
+
+        The settings are guaranteed to be sorted by tag.
+
+        Use Typeface::getSupportedVariables() to determine which variable axes this font supports
+        and their valid ranges.
+
+        @see setVariableSettings, withVariableSettings, Typeface::getSupportedVariables,
+             Typeface::getConfiguredVariables
+    */
+    Span<const FontVariableSetting> getVariableSettings() const&;
+    Span<const FontVariableSetting> getVariableSettings() const&& = delete;
 
     //==============================================================================
     /** Returns the font's horizontal scale.
@@ -434,6 +528,74 @@ public:
     */
     void setExtraKerningFactor (float extraKerning);
 
+    /** @see setAscentOverride() */
+    std::optional<float> getAscentOverride() const noexcept;
+
+    /** This is designed to mirror CSS's ascent-override property.
+
+        When the font size is specified in points (using setPointHeight(),
+        FontOptions::withPointHeight(), etc.), then the font's ascent value in points will be equal
+        to the font's size in points multiplied by the override value. That is, if the font size
+        is 14pt and the ascent override is 0.5f, then the ascent will be 7pt.
+
+        When the font size is *not* specified in points (using setHeight(),
+        FontOptions::withHeight(), etc.), then the behaviour is more subtle.
+        The ascent override still specifies the size of the font's ascender as a proportion of the
+        font's em size.
+        However, the point size of the font is now found by multiplying the JUCE height by the
+        height-to-point factor, where this factor is equal to
+        (1.0f / (ascent-in-em-units + descent-in-em-units)).
+        As an example, if the JUCE font height is 14, the ascent override is 0.5f, and the
+        descent override is 0.5f, then the font size will be 14pt and the ascent will be 7pt.
+        Changing the ascent override to 1.0f and the descent override to 0.0f will preserve the
+        font size of 14pt but give an ascender of 14pt and a descender of 0pt.
+        Changing the ascent and descent overrides both to 1.0f will result in the
+        font's size changing to 7pt with an ascent of 3.5pt.
+
+        @see setDescentOverride()
+    */
+    void setAscentOverride (std::optional<float>);
+
+    /** @see setDescentOverride() */
+    std::optional<float> getDescentOverride() const noexcept;
+
+    /** This is designed to mirror CSS's descent-override property.
+
+        Specifies a value to replace the built-in typeface descent metric.
+        The final descent value will be found by multiplying the provided value by the font
+        size. You may also pass std::nullopt to use the descent value specified in the typeface.
+
+        The documentation for setAscentOverride() includes a more thorough discussion
+        of the mechanism used for overriding.
+
+        @see setAscentOverride()
+    */
+    void setDescentOverride (std::optional<float>);
+
+    //==============================================================================
+    /** Set Direct2D hinting enabled or disabled as specified.
+
+        The default state is enabled.
+
+        This option currently only has an effect when using the Direct2D renderer on Windows.
+
+        Some typefaces can look substantially different under the Direct2D renderer when compared to
+        the software or OpenGL renderers. Fonts such as MS PGothic have hinted bitmaps for specific
+        font sizes, and these bitmaps may appear much thinner than the font outlines that are also
+        provided in the font. The software renderer always rasterises the font outlines, but
+        Direct2D will default to using the built-in bitmaps if present, which will more closely
+        match the intentions of the font designer. Disabling this option will cause the Direct2D
+        to rasterise the font outlines in a similar way to the software renderer, which will
+        produce a result that's closer to that of the software renderer (and therefore the legacy
+        JUCE behaviour).
+
+        @see getDirect2DHinting()
+    */
+    void setDirect2DHinting (bool);
+
+    /** @see setDirect2DHinting() */
+    bool getDirect2DHinting() const noexcept;
+
     //==============================================================================
     /** Changes all the font's characteristics with one call. */
     void setSizeAndStyle (float newHeight,
@@ -446,43 +608,6 @@ public:
                           const String& newStyle,
                           float newHorizontalScale,
                           float newKerningAmount);
-
-    //==============================================================================
-    /** Returns the total width of a string as it would be drawn using this font.
-        For a more accurate floating-point result, use getStringWidthFloat().
-
-        This function does not take font fallback into account. If this font doesn't
-        include glyphs to represent all characters in the string, then the width
-        will be computed as though those characters were replaced with the "glyph not
-        found" character.
-
-        If you are trying to find the amount of space required to display a given string,
-        you'll get more accurate results by actually measuring the results of whichever
-        text layout engine (e.g. GlyphArrangement, TextLayout) you'll use when displaying
-        the string.
-
-        @see TextLayout::getStringWidth(), GlyphArrangement::getStringWidthInt()
-    */
-    [[deprecated ("Use GlyphArrangement or TextLayout to compute text layouts")]]
-    int getStringWidth (const String& text) const;
-
-    /** Returns the total width of a string as it would be drawn using this font.
-        @see getStringWidth
-
-        This function does not take font fallback into account. If this font doesn't
-        include glyphs to represent all characters in the string, then the width
-        will be computed as though those characters were replaced with the "glyph not
-        found" character.
-
-        If you are trying to find the amount of space required to display a given string,
-        you'll get more accurate results by actually measuring the results of whichever
-        text layout engine (e.g. GlyphArrangement, TextLayout) you'll use when displaying
-        the string.
-
-        @see TextLayout::getStringWidth(), GlyphArrangement::getStringWidth()
-    */
-    [[deprecated ("Use GlyphArrangement or TextLayout to compute text layouts")]]
-    float getStringWidthFloat (const String& text) const;
 
     //==============================================================================
     /** Returns the main typeface used by this font.
@@ -572,12 +697,21 @@ public:
     */
     Native getNativeDetails() const;
 
+    /*  @internal
+        The factor by which a JUCE font height should be multiplied in order to convert to a font
+        size in points.
+
+        May be inf if the font ascent and descent overrides have both been set to 0!
+    */
+    float getHeightToPointsFactor() const;
+
 private:
     //==============================================================================
     static bool compare (const Font&, const Font&) noexcept;
+    static StringArray findAllTypefaceNamesImpl();
+    static StringArray findAllTypefaceStylesImpl (const String&);
 
     void dupeInternalIfShared();
-    float getHeightToPointsFactor() const;
 
     friend struct GraphicsFontHelpers;
 

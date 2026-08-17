@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -101,16 +101,19 @@
 #include "sources/juce_PositionableAudioSource.cpp"
 #include "synthesisers/juce_Synthesiser.cpp"
 #include "audio_play_head/juce_AudioPlayHead.cpp"
-#include "midi/juce_MidiDataConcatenator.h"
-#include "midi/ump/juce_UMP.h"
+#include "utilities/juce_AudioWorkgroup.cpp"
+
+#include "midi/ump/juce_UMPDeviceInfo.cpp"
+#include "midi/ump/juce_UMPFactory.cpp"
 #include "midi/ump/juce_UMPUtils.cpp"
 #include "midi/ump/juce_UMPView.cpp"
 #include "midi/ump/juce_UMPSysEx7.cpp"
 #include "midi/ump/juce_UMPMidi1ToMidi2DefaultTranslator.cpp"
 #include "midi/ump/juce_UMPIterator.cpp"
-#include "utilities/juce_AudioWorkgroup.cpp"
+#include "midi/ump/juce_UMPStringUtils.cpp"
 
 #if JUCE_UNIT_TESTS
  #include "utilities/juce_ADSR_test.cpp"
+ #include "midi/juce_MidiDataConcatenator_test.cpp"
  #include "midi/ump/juce_UMP_test.cpp"
 #endif

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -108,10 +108,9 @@ bool JUCE_CALLTYPE Process::openEmailWithAttachments ([[maybe_unused]] const Str
         script << "end tell\r\n"
                   "end tell\r\n";
 
-        NSAppleScript* s = [[NSAppleScript alloc] initWithSource: juceStringToNS (script)];
+        NSUniquePtr<NSAppleScript> s { [[NSAppleScript alloc] initWithSource: juceStringToNS (script)] };
         NSDictionary* error = nil;
-        const bool ok = [s executeAndReturnError: &error] != nil;
-        [s release];
+        const bool ok = [s.get() executeAndReturnError: &error] != nil;
 
         return ok;
     }
@@ -140,15 +139,18 @@ public:
     ~SharedSession()
     {
         std::unique_lock lock { mutex };
-        [session.get() finishTasksAndInvalidate];
-        condvar.wait (lock, [&] { return state == State::stopped; });
+
+        if (session != nullptr)
+            [session.get() finishTasksAndInvalidate];
+
+        condvar.wait (lock, [&] { return session == nullptr; });
     }
 
     NSUniquePtr<NSURLSessionTask> addTask (NSURLRequest* request, SessionListener* listener)
     {
         std::unique_lock lock { mutex };
 
-        if (state != State::running)
+        if (session == nullptr)
             return nullptr;
 
         NSUniquePtr<NSURLSessionTask> task { [[session.get() dataTaskWithRequest: request] retain] };
@@ -170,28 +172,28 @@ private:
             DBG (nsStringToJuce ([error description]));
        #endif
 
-        const auto toNotify = [&]
+        const auto toNotify = std::invoke ([&]
         {
             const std::scoped_lock lock { mutex };
-            state = State::stopRequested;
+            session.reset();
             // Take a copy of listenerForTask so that we don't need to hold the lock while
             // iterating through the remaining listeners.
-            return listenerForTask;
-        }();
+            return std::exchange (listenerForTask, {});
+        });
 
         for (const auto& pair : toNotify)
             pair.second->didComplete (error);
 
-        const std::scoped_lock lock { mutex };
-        listenerForTask.clear();
-        state = State::stopped;
-
-        // Important: we keep the lock held while calling condvar.notify_one().
+        // Important: we keep the lock held while calling condvar.notify_all().
         // If we don't, then it's possible that when the destructor runs, it will wake
         // before we notify the condvar on this thread, allowing the destructor to continue
         // and destroying the condition variable. When didBecomeInvalid resumes, the condition
         // variable will have been destroyed.
-        condvar.notify_one();
+        // Use notify_all() rather than notify_one() so that all threads waiting
+        // in removeTask() can make progress in the case that the session is
+        // invalidated unexpectedly.
+        const std::scoped_lock lock { mutex };
+        condvar.notify_all();
     }
 
     void didComplete (NSURLSessionTask* task, [[maybe_unused]] NSError* error)
@@ -213,7 +215,7 @@ private:
             listenerForTask.erase ([task taskIdentifier]);
         }
 
-        condvar.notify_one();
+        condvar.notify_all();
     }
 
     void didReceiveResponse (NSURLSessionTask* task,
@@ -324,13 +326,6 @@ private:
         }
     };
 
-    enum class State
-    {
-        running,
-        stopRequested,
-        stopped,
-    };
-
     std::mutex mutex;
     std::condition_variable condvar;
 
@@ -343,8 +338,6 @@ private:
     };
 
     std::map<NSUInteger, SessionListener*> listenerForTask;
-
-    State state = State::running;
 };
 
 class TaskToken
@@ -572,8 +565,8 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
         downloaded = -1;
 
         static DelegateClass cls;
-        delegate = [cls.createInstance() init];
-        DelegateClass::setState (delegate, this);
+        delegate.reset ([cls.createInstance() init]);
+        DelegateClass::setState (delegate.get(), this);
 
         activeSessions.set (uniqueIdentifier, this);
         auto nsUrl = [NSURL URLWithString: juceStringToNS (urlToUse.toString (true))];
@@ -581,11 +574,15 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
         jassert (nsUrl != nullptr);
 
         JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wnullable-to-nonnull-conversion")
-        NSMutableURLRequest* request = [[NSMutableURLRequest alloc] initWithURL: nsUrl];
+        NSUniquePtr<NSMutableURLRequest> request { [[NSMutableURLRequest alloc] initWithURL: nsUrl] };
         JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
         if (options.usePost)
-            [request setHTTPMethod: @"POST"];
+            [request.get() setHTTPMethod: @"POST"];
+
+        if (const auto& postData = urlToUse.getPostDataAsMemoryBlock(); ! postData.isEmpty())
+            [request.get() setHTTPBody: [NSData dataWithBytes: postData.getData()
+                                                       length: postData.getSize()]];
 
         StringArray headerLines;
         headerLines.addLines (options.extraHeaders);
@@ -597,7 +594,7 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
             String value = headerLines[i].fromFirstOccurrenceOf (":", false, false).trim();
 
             if (key.isNotEmpty() && value.isNotEmpty())
-                [request addValue: juceStringToNS (value) forHTTPHeaderField: juceStringToNS (key)];
+                [request.get() addValue: juceStringToNS (value) forHTTPHeaderField: juceStringToNS (key)];
         }
 
         auto* configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier: juceStringToNS (uniqueIdentifier)];
@@ -606,16 +603,14 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
             [configuration setSharedContainerIdentifier: juceStringToNS (options.sharedContainer)];
 
         session = [NSURLSession sessionWithConfiguration: configuration
-                                                delegate: delegate
+                                                delegate: delegate.get()
                                            delegateQueue: nullptr];
 
         if (session != nullptr)
-            downloadTask = [session downloadTaskWithRequest:request];
+            downloadTask = [session downloadTaskWithRequest:request.get()];
 
         // Workaround for an Apple bug. See https://github.com/AFNetworking/AFNetworking/issues/2334
-        [request HTTPBody];
-
-        [request release];
+        [request.get() HTTPBody];
     }
 
     ~BackgroundDownloadTask()
@@ -631,8 +626,6 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
         [session invalidateAndCancel];
         while (! hasBeenDestroyed)
             destroyEvent.wait();
-
-        [delegate release];
     }
 
     bool initOK()
@@ -652,7 +645,7 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
 
     //==============================================================================
     URL::DownloadTask::Listener* listener;
-    NSObject<NSURLSessionDelegate>* delegate = nil;
+    NSUniquePtr<NSObject<NSURLSessionDelegate>> delegate;
     NSURLSession* session = nil;
     NSURLSessionDownloadTask* downloadTask = nil;
     bool connectFinished = false, hasBeenDestroyed = false;
@@ -762,7 +755,8 @@ struct BackgroundDownloadTask final : public URL::DownloadTask
     //==============================================================================
     struct DelegateClass final : public ObjCClass<NSObject<NSURLSessionDelegate>>
     {
-        DelegateClass()  : ObjCClass<NSObject<NSURLSessionDelegate>> ("JUCE_URLDelegate_")
+        DelegateClass()
+            : ObjCClass ("JUCE_URLDelegate_")
         {
             addIvar<BackgroundDownloadTask*> ("state");
 

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -105,7 +105,7 @@ void BubbleComponent::setPosition (Rectangle<int> rectangleToPointTo,
     int spaceLeft  = ((allowablePlacements & left)  != 0) ? jmax (0, rectangleToPointTo.getX()  - availableSpace.getX()) : -1;
     int spaceRight = ((allowablePlacements & right) != 0) ? jmax (0, availableSpace.getRight()  - rectangleToPointTo.getRight()) : -1;
 
-    // look at whether the component is elongated, and if so, try to position next to its longer dimension.
+    // look at whether the component is elongated, and if so, try to position next to its longer dimension
     if (rectangleToPointTo.getWidth() > rectangleToPointTo.getHeight() * 2
          && (spaceAbove > totalH + 20 || spaceBelow > totalH + 20))
     {

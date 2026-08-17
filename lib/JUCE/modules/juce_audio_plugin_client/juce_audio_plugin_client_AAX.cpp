@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -41,7 +41,7 @@
 #include <juce_audio_plugin_client/detail/juce_PluginUtilities.h>
 #include <juce_gui_basics/native/juce_WindowsHooks_windows.h>
 
-#include <juce_audio_processors/format_types/juce_LegacyAudioParameter.cpp>
+#include <juce_audio_processors_headless/format_types/juce_LegacyAudioParameter.h>
 
 JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4127 4512 4996 5272)
 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations",
@@ -541,7 +541,11 @@ namespace AAXClasses
                #endif
                 {
                     component->setVisible (true);
-                    component->addToDesktop (detail::PluginUtilities::getDesktopFlags (component->pluginEditor.get()), nativeViewToAttachTo);
+                    const auto [flags, usesMultiTouch] = detail::PluginUtilities::getDesktopFlagsAndWindowsMultiTouchMode (component->pluginEditor.get());
+                    component->addToDesktop (flags, nativeViewToAttachTo);
+
+                    if (auto* peer = component->getPeer())
+                        peer->setWindowsCanUseMultiTouch (usesMultiTouch);
 
                     if (ModifierKeyReceiver* modReceiver = dynamic_cast<ModifierKeyReceiver*> (component->getPeer()))
                         modReceiver->setModifierKeyProvider (this);
@@ -568,8 +572,8 @@ namespace AAXClasses
         {
             if (component != nullptr)
             {
-                *viewSize = convertToHostBounds ({ (float) component->getHeight(),
-                                                   (float) component->getWidth() });
+                *viewSize = component->convertToHostBounds ({ (float) component->getHeight(),
+                                                              (float) component->getWidth() });
 
                 return AAX_SUCCESS;
             }
@@ -626,18 +630,6 @@ namespace AAXClasses
         AAX_CParamID getAAXParamIDFromJuceIndex (int index) const noexcept;
 
         //==============================================================================
-        static AAX_Point convertToHostBounds (AAX_Point pluginSize)
-        {
-            auto desktopScale = Desktop::getInstance().getGlobalScaleFactor();
-
-            if (approximatelyEqual (desktopScale, 1.0f))
-                return pluginSize;
-
-            return { pluginSize.vert * desktopScale,
-                     pluginSize.horz * desktopScale };
-        }
-
-        //==============================================================================
         struct ContentWrapperComponent final : public Component
         {
             ContentWrapperComponent (JuceAAX_GUI& gui, AudioProcessor& plugin)
@@ -646,7 +638,7 @@ namespace AAXClasses
                 setOpaque (true);
                 setBroughtToFrontOnMouseClick (true);
 
-                pluginEditor.reset (plugin.createEditorIfNeeded());
+                pluginEditor.reset (plugin.createEditorAndMakeActive());
                 addAndMakeVisible (pluginEditor.get());
 
                 if (pluginEditor != nullptr)
@@ -713,6 +705,23 @@ namespace AAXClasses
                     pluginEditor->setBoundsConstrained (pluginEditor->getBounds().withSize (lastValidSize.getWidth(),
                                                                                             lastValidSize.getHeight()));
                 }
+            }
+
+            AAX_Point convertToHostBounds (AAX_Point p)
+            {
+                const auto scale = std::invoke ([&]
+                {
+                    if (auto* peer = getPeer())
+                        return (float) (peer->getPlatformScaleFactor() * peer->getComponent().getDesktopScaleFactor());
+
+                    return 1.0f;
+                });
+
+                if (approximatelyEqual (scale, 1.0f))
+                    return p;
+
+                return { scale * p.vert,
+                         scale * p.horz };
             }
 
             bool resizeHostWindow()
@@ -931,7 +940,7 @@ namespace AAXClasses
                     auto numObjects = dataSize / sizeof (PluginInstanceInfo);
                     auto* objects = static_cast<PluginInstanceInfo*> (data);
 
-                    jassert (numObjects == 1); // not sure how to handle more than one..
+                    jassert (numObjects == 1); // not sure how to handle more than one
 
                     for (size_t i = 0; i < numObjects; ++i)
                         new (objects + i) PluginInstanceInfo (const_cast<JuceAAX_Processor&> (*this));
@@ -1322,7 +1331,7 @@ namespace AAXClasses
                     if (data != nullptr)
                     {
                         AudioProcessor::TrackProperties props;
-                        props.name = String::fromUTF8 (static_cast<const AAX_IString*> (data)->Get());
+                        props.name = std::make_optional (String::fromUTF8 (static_cast<const AAX_IString*> (data)->Get()));
 
                         pluginInstance->updateTrackProperties (props);
                     }
@@ -2414,9 +2423,6 @@ namespace AAXClasses
             aaxInputFormat = aaxOutputFormat;
        #endif
 
-        if (processor.isMidiEffect())
-            aaxInputFormat = aaxOutputFormat = AAX_eStemFormat_Mono;
-
         check (desc.AddAudioIn  (JUCEAlgorithmIDs::inputChannels));
         check (desc.AddAudioOut (JUCEAlgorithmIDs::outputChannels));
 
@@ -2465,6 +2471,9 @@ namespace AAXClasses
 
         properties->AddProperty (AAX_eProperty_InputStemFormat,     static_cast<AAX_CPropertyValue> (aaxInputFormat));
         properties->AddProperty (AAX_eProperty_OutputStemFormat,    static_cast<AAX_CPropertyValue> (aaxOutputFormat));
+
+        // If the plugin doesn't have an editor, ask the host to provide one
+        properties->AddProperty (AAX_eProperty_UsesClientGUI,       static_cast<AAX_CPropertyValue> (! processor.hasEditor()));
 
         const auto& extensions = processor.getAAXClientExtensions();
 
@@ -2546,30 +2555,6 @@ namespace AAXClasses
         check (desc.AddProcessProc_Native (algorithmProcessCallback, properties));
     }
 
-    static inline bool hostSupportsStemFormat (AAX_EStemFormat stemFormat, const AAX_IFeatureInfo* featureInfo)
-    {
-        if (featureInfo != nullptr)
-        {
-            AAX_ESupportLevel supportLevel;
-
-            if (featureInfo->SupportLevel (supportLevel) == AAX_SUCCESS && supportLevel == AAX_eSupportLevel_ByProperty)
-            {
-                std::unique_ptr<const AAX_IPropertyMap> props (featureInfo->AcquireProperties());
-
-                // Due to a bug in ProTools 12.8, ProTools thinks that AAX_eStemFormat_Ambi_1_ACN is not supported
-                // To workaround this bug, check if ProTools supports AAX_eStemFormat_Ambi_2_ACN, and, if yes,
-                // we can safely assume that it will also support AAX_eStemFormat_Ambi_1_ACN
-                if (stemFormat == AAX_eStemFormat_Ambi_1_ACN)
-                    stemFormat = AAX_eStemFormat_Ambi_2_ACN;
-
-                if (props != nullptr && props->GetProperty ((AAX_EProperty) stemFormat, (AAX_CPropertyValue*) &supportLevel) != 0)
-                    return (supportLevel == AAX_eSupportLevel_Supported);
-            }
-        }
-
-        return (AAX_STEM_FORMAT_INDEX (stemFormat) <= 12);
-    }
-
     static void getPlugInDescription (AAX_IEffectDescriptor& descriptor, [[maybe_unused]] const AAX_IFeatureInfo* featureInfo)
     {
         auto plugin = createPluginFilterOfType (AudioProcessor::wrapperType_AAX);
@@ -2607,10 +2592,16 @@ namespace AAXClasses
             // MIDI effect plug-ins do not support any audio channels
             jassert (numInputBuses == 0 && numOutputBuses == 0);
 
-            if (auto* desc = descriptor.NewComponentDescriptor())
+            for (const auto format : aaxFormats)
             {
-                createDescriptor (*desc, plugin->getBusesLayout(), *plugin, pluginIds, numMeters);
-                check (descriptor.AddComponent (desc));
+                const auto channelSet = channelSetFromStemFormat (format, false);
+                const AudioProcessor::BusesLayout layout { { channelSet }, { channelSet } };
+
+                if (auto* desc = descriptor.NewComponentDescriptor())
+                {
+                    createDescriptor (*desc, layout, *plugin, pluginIds, numMeters);
+                    check (descriptor.AddComponent (desc));
+                }
             }
         }
         else
@@ -2628,19 +2619,15 @@ namespace AAXClasses
                     auto aaxOutFormat = numOuts > 0 ? aaxFormats[outIdx] : AAX_eStemFormat_None;
                     auto outLayout = channelSetFromStemFormat (aaxOutFormat, false);
 
-                    if (hostSupportsStemFormat (aaxInFormat, featureInfo)
-                        && hostSupportsStemFormat (aaxOutFormat, featureInfo))
+                    AudioProcessor::BusesLayout fullLayout;
+
+                    if (! JuceAAX_Processor::fullBusesLayoutFromMainLayout (*plugin, inLayout, outLayout, fullLayout))
+                        continue;
+
+                    if (auto* desc = descriptor.NewComponentDescriptor())
                     {
-                        AudioProcessor::BusesLayout fullLayout;
-
-                        if (! JuceAAX_Processor::fullBusesLayoutFromMainLayout (*plugin, inLayout, outLayout, fullLayout))
-                            continue;
-
-                        if (auto* desc = descriptor.NewComponentDescriptor())
-                        {
-                            createDescriptor (*desc, fullLayout, *plugin, pluginIds, numMeters);
-                            check (descriptor.AddComponent (desc));
-                        }
+                        createDescriptor (*desc, fullLayout, *plugin, pluginIds, numMeters);
+                        check (descriptor.AddComponent (desc));
                     }
                 }
             }

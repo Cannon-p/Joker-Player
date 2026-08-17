@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -33,7 +33,7 @@
 */
 
 // The following checks should cause a compile error if you've forgotten to
-// define all your plugin settings properly..
+// define all your plugin settings properly.
 
 #if ! (JucePlugin_Build_VST || JucePlugin_Build_VST3 \
         || JucePlugin_Build_AU  || JucePlugin_Build_AUv3 \

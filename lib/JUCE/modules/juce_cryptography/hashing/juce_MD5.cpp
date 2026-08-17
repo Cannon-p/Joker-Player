@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -132,7 +132,7 @@ struct MD5Generator
         auto index = (count[0] >> 3) & 0x3f;
         auto paddingLength = (index < 56 ? 56 : 120) - index;
 
-        uint8_t paddingBuffer[64] = { 0x80 }; // first byte is 0x80, remaining bytes are zero.
+        uint8_t paddingBuffer[64] = { 0x80 }; // first byte is 0x80, remaining bytes are zero
 
         processBlock (paddingBuffer, (size_t) paddingLength);
         processBlock (encodedLength, 8);

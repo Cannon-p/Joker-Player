@@ -23,6 +23,9 @@ public:
 
     void closeButtonPressed() override;
 
+    /** Re-applies theme colours after a mode switch. */
+    void applyTheme();
+
     std::function<void()> onClose;
 
 private:
@@ -38,6 +41,9 @@ private:
         void paint (juce::Graphics&) override;
         void resized() override;
 
+        /** Re-applies theme colours after a mode switch. */
+        void applyTheme();
+
     private:
         void addPlugin (const juce::PluginDescription&);
         static juce::AudioPluginFormat* findVst3Format (const juce::AudioPluginFormatManager&);
@@ -48,9 +54,9 @@ private:
         std::function<void (const juce::PluginDescription&)> onAdd;
         std::function<int()> getTargetPath;
 
-        juce::Label title { {}, "插件管理器" };
+        juce::Label title { {}, juce::String (juce::CharPointer_UTF8 ("插件管理器")) };
         juce::TextEditor searchBox;
-        juce::TextButton doneButton { "完成" };
+        juce::TextButton doneButton { juce::String (juce::CharPointer_UTF8 ("完成")) };
         juce::Label statusLabel;
 
         std::unique_ptr<juce::PluginListComponent> pluginList;

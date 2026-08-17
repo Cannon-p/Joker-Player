@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -233,7 +233,7 @@ static int lastProcessPriority = -1;
 void juce_repeatLastProcessPriority();
 void juce_repeatLastProcessPriority()
 {
-    if (lastProcessPriority >= 0) // (avoid changing this if it's not been explicitly set by the app..)
+    if (lastProcessPriority >= 0) // avoid changing this if it's not been explicitly set by the app
     {
         DWORD p;
 
@@ -295,7 +295,7 @@ void JUCE_CALLTYPE Process::terminate()
     _CrtDumpMemoryLeaks();
    #endif
 
-    // bullet in the head in case there's a problem shutting down..
+    // force exit in case there's a problem shutting down
     ExitProcess (1);
 }
 
@@ -325,7 +325,7 @@ void DynamicLibrary::close()
 
 void* DynamicLibrary::getFunction (const String& functionName) noexcept
 {
-    return handle != nullptr ? (void*) GetProcAddress ((HMODULE) handle, functionName.toUTF8()) // (void* cast is required for mingw)
+    return handle != nullptr ? (void*) GetProcAddress ((HMODULE) handle, functionName.toUTF8())
                              : nullptr;
 }
 

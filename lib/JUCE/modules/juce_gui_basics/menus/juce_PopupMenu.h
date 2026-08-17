@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -544,6 +544,9 @@ public:
 
             This is useful to ensure that a particular item is shown when the menu
             contains too many items to display on a single screen.
+
+            The specified item will be positioned at the target screen area of the
+            menu if possible.
         */
         [[nodiscard]] Options withItemThatMustBeVisible (int idOfItemToBeVisible) const;
 
@@ -997,6 +1000,12 @@ public:
                                                            int& idealHeight,
                                                            const Options&) = 0;
 
+        virtual void getIdealPopupMenuSectionHeaderSizeWithOptions (const String& text,
+                                                                    int standardMenuItemHeight,
+                                                                    int& idealWidth,
+                                                                    int& idealHeight,
+                                                                    const Options&) = 0;
+
         virtual int getMenuWindowFlags() = 0;
 
         virtual void drawMenuBarBackground (Graphics&, int width, int height,
@@ -1044,10 +1053,10 @@ public:
     };
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("Use the new method.")]]
     int drawPopupMenuItem (Graphics&, int, int, bool, bool, bool, bool, bool, const String&, const String&, Image*, const Colour*) { return 0; }
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================

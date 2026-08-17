@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -117,47 +117,61 @@ struct IconParseResults
 {
     juce::build_tools::Icons icons;
     juce::File output;
+    juce::String iconName;
 };
 
-IconParseResults parseIconArguments (juce::ArgumentList&& args)
+enum class IconNameSpecified
 {
-    args.checkMinNumArguments (2);
-    const auto output = args.arguments.removeAndReturn (0);
+    no,
+    yes
+};
 
-    const auto popDrawable = [&args]() -> std::unique_ptr<juce::Drawable>
+IconParseResults parseIconArguments (juce::ArgumentList&& args, IconNameSpecified iconNameSpecified)
+{
+    args.checkMinNumArguments (iconNameSpecified == IconNameSpecified::yes ? 3 : 2);
+    const auto output = args.arguments.removeAndReturn (0);
+    const auto iconName = std::invoke ([&]
+    {
+        if (iconNameSpecified == IconNameSpecified::yes)
+            return args.arguments.removeAndReturn (0).text;
+
+        return juce::String{};
+    });
+
+    const auto popFile = [&args]() -> juce::File
     {
         if (args.size() == 0)
             return {};
 
-        const auto firstArgText = args.arguments.removeAndReturn (0).text;
-        return juce::Drawable::createFromImageFile (firstArgText);
+        return args.arguments.removeAndReturn (0).text;
     };
 
-    auto smallIcon = popDrawable();
-    auto bigIcon   = popDrawable();
+    const auto smallIcon = popFile();
+    const auto bigIcon   = popFile();
 
-    return { { std::move (smallIcon), std::move (bigIcon) }, output.text };
+    return { juce::build_tools::Icons::fromFilesSmallAndBig (smallIcon, bigIcon), output.text, iconName };
 }
 
 int writeMacIcon (juce::ArgumentList&& argumentList)
 {
-    const auto parsed = parseIconArguments (std::move (argumentList));
+    const auto parsed = parseIconArguments (std::move (argumentList), IconNameSpecified::yes);
     juce::build_tools::writeMacIcon (parsed.icons, parsed.output);
     return 0;
 }
 
 int writeiOSAssets (juce::ArgumentList&& argumentList)
 {
-    const auto parsed = parseIconArguments (std::move (argumentList));
+    const auto parsed = parseIconArguments (std::move (argumentList), IconNameSpecified::yes);
     juce::build_tools::createXcassetsFolderFromIcons (parsed.icons,
                                                       parsed.output.getParentDirectory(),
-                                                      parsed.output.getFileName());
+                                                      parsed.output.getFileName(),
+                                                      parsed.iconName);
     return 0;
 }
 
 int writeWinIcon (juce::ArgumentList&& argumentList)
 {
-    const auto parsed = parseIconArguments (std::move (argumentList));
+    const auto parsed = parseIconArguments (std::move (argumentList), IconNameSpecified::no);
     juce::build_tools::writeWinIcon (parsed.icons, parsed.output);
     return 0;
 }
@@ -252,6 +266,8 @@ juce::build_tools::PlistOptions parsePlistOptions (const juce::File& file,
     updateField ("CAMERA_PERMISSION_TEXT",               result.cameraPermissionText);
     updateField ("BLUETOOTH_PERMISSION_ENABLED",         result.bluetoothPermissionEnabled);
     updateField ("BLUETOOTH_PERMISSION_TEXT",            result.bluetoothPermissionText);
+    updateField ("LOCAL_NETWORK_PERMISSION_ENABLED",     result.localNetworkPermissionEnabled);
+    updateField ("LOCAL_NETWORK_PERMISSION_TEXT",        result.localNetworkPermissionText);
     updateField ("SEND_APPLE_EVENTS_PERMISSION_ENABLED", result.sendAppleEventsPermissionEnabled);
     updateField ("SEND_APPLE_EVENTS_PERMISSION_TEXT",    result.sendAppleEventsPermissionText);
     updateField ("SHOULD_ADD_STORYBOARD",                result.shouldAddStoryboardToProject);
@@ -277,12 +293,14 @@ juce::build_tools::PlistOptions parsePlistOptions (const juce::File& file,
     updateField ("PLUGIN_DESCRIPTION",                   result.pluginDescription);
     updateField ("PLUGIN_AU_EXPORT_PREFIX",              result.pluginAUExportPrefix);
     updateField ("PLUGIN_AU_MAIN_TYPE",                  result.auMainType);
+    updateField ("PLUGIN_AU_FRAMEWORK_BUNDLE_ID",        result.auv3FrameworkBundle);
     updateField ("IS_AU_SANDBOX_SAFE",                   result.isAuSandboxSafe);
     updateField ("IS_PLUGIN_SYNTH",                      result.isPluginSynth);
     updateField ("IS_PLUGIN_ARA_EFFECT",                 result.isPluginARAEffect);
     updateField ("SUPPRESS_AU_PLIST_RESOURCE_USAGE",     result.suppressResourceUsage);
     updateField ("BUNDLE_ID",                            result.bundleIdentifier);
     updateField ("ICON_FILE",                            result.iconFile);
+    updateField ("ICON_COMPOSER_BUNDLE",                 result.iconComposerIcon);
 
     result.type = type;
 
@@ -298,6 +316,8 @@ juce::build_tools::PlistOptions parsePlistOptions (const juce::File& file,
                 "This app requires access to Bluetooth to function correctly.");
     setIfEmpty (result.sendAppleEventsPermissionText,
                 "This app requires the ability to send Apple events to function correctly.");
+    setIfEmpty (result.localNetworkPermissionText,
+                "This app requires access to the local network to function correctly.");
 
     result.documentExtensions = result.documentExtensions.replace (";", ",");
 

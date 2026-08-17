@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -76,13 +76,13 @@ private:
         {
             auto header = output->getReplyHeader (detail::MessageMeta::Meta<Message::ProfileInquiryResponse>::subID2);
 
-            const auto sendIfNonEmpty = [&] (const auto group, const auto& state)
+            const auto sendIfNonEmpty = [&] (const auto groupIn, const auto& state)
             {
                 if (! state.empty())
                 {
                     const auto active   = state.getActive();
                     const auto inactive = state.getInactive();
-                    detail::MessageTypeUtils::send (*output, (uint8_t) group, header, Message::ProfileInquiryResponse { active, inactive });
+                    detail::MessageTypeUtils::send (*output, (uint8_t) groupIn, header, Message::ProfileInquiryResponse { active, inactive });
                 }
             };
 

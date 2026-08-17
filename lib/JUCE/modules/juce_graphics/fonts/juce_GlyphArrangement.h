@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -73,6 +73,8 @@ public:
     float getBottom() const                     { return y + font.getDescent(); }
     /** Returns the bounds of the glyph. */
     Rectangle<float> getBounds() const          { return { x, getTop(), w, font.getHeight() }; }
+    /** Returns the typeface glyph index for the glyph. */
+    int getGlyphIndex() const                   { return glyph; }
 
     //==============================================================================
     /** Shifts the glyph's position by a relative amount. */
@@ -125,6 +127,8 @@ private:
 class JUCE_API  GlyphArrangement  final
 {
 public:
+    using Options = GlyphArrangementOptions;
+
     //==============================================================================
     /** Creates an empty arrangement. */
     GlyphArrangement();
@@ -147,7 +151,8 @@ public:
                         careful not to pass an out-of-range index here, as it
                         doesn't do any bounds-checking.
     */
-    PositionedGlyph& getGlyph (int index) noexcept;
+    [[nodiscard]] PositionedGlyph& getGlyph (int index) noexcept;
+    [[nodiscard]] const PositionedGlyph& getGlyph (int index) const noexcept;
 
     const PositionedGlyph* begin() const                        { return glyphs.begin(); }
     const PositionedGlyph* end() const                          { return glyphs.end(); }
@@ -224,7 +229,8 @@ public:
                         float x, float y, float width, float height,
                         Justification layout,
                         int maximumLinesToUse,
-                        float minimumHorizontalScale = 0.0f);
+                        float minimumHorizontalScale = 0.0f,
+                        GlyphArrangementOptions options = {});
 
     /** Appends another glyph arrangement to this one. */
     void addGlyphArrangement (const GlyphArrangement&);

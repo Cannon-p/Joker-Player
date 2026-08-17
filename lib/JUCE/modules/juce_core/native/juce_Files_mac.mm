@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -198,7 +198,8 @@ File File::getSpecialLocation (const SpecialLocationType type)
 
             case tempDirectory:
             {
-                File tmp ("~/Library/Caches/" + juce_getExecutableFile().getFileNameWithoutExtension());
+                const File outer { SystemStats::getEnvironmentVariable ("TMPDIR", "~/Library/Caches") };
+                const auto tmp = outer.getChildFile (juce_getExecutableFile().getFileNameWithoutExtension());
                 tmp.createDirectory();
                 return File (tmp.getFullPathName());
             }
@@ -431,7 +432,7 @@ bool JUCE_CALLTYPE Process::openDocument (const String& fileName, [[maybe_unused
                 return true;
             }
 
-            JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+            JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
 
             NSMutableDictionary* dict = [[NSMutableDictionary new] autorelease];
 
@@ -443,7 +444,7 @@ bool JUCE_CALLTYPE Process::openDocument (const String& fileName, [[maybe_unused
                                        configuration: dict
                                                error: nil];
 
-            JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+            JUCE_END_IGNORE_DEPRECATION_WARNINGS
         }
 
         if (file.exists())
@@ -477,7 +478,7 @@ OSType File::getMacOSType() const
 bool File::isBundle() const
 {
    #if JUCE_IOS
-    return false; // xxx can't find a sensible way to do this without trying to open the bundle..
+    return false; // xxx can't find a sensible way to do this without trying to open the bundle
    #else
     JUCE_AUTORELEASEPOOL
     {

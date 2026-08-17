@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -60,8 +60,14 @@ public:
     JUCE_GENERATE_FUNCTION_WITH_DEFAULT (webkit_web_view_new_with_settings, juce_webkit_web_view_new_with_settings,
                                          (WebKitSettings*), GtkWidget*)
 
-    JUCE_GENERATE_FUNCTION_WITH_DEFAULT (webkit_web_view_load_uri, juce_webkit_web_view_load_uri,
-                                         (WebKitWebView*, const gchar*), void)
+    JUCE_GENERATE_FUNCTION_WITH_DEFAULT (webkit_web_view_load_request, juce_webkit_web_view_load_request,
+                                         (WebKitWebView*, const WebKitURIRequest*), void)
+
+    JUCE_GENERATE_FUNCTION_WITH_DEFAULT (webkit_uri_request_new, juce_webkit_uri_request_new,
+                                         (const gchar*), WebKitURIRequest*)
+
+    JUCE_GENERATE_FUNCTION_WITH_DEFAULT (webkit_uri_request_get_http_headers, juce_webkit_uri_request_get_http_headers,
+                                         (WebKitURIRequest*), SoupMessageHeaders*)
 
     JUCE_GENERATE_FUNCTION_WITH_DEFAULT (webkit_policy_decision_use, juce_webkit_policy_decision_use,
                                          (WebKitPolicyDecision*), void)
@@ -217,6 +223,12 @@ public:
     JUCE_GENERATE_FUNCTION_WITH_DEFAULT (g_object_unref, juce_g_object_unref,
                                          (gpointer), void)
 
+    JUCE_GENERATE_FUNCTION_WITH_DEFAULT (g_object_get_data, juce_g_object_get_data,
+                                         (GObject*, const gchar*), gpointer)
+
+    JUCE_GENERATE_FUNCTION_WITH_DEFAULT (gtk_widget_add_events, juce_gtk_widget_add_events,
+                                         (GtkWidget*, gint), void)
+
     JUCE_GENERATE_FUNCTION_WITH_DEFAULT (g_memory_input_stream_new, juce_g_memory_input_stream_new,
                                          (), GInputStream*)
 
@@ -258,6 +270,44 @@ public:
     JUCE_DECLARE_SINGLETON_SINGLETHREADED_MINIMAL_INLINE (WebKitSymbols)
 
 private:
+    struct DylibHandle
+    {
+        DylibHandle() = default;
+
+        explicit DylibHandle (const char* str)
+            : DylibHandle (str, RTLD_NOW | RTLD_LOCAL) {}
+
+        DylibHandle (const char* str, int flags)
+            : handle (dlopen (str, flags)) {}
+
+        ~DylibHandle()
+        {
+            if (handle != nullptr)
+                dlclose (handle);
+        }
+
+        DylibHandle (DylibHandle&& other) noexcept
+            : handle (std::exchange (other.handle, nullptr)) {}
+
+        DylibHandle& operator= (DylibHandle&& other) noexcept
+        {
+            auto local = std::move (other);
+            std::swap (local.handle, handle);
+            return *this;
+        }
+
+        void* getFunction (const char* name) const
+        {
+            jassert (handle != nullptr);
+            return dlsym (handle, name);
+        }
+
+        explicit operator bool() const { return handle != nullptr; }
+
+    private:
+        void* handle = nullptr;
+    };
+
     WebKitSymbols() = default;
 
     ~WebKitSymbols()
@@ -279,7 +329,7 @@ private:
     }
 
     template <typename FuncPtr>
-    bool loadSymbols (DynamicLibrary& lib, SymbolBinding<FuncPtr> binding)
+    bool loadSymbols (DylibHandle& lib, SymbolBinding<FuncPtr> binding)
     {
         if (auto* func = lib.getFunction (binding.name))
         {
@@ -291,7 +341,7 @@ private:
     }
 
     template <typename FuncPtr, typename... Args>
-    bool loadSymbols (DynamicLibrary& lib, SymbolBinding<FuncPtr> binding, Args... args)
+    bool loadSymbols (DylibHandle& lib, SymbolBinding<FuncPtr> binding, Args... args)
     {
         return loadSymbols (lib, binding) && loadSymbols (lib, args...);
     }
@@ -311,7 +361,9 @@ private:
                             makeSymbolBinding (juce_webkit_web_view_reload,                                      "webkit_web_view_reload"),
                             makeSymbolBinding (juce_webkit_web_view_stop_loading,                                "webkit_web_view_stop_loading"),
                             makeSymbolBinding (juce_webkit_uri_request_get_uri,                                  "webkit_uri_request_get_uri"),
-                            makeSymbolBinding (juce_webkit_web_view_load_uri,                                    "webkit_web_view_load_uri"),
+                            makeSymbolBinding (juce_webkit_web_view_load_request,                                "webkit_web_view_load_request"),
+                            makeSymbolBinding (juce_webkit_uri_request_new,                                      "webkit_uri_request_new"),
+                            makeSymbolBinding (juce_webkit_uri_request_get_http_headers,                         "webkit_uri_request_get_http_headers"),
                             makeSymbolBinding (juce_webkit_navigation_action_get_request,                        "webkit_navigation_action_get_request"),
                             makeSymbolBinding (juce_webkit_navigation_policy_decision_get_frame_name,            "webkit_navigation_policy_decision_get_frame_name"),
                             makeSymbolBinding (juce_webkit_navigation_policy_decision_get_navigation_action,     "webkit_navigation_policy_decision_get_navigation_action"),
@@ -351,6 +403,8 @@ private:
                             makeSymbolBinding (juce_g_unix_fd_add,                        "g_unix_fd_add"),
                             makeSymbolBinding (juce_g_object_ref,                         "g_object_ref"),
                             makeSymbolBinding (juce_g_object_unref,                       "g_object_unref"),
+                            makeSymbolBinding (juce_g_object_get_data,                    "g_object_get_data"),
+                            makeSymbolBinding (juce_gtk_widget_add_events,                "gtk_widget_add_events"),
                             makeSymbolBinding (juce_g_bytes_new,                          "g_bytes_new"),
                             makeSymbolBinding (juce_g_bytes_unref,                        "g_bytes_unref"),
                             makeSymbolBinding (juce_g_signal_connect_data,                "g_signal_connect_data"),
@@ -387,20 +441,24 @@ private:
 
     bool openWebKitAndDependencyLibraries (const WebKitAndDependencyLibraryNames& names)
     {
-        if (webkitLib.open (names.webkitLib) && jsLib.open (names.jsLib) && soupLib.open (names.soupLib))
+        if (   (webkitLib = DylibHandle (names.webkitLib, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE))
+            && (jsLib = DylibHandle (names.jsLib))
+            && (soupLib = DylibHandle (names.soupLib)))
+        {
             return true;
+        }
 
         for (auto* l : { &webkitLib, &jsLib, &soupLib })
-            l->close();
+            *l = {};
 
         return false;
     }
 
     //==============================================================================
-    DynamicLibrary webkitLib, jsLib, soupLib;
+    DylibHandle webkitLib, jsLib, soupLib;
 
-    DynamicLibrary gtkLib    { "libgtk-3.so" },
-                   glib      { "libglib-2.0.so" };
+    DylibHandle gtkLib    { "libgtk-3.so" },
+                glib      { "libglib-2.0.so" };
 
     const bool webKitIsAvailable =    (   openWebKitAndDependencyLibraries ({ "libwebkit2gtk-4.1.so",
                                                                               "libjavascriptcoregtk-4.1.so",
@@ -425,9 +483,9 @@ class CommandReceiver
 public:
     struct Responder
     {
-        virtual ~Responder() {}
+        virtual ~Responder() = default;
 
-        virtual void handleCommand (const String& cmd, const var& param) = 0;
+        virtual void handleCommand (const String& cmd, const var& param, Span<const std::byte> rawData) = 0;
         virtual void receiverHadError() = 0;
     };
 
@@ -456,20 +514,22 @@ public:
     {
         for (;;)
         {
-            auto len = (receivingLength ? sizeof (size_t) : bufferLength.len);
+            const auto len = (receivingLength ? lengthsBuffer.getSize() : lengthsBuffer.getTotalLength());
 
             if (! receivingLength)
                 buffer.realloc (len);
 
-            auto* dst = (receivingLength ? bufferLength.data : buffer.getData());
+            auto* dst = (receivingLength ? lengthsBuffer.getData() : buffer.getData());
 
             auto actual = read (inChannel, &dst[pos], static_cast<size_t> (len - pos));
 
-            if (actual < 0)
+            if (actual <= 0)
             {
                 if (errno == EINTR)
                     continue;
 
+                // This isn't an abort condition. The transfer of the same file can continue after
+                // the next call to tryNextRead.
                 break;
             }
 
@@ -481,7 +541,7 @@ public:
 
                 if (! std::exchange (receivingLength, ! receivingLength))
                 {
-                    parseJSON (String (buffer.getData(), bufferLength.len));
+                    sendCommandBufferToResponder();
 
                     if (ret == ReturnAfterMessageReceived::yes)
                         return;
@@ -493,7 +553,10 @@ public:
             responder->receiverHadError();
     }
 
-    static void sendCommand (int outChannel, const String& cmd, const var& params)
+    static void sendCommand (int outChannel,
+                             const String& cmd,
+                             const var& params,
+                             Span<const std::byte> binaryPayload = {})
     {
         DynamicObject::Ptr obj = new DynamicObject;
 
@@ -502,43 +565,87 @@ public:
         if (! params.isVoid())
             obj->setProperty (getParamIdentifier(), params);
 
-        auto json = JSON::toString (var (obj.get()));
+        const auto json = JSON::toString (var (obj.get()));
 
-        auto jsonLength = static_cast<size_t> (json.length());
-        auto len        = sizeof (size_t) + jsonLength;
-
-        HeapBlock<char> buffer (len);
-        auto* dst = buffer.getData();
-
-        memcpy (dst, &jsonLength, sizeof (size_t));
-        dst += sizeof (size_t);
-
-        memcpy (dst, json.toRawUTF8(), jsonLength);
-
-        ssize_t ret;
-
-        for (;;)
         {
-            ret = write (outChannel, buffer.getData(), len);
-
-            if (ret != -1 || errno != EINTR)
-                break;
+            const auto jsonLength = json.getNumBytesAsUTF8();
+            writeToChannel (outChannel, &jsonLength, sizeof (decltype (jsonLength)));
         }
+
+        {
+            const auto binaryPayloadLength = binaryPayload.size();
+            writeToChannel (outChannel, &binaryPayloadLength, sizeof (decltype (binaryPayloadLength)));
+        }
+
+        writeToChannel (outChannel, json.toRawUTF8(), json.getNumBytesAsUTF8());
+        writeToChannel (outChannel, binaryPayload.data(), binaryPayload.size());
     }
 
 private:
-    void parseJSON (const String& json)
+    class LengthsBuffer
     {
-        auto object = JSON::fromString (json);
+    public:
+        char* getData() { return std::data (data); }
 
-        if (! object.isVoid())
+        size_t getSize() const { return std::size (data); }
+
+        size_t getJsonLength() const
         {
-            auto cmd    = object.getProperty (getCmdIdentifier(),   {}).toString();
-            auto params = object.getProperty (getParamIdentifier(), {});
-
-            if (responder != nullptr)
-                responder->handleCommand (cmd, params);
+            return readUnaligned<size_t> (data);
         }
+
+        size_t getRawLength() const
+        {
+            return readUnaligned<size_t> (data + sizeof (size_t));
+        }
+
+        size_t getTotalLength() const
+        {
+            return getJsonLength() + getRawLength();
+        }
+
+    private:
+        char data[2 * sizeof (size_t)];
+    };
+
+    template <typename PointerType>
+    static void writeToChannel (int channel, const PointerType* dataIn, size_t numBytes)
+    {
+        auto* data = reinterpret_cast<const std::byte*> (dataIn);
+
+        while (true)
+        {
+            const auto bytesWritten = write (channel, data, numBytes);
+
+            if (bytesWritten != -1 || errno != EINTR)
+                break;
+
+            if (bytesWritten >= 0)
+            {
+                data += bytesWritten;
+                numBytes -= (size_t) bytesWritten;
+            }
+        }
+    }
+
+    void sendCommandBufferToResponder()
+    {
+        if (responder == nullptr)
+            return;
+
+        const auto object = JSON::fromString (String { CharPointer_UTF8 { buffer.getData() },
+                                                       lengthsBuffer.getJsonLength() });
+
+        if (object.isVoid())
+            return;
+
+        const auto cmd    = object.getProperty (getCmdIdentifier(),   {}).toString();
+        const auto params = object.getProperty (getParamIdentifier(), {});
+
+        responder->handleCommand (cmd,
+                                  params,
+                                  { reinterpret_cast<const std::byte*> (buffer.getData() + lengthsBuffer.getJsonLength()),
+                                    lengthsBuffer.getRawLength() });
     }
 
     static Identifier getCmdIdentifier()    { static Identifier Id ("cmd");    return Id; }
@@ -548,7 +655,7 @@ private:
     int inChannel = 0;
     size_t pos = 0;
     bool receivingLength = true;
-    union { char data [sizeof (size_t)]; size_t len; } bufferLength;
+    LengthsBuffer lengthsBuffer;
     HeapBlock<char> buffer;
 };
 
@@ -566,9 +673,11 @@ window.__JUCE__ = {
 struct InitialisationData
 {
     bool nativeIntegrationsEnabled;
+    bool nativeZoomGestureEnabled;
     String userAgent;
     String userScript;
     String allowedOrigin;
+    float pinchTranslationSensitivity;
 
     static constexpr std::optional<int> marshallingVersion = std::nullopt;
 
@@ -576,9 +685,11 @@ struct InitialisationData
     static void serialise (Archive& archive, Item& item)
     {
         archive (named ("nativeIntegrationsEnabled", item.nativeIntegrationsEnabled),
+                 named ("nativeZoomGestureEnabled", item.nativeZoomGestureEnabled),
                  named ("userAgent", item.userAgent),
                  named ("userScript", item.userScript),
-                 named ("allowedOrigin", item.allowedOrigin));
+                 named ("allowedOrigin", item.allowedOrigin),
+                 named ("pinchTranslationSensitivity", item.pinchTranslationSensitivity));
     }
 };
 
@@ -726,6 +837,21 @@ public:
         auto* webviewWidget = WebKitSymbols::getInstance()->juce_webkit_web_view_new_with_settings (settings);
         webview = (WebKitWebView*) webviewWidget;
 
+        if (! initialisationData->nativeZoomGestureEnabled)
+        {
+            // Enable touchpad gesture events on the webview widget
+            wk.juce_gtk_widget_add_events (webviewWidget, GDK_TOUCHPAD_GESTURE_MASK);
+
+            // Translate touchpad pinch gestures to JS wheel events
+            juce_g_signal_connect (webview,
+                                   "event",
+                                   G_CALLBACK (+[] (GtkWidget*, GdkEvent* event, gpointer arg)
+                                   {
+                                       return static_cast<GtkChildProcess*> (arg)->touchpadGestureHandler (event);
+                                   }),
+                                   this);
+        }
+
         if (initialisationData->nativeIntegrationsEnabled)
         {
             manager = wk.juce_webkit_web_view_get_user_content_manager (webview);
@@ -758,7 +884,7 @@ public:
         WebKitSymbols::getInstance()->juce_gtk_container_add ((GtkContainer*) container, webviewWidget);
         WebKitSymbols::getInstance()->juce_gtk_container_add ((GtkContainer*) plug,      container);
 
-        WebKitSymbols::getInstance()->juce_webkit_web_view_load_uri (webview, "about:blank");
+        goToURLWithHeaders ("about:blank", {});
 
         juce_g_signal_connect (webview, "decide-policy",
                                (GCallback) decidePolicyCallback, this);
@@ -791,6 +917,52 @@ public:
         return 0;
     }
 
+    gboolean touchpadGestureHandler (GdkEvent* event)
+    {
+        if (event->type == GDK_TOUCHPAD_PINCH)
+        {
+            GdkEventTouchpadPinch* pinch = reinterpret_cast<GdkEventTouchpadPinch*> (event);
+
+            const auto currentPinchDistance = -std::log (pinch->scale);
+            const auto deltaY = currentPinchDistance - std::exchange (lastPinchDistance, currentPinchDistance);
+
+            if (pinch->phase == GDK_TOUCHPAD_GESTURE_PHASE_UPDATE && ! approximatelyEqual (deltaY, 0.0))
+            {
+                char script[512];
+
+                snprintf (script,
+                          sizeof(script),
+                          "var target = document.elementFromPoint(%f, %f) || document.body;"
+                          "target.dispatchEvent(new WheelEvent('wheel', { "
+                          "clientX: %f, clientY: %f, deltaY: %f, ctrlKey: true, bubbles: true }));",
+                          pinch->x,
+                          pinch->y,
+                          pinch->x,
+                          pinch->y,
+                          deltaY * initialisationData->pinchTranslationSensitivity);
+
+                WebKitSymbols::getInstance()->juce_webkit_web_view_run_javascript (webview,
+                                                                                   script,
+                                                                                   nullptr,
+                                                                                   nullptr,
+                                                                                   nullptr);
+            }
+
+            return TRUE;
+        }
+
+        // Block standard CTRL + Scroll wheel zooming
+        if (event->type == GDK_SCROLL)
+        {
+            GdkEventScroll* scroll = reinterpret_cast<GdkEventScroll*> (event);
+
+            if (scroll->state & GDK_CONTROL_MASK)
+                return TRUE;
+        }
+
+        return FALSE;
+    }
+
     void invokeCallback (WebKitJavascriptResult* r)
     {
         auto& wk = *WebKitSymbols::getInstance();
@@ -800,12 +972,52 @@ public:
         wk.juce_g_free (s);
     }
 
+    void goToURLWithHeaders (StringRef url, Span<const var> headers)
+    {
+        auto& wk = *WebKitSymbols::getInstance();
+
+        auto* request = wk.juce_webkit_uri_request_new (url.text.getAddress());
+        const ScopeGuard requestScope { [&] { wk.juce_g_object_unref (request); } };
+
+        if (! headers.empty())
+        {
+            if (auto* soupHeaders = wk.juce_webkit_uri_request_get_http_headers (request))
+            {
+                for (const String item : headers)
+                {
+                    const auto key   = item.upToFirstOccurrenceOf (":", false, false);
+                    const auto value = item.fromFirstOccurrenceOf (":", false, false);
+
+                    if (key.isNotEmpty() && value.isNotEmpty())
+                        wk.juce_soup_message_headers_append (soupHeaders, key.toRawUTF8(), value.toRawUTF8());
+                    else
+                        jassertfalse; // malformed headers?
+                }
+            }
+        }
+
+        wk.juce_webkit_web_view_load_request (webview, request);
+    }
+
     void goToURL (const var& params)
     {
-        static Identifier urlIdentifier ("url");
-        auto url = params.getProperty (urlIdentifier, var()).toString();
+        static const Identifier urlIdentifier ("url");
+        const String url = params[urlIdentifier];
 
-        WebKitSymbols::getInstance()->juce_webkit_web_view_load_uri (webview, url.toRawUTF8());
+        if (url.isEmpty())
+            return;
+
+        static const Identifier headersIdentifier ("headers");
+        const auto* headers = params[headersIdentifier].getArray();
+
+        static const Identifier postDataIdentifier ("postData");
+        [[maybe_unused]] const auto* postData = params[postDataIdentifier].getBinaryData();
+        // post data is not currently sent
+        jassert (postData == nullptr);
+
+        goToURLWithHeaders (url,
+                            headers != nullptr ? Span { headers->getRawDataPointer(), (size_t) headers->size() }
+                                               : Span<const var>{});
     }
 
     void handleDecisionResponse (const var& params)
@@ -842,11 +1054,11 @@ public:
                                                                            this);
     }
 
-    void handleResourceRequesteResponse (const var& params)
+    void handleResourceRequestedResponse (const var& params, Span<const std::byte> rawData)
     {
         auto& wk = *WebKitSymbols::getInstance();
 
-        const auto response = FromVar::convert<ResourceRequestResponse> (params);
+        auto response = FromVar::convert<ResourceRequestResponse> (params);
 
         if (! response.has_value())
         {
@@ -864,15 +1076,25 @@ public:
 
         if (response->resource.has_value())
         {
+            if (response->resource->data.empty() && ! rawData.empty())
+            {
+                response->resource->data = std::vector<std::byte> (rawData.begin(), rawData.end());
+            }
+            else
+            {
+                jassertfalse;
+                std::cerr << "The payload of a ResourceRequestResponse should be sent as raw bytes" << std::endl;
+            }
+
             auto* streamBytes = wk.juce_g_bytes_new (response->resource->data.data(),
-                                                        static_cast<gsize> (response->resource->data.size()));
+                                                     static_cast<gsize> (response->resource->data.size()));
             ScopeGuard bytesScope { [&] { wk.juce_g_bytes_unref (streamBytes); } };
 
             auto* stream = wk.juce_g_memory_input_stream_new_from_bytes (streamBytes);
             ScopeGuard streamScope { [&] { wk.juce_g_object_unref (stream); } };
 
             auto* webkitResponse = wk.juce_webkit_uri_scheme_response_new (stream,
-                                                                              static_cast<gint64> (response->resource->data.size()));
+                                                                           static_cast<gint64> (response->resource->data.size()));
             ScopeGuard webkitResponseScope { [&] { wk.juce_g_object_unref (webkitResponse); } };
 
             wk.juce_soup_message_headers_append (headers, "Content-Type", response->resource->mimeType.toRawUTF8());
@@ -896,7 +1118,7 @@ public:
     }
 
     //==============================================================================
-    void handleCommand (const String& cmd, const var& params) override
+    void handleCommand (const String& cmd, const var& params, Span<const std::byte> rawData) override
     {
         auto& wk = *WebKitSymbols::getInstance();
 
@@ -909,7 +1131,7 @@ public:
         else if (cmd == "decision")                   handleDecisionResponse (params);
         else if (cmd == "init")                       initialisationData = FromVar::convert<InitialisationData> (params);
         else if (cmd == "evaluateJavascript")         evaluateJavascript (params);
-        else if (cmd == ResourceRequestResponse::key) handleResourceRequesteResponse (params);
+        else if (cmd == ResourceRequestResponse::key) handleResourceRequestedResponse (params, rawData);
     }
 
     void receiverHadError() override
@@ -944,52 +1166,48 @@ public:
                        WebKitNavigationAction* action,
                        WebKitPolicyDecision* decision)
     {
-        if (decision != nullptr && frameName.isEmpty())
-        {
-            WebKitSymbols::getInstance()->juce_g_object_ref (decision);
-            decisions.add (decision);
+        if (decision == nullptr || ! frameName.isEmpty())
+            return false;
 
-            DynamicObject::Ptr params = new DynamicObject;
+        WebKitSymbols::getInstance()->juce_g_object_ref (decision);
+        decisions.add (decision);
 
-            params->setProperty ("url", getURIStringForAction (action));
-            params->setProperty ("decision_id", (int64) decision);
-            CommandReceiver::sendCommand (outChannel, "pageAboutToLoad", var (params.get()));
+        DynamicObject::Ptr params = new DynamicObject;
 
-            return true;
-        }
+        params->setProperty ("url", getURIStringForAction (action));
+        params->setProperty ("decision_id", (int64) decision);
+        CommandReceiver::sendCommand (outChannel, "pageAboutToLoad", var (params.get()));
 
-        return false;
+        return true;
     }
 
     bool onNewWindow (String /*frameName*/,
                       WebKitNavigationAction* action,
                       WebKitPolicyDecision* decision)
     {
-        if (decision != nullptr)
-        {
-            DynamicObject::Ptr params = new DynamicObject;
+        if (decision == nullptr)
+            return false;
 
-            params->setProperty ("url", getURIStringForAction (action));
-            CommandReceiver::sendCommand (outChannel, "newWindowAttemptingToLoad", var (params.get()));
+        DynamicObject::Ptr params = new DynamicObject;
 
-            // never allow new windows
-            WebKitSymbols::getInstance()->juce_webkit_policy_decision_ignore (decision);
+        params->setProperty ("url", getURIStringForAction (action));
+        CommandReceiver::sendCommand (outChannel, "newWindowAttemptingToLoad", var (params.get()));
 
-            return true;
-        }
+        // never allow new windows
+        WebKitSymbols::getInstance()->juce_webkit_policy_decision_ignore (decision);
 
-        return false;
+        return true;
     }
 
     void onLoadChanged (WebKitLoadEvent loadEvent)
     {
-        if (loadEvent == WEBKIT_LOAD_FINISHED)
-        {
-            DynamicObject::Ptr params = new DynamicObject;
+        if (loadEvent != WEBKIT_LOAD_FINISHED)
+            return;
 
-            params->setProperty ("url", String (WebKitSymbols::getInstance()->juce_webkit_web_view_get_uri (webview)));
-            CommandReceiver::sendCommand (outChannel, "pageFinishedLoading", var (params.get()));
-        }
+        DynamicObject::Ptr params = new DynamicObject;
+
+        params->setProperty ("url", String (WebKitSymbols::getInstance()->juce_webkit_web_view_get_uri (webview)));
+        CommandReceiver::sendCommand (outChannel, "pageFinishedLoading", var (params.get()));
     }
 
     bool onDecidePolicy (WebKitPolicyDecision*    decision,
@@ -1137,11 +1355,11 @@ private:
         // Using the non-deprecated webkit_javascript_result_get_js_value() functions seems easier
         // but returned values fail the JS_IS_VALUE() internal assertion. The example code from the
         // documentation doesn't seem to work either.
-        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+        JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
         WebKitJavascriptResultUniquePtr jsResult { wk.juce_webkit_web_view_run_javascript_finish (owner->webview,
                                                                                                      result,
                                                                                                      &error) };
-        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+        JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
         if (jsResult == nullptr)
         {
@@ -1152,7 +1370,7 @@ private:
             return;
         }
 
-        const auto jsValueResult = [&]() -> std::tuple<std::optional<var>, String>
+        const auto jsValueResult = std::invoke ([&]() -> std::tuple<std::optional<var>, String>
         {
             auto* jsValue = wk.juce_webkit_javascript_result_get_js_value (jsResult.get());
 
@@ -1160,7 +1378,7 @@ private:
                 return { std::nullopt, String{} };
 
             return { fromJSCValue (jsValue), String{} };
-        }();
+        });
 
         owner->handleEvaluationCallback (std::get<0> (jsValueResult), std::get<1> (jsValueResult));
     }
@@ -1214,6 +1432,7 @@ private:
     WebKitUserContentManager* manager = nullptr;
     std::optional<InitialisationData> initialisationData;
     RequestIds requestIds;
+    double lastPinchDistance = 0.0;
 };
 
 //==============================================================================
@@ -1229,9 +1448,11 @@ public:
     {
         webKitIsAvailable = WebKitSymbols::getInstance()->isWebKitAvailable();
         init (InitialisationData { optionsIn.getNativeIntegrationsEnabled(),
+                                   optionsIn.getLinuxWkWebViewOptions().getAllowNativeZoomGesture(),
                                    userAgent,
                                    userStrings.joinIntoString ("\n"),
-                                   optionsIn.getAllowedOrigin() ? *optionsIn.getAllowedOrigin() : "" });
+                                   optionsIn.getAllowedOrigin() ? *optionsIn.getAllowedOrigin() : "",
+                                   optionsIn.getLinuxWkWebViewOptions().getPinchTranslationSensitivity() });
     }
 
     ~Platform() override
@@ -1244,10 +1465,9 @@ public:
         g.fillAll (Colours::white);
     }
 
-    void evaluateJavascript (const String& script, WebBrowserComponent::EvaluationCallback callback) override
+    void evaluateJavascript (const String& script, EvaluationCallback callback) override
     {
-        if (callback != nullptr)
-            evaluationCallbacks.push_back (std::move (callback));
+        evaluationCallbacks.push_back (std::move (callback));
 
         CommandReceiver::sendCommand (outChannel,
                                       "evaluateJavascript",
@@ -1258,13 +1478,13 @@ public:
     {
         const auto params = FromVar::convert<EvaluateJavascriptCallbackParams> (paramsIn);
 
-        if (! params.has_value() || evaluationCallbacks.size() == 0)
+        if (! params.has_value() || evaluationCallbacks.empty())
         {
             jassertfalse;
             return;
         }
 
-        const auto result = [&]
+        const auto result = std::invoke ([&]
         {
             using Error = EvaluationResult::Error;
 
@@ -1277,10 +1497,10 @@ public:
             }
 
             return EvaluationResult { params->hasPayload ? params->payload : var::undefined() };
-        }();
+        });
 
         auto& cb = evaluationCallbacks.front();
-        cb (result);
+        NullCheckedInvocation::invoke (cb, result);
         evaluationCallbacks.pop_front();
     }
 
@@ -1294,11 +1514,19 @@ public:
             return;
         }
 
-        const auto response = browser.impl->handleResourceRequest (params->path);
+        auto response = browser.impl->handleResourceRequest (params->path);
+        std::vector<std::byte> rawData;
+
+        if (response.has_value())
+        {
+            rawData = std::move (response->data);
+            jassert (response->data.empty());
+        }
 
         CommandReceiver::sendCommand (outChannel,
                                       ResourceRequestResponse::key,
-                                      *ToVar::convert (ResourceRequestResponse { params->requestId, response }));
+                                      *ToVar::convert (ResourceRequestResponse { params->requestId, response }),
+                                      rawData);
     }
 
     void setWebViewSize (int, int) override
@@ -1338,14 +1566,14 @@ public:
             return;
         }
 
-        receiver.reset (new CommandReceiver (this, inChannel));
+        receiver = std::make_unique<CommandReceiver> (static_cast<Responder*> (this), inChannel);
 
         pfds.push_back ({ threadControl[0],  POLLIN, 0 });
         pfds.push_back ({ receiver->getFd(), POLLIN, 0 });
 
         startThread();
 
-        xembed.reset (new XEmbedComponent (windowHandle));
+        xembed = std::make_unique<XEmbedComponent> (windowHandle);
         browser.addAndMakeVisible (xembed.get());
     }
 
@@ -1436,7 +1664,7 @@ private:
                     kill (childProcess, SIGTERM);
                     waitpid (childProcess, &status, 0);
 
-                    if (WIFEXITED (status))
+                    if (WIFEXITED (status) || WIFSIGNALED (status) || WIFSTOPPED (status))
                         break;
                 }
             }
@@ -1600,7 +1828,7 @@ private:
             goToURL (String ("data:text/plain,") + error, nullptr, nullptr);
     }
 
-    void handleCommand (const String& cmd, const var& params) override
+    void handleCommand (const String& cmd, const var& params, Span<const std::byte>) override
     {
         MessageManager::callAsync ([liveness = std::weak_ptr (livenessProbe), this, cmd, params]
                                    {

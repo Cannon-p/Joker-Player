@@ -42,6 +42,7 @@ target_sources(JokerPlayer PRIVATE
     UI/PlaylistComponent.cpp
     UI/PluginBrowserDialog.cpp
     UI/PluginRackComponent.cpp
+    UI/UIAnimator.cpp
 )
 
 target_link_libraries(JokerPlayer PRIVATE
@@ -56,6 +57,7 @@ target_link_libraries(JokerPlayer PRIVATE
     juce::juce_events
     juce::juce_graphics
     juce::juce_gui_basics
+    juce::juce_animation
 )
 
 juce_generate_juce_header(JokerPlayer)

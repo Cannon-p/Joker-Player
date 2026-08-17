@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -204,11 +204,11 @@ public:
     */
     NoteAndVelocity getNoteAndVelocityAtPosition (Point<float> position, bool includeChildComponents = false);
 
-   #ifndef DOXYGEN
+    /** @cond */
     /** Returns the key at a given coordinate, or -1 if the position does not intersect a key. */
     [[deprecated ("This method has been deprecated in favour of getNoteAndVelocityAtPosition.")]]
     int getNoteAtPosition (Point<float> p)  { return getNoteAndVelocityAtPosition (p).note; }
-   #endif
+    /** @endcond */
 
     /** Returns the rectangle for a given key. */
     Rectangle<float> getRectangleForKey (int midiNoteNumber) const;

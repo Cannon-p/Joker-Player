@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -388,7 +388,7 @@ public:
                                                          It's up to the LookAndFeel how this is used. */
         outlineColourId                = 0x1003820, /**< The colour of the table header's outline. */
         highlightColourId              = 0x1003830, /**< The colour of the table header background when
-                                                         the mouse is over or down above the the table
+                                                         the mouse is over or down above the table
                                                          header. It's up to the LookAndFeel to use a
                                                          variant of this colour to distinguish between
                                                          the down and hover state. */

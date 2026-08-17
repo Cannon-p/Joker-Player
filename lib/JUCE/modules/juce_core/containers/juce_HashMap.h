@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -98,7 +98,7 @@ struct DefaultHashFunctions
     DBG (hash [1]); // prints "item1"
     DBG (hash [2]); // prints "item2"
 
-    // This iterates the map, printing all of its key -> value pairs..
+    // This iterates the map, printing all of its key -> value pairs.
     for (HashMap<int, String>::Iterator i (hash); i.next();)
         DBG (i.getKey() << " -> " << i.getValue());
     @endcode

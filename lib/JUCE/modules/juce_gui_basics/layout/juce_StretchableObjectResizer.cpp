@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -42,7 +42,7 @@ void StretchableObjectResizer::addItem (const double size,
                                         const double minSize, const double maxSize,
                                         const int order)
 {
-    // the order must be >= 0 but less than the maximum integer value.
+    // the order must be >= 0 but less than the maximum integer value
     jassert (order >= 0 && order < std::numeric_limits<int>::max());
     jassert (maxSize >= minSize);
 

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -176,13 +176,11 @@ public:
     static AudioIODeviceType* createAudioIODeviceType_OpenSLES();
     /** Creates an Oboe device type if it's available on this platform, or returns null. */
     static AudioIODeviceType* createAudioIODeviceType_Oboe();
-    /** Creates a Bela device type if it's available on this platform, or returns null. */
-    static AudioIODeviceType* createAudioIODeviceType_Bela();
 
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("You should call the method which takes a WASAPIDeviceMode instead.")]]
     static AudioIODeviceType* createAudioIODeviceType_WASAPI (bool exclusiveMode);
-   #endif
+    /** @endcond */
 
 protected:
     explicit AudioIODeviceType (const String& typeName);

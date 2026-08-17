@@ -1,4 +1,5 @@
 #include "CustomLookAndFeel.h"
+#include "UIAnimator.h"
 #include "../Trace.h"
 
 //==============================================================================
@@ -11,25 +12,93 @@ juce::Colour mixWithBg (const juce::Colour& c, float amount)
 } // namespace
 
 //==============================================================================
+aur::Theme::Mode aur::Theme::mode = aur::Theme::Mode::Night;
+
+//==============================================================================
+void aur::Theme::loadSavedMode()
+{
+    auto settingsFile = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                            .getChildFile ("JokerPlayer")
+                            .getChildFile ("theme_settings.xml");
+
+    if (auto xml = juce::XmlDocument::parse (settingsFile))
+        if (auto* modeTag = xml->getChildByName ("mode"))
+            mode = (modeTag->getStringAttribute ("value") == "day") ? Mode::Day : Mode::Night;
+}
+
+void aur::Theme::saveMode()
+{
+    auto dir = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                   .getChildFile ("JokerPlayer");
+    dir.createDirectory();
+
+    juce::XmlElement xml ("settings");
+    auto* modeTag = new juce::XmlElement ("mode");
+    modeTag->setAttribute ("value", mode == Mode::Day ? "day" : "night");
+    xml.addChildElement (modeTag);
+    xml.writeTo (dir.getChildFile ("theme_settings.xml"));
+}
+
+//==============================================================================
 aur::CustomLookAndFeel::CustomLookAndFeel()
 {
     aur::traceStep ("CustomLookAndFeel ctor start");
     // Ensure every widget falls back to a CJK-capable typeface (@see uiFont).
     setDefaultSansSerifTypefaceName ("Microsoft YaHei UI");
+    refreshScheme();
+}
 
+void aur::CustomLookAndFeel::refreshScheme()
+{
     auto& scheme = getCurrentColourScheme();
 
     scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::outline, aur::Theme::border());
     scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::defaultText, aur::Theme::text());
     scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::defaultFill, aur::Theme::panel());
     scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::highlightedFill, aur::Theme::accent());
-    scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::highlightedText, juce::Colour (0xffffffff));
+    scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::highlightedText, aur::Theme::text());
+    scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::menuBackground, aur::Theme::panel());
+    scheme.setUIColour (juce::LookAndFeel_V4::ColourScheme::menuText, aur::Theme::text());
+
+    // File chooser (used by the plug-in scanner) reads its colours straight
+    // from these ids, so re-apply them on every mode switch.
+    setColour (juce::FileBrowserComponent::currentPathBoxBackgroundColourId, aur::Theme::inputBg());
+    setColour (juce::FileBrowserComponent::currentPathBoxTextColourId, aur::Theme::text());
+    setColour (juce::FileBrowserComponent::currentPathBoxArrowColourId, aur::Theme::textDim());
+    setColour (juce::FileBrowserComponent::filenameBoxBackgroundColourId, aur::Theme::inputBg());
+    setColour (juce::FileBrowserComponent::filenameBoxTextColourId, aur::Theme::text());
+    setColour (juce::DirectoryContentsDisplayComponent::textColourId, aur::Theme::text());
+    setColour (juce::DirectoryContentsDisplayComponent::highlightedTextColourId, aur::Theme::accent());
 
     setColour (juce::AlertWindow::backgroundColourId, aur::Theme::panel());
     setColour (juce::AlertWindow::textColourId, aur::Theme::text());
     setColour (juce::AlertWindow::outlineColourId, aur::Theme::border());
 
     setColour (juce::ScrollBar::thumbColourId, aur::Theme::panelActive());
+
+    // Buttons: these inherit colours from the LAF rather than the scheme, so
+    // they must be re-applied explicitly on every mode switch.
+    setColour (juce::TextButton::textColourOnId, aur::Theme::text());
+    setColour (juce::TextButton::textColourOffId, aur::Theme::text());
+    setColour (juce::TextButton::buttonColourId, aur::Theme::panel());
+    setColour (juce::TextButton::buttonOnColourId, aur::Theme::panelActive());
+
+    // Combo boxes (text drawn by the internal label + popup menu).
+    setColour (juce::ComboBox::textColourId, aur::Theme::text());
+    setColour (juce::ComboBox::arrowColourId, aur::Theme::textDim());
+    setColour (juce::ComboBox::backgroundColourId, aur::Theme::inputBg());
+    setColour (juce::ComboBox::outlineColourId, aur::Theme::border());
+
+    setColour (juce::PopupMenu::textColourId, aur::Theme::text());
+    setColour (juce::PopupMenu::backgroundColourId, aur::Theme::panel());
+    setColour (juce::PopupMenu::headerTextColourId, aur::Theme::textDim());
+    setColour (juce::PopupMenu::highlightedBackgroundColourId, aur::Theme::panelHover());
+    setColour (juce::PopupMenu::highlightedTextColourId, aur::Theme::text());
+
+    // List boxes.
+    setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
+    setColour (juce::ListBox::textColourId, aur::Theme::text());
+    setColour (juce::TableListBox::textColourId, aur::Theme::text());
 }
 
 aur::CustomLookAndFeel& aur::CustomLookAndFeel::instance()
@@ -48,16 +117,28 @@ void aur::CustomLookAndFeel::drawButtonBackground (juce::Graphics& g,
     const auto bounds = button.getLocalBounds().toFloat().reduced (0.5f);
     const auto corner = juce::jmin (8.0f, bounds.getHeight() * 0.5f);
 
-    juce::Colour base = button.isEnabled() ? juce::Colour (0xff222837) : juce::Colour (0xff1c212c);
+    // Smoothly animate the interaction value between 0 (idle) and 1 (hover) so
+    // the fill morphs instead of snapping.
+    const float target = (! button.isEnabled())   ? 0.0f
+                       : (shouldDrawButtonAsDown) ? 1.0f
+                       : (shouldDrawButtonAsHighlighted) ? 1.0f
+                       : 0.0f;
+    aur::UIAnimator::animate (button, "interact", target);
+    const float amount = aur::UIAnimator::value (button, "interact", 0.0f);
+
+    juce::Colour base = button.isEnabled() ? aur::Theme::panel() : aur::Theme::panel().withAlpha (0.6f);
 
     if (button.isEnabled())
     {
         if (button.getToggleState())
             base = mixWithBg (aur::Theme::accent(), 0.05f);
-        else if (shouldDrawButtonAsDown)
-            base = aur::Theme::panelActive();
-        else if (shouldDrawButtonAsHighlighted)
-            base = aur::Theme::panelHover();
+        else
+        {
+            // Morph between panel base, hover, and pressed using the eased value.
+            juce::Colour hovered = shouldDrawButtonAsDown ? aur::Theme::panelActive()
+                                                          : aur::Theme::panelHover();
+            base = base.interpolatedWith (hovered, amount);
+        }
     }
 
     const bool toggled = button.getToggleState();
@@ -74,7 +155,7 @@ void aur::CustomLookAndFeel::drawButtonBackground (juce::Graphics& g,
     if (button.isEnabled() && ! toggled)
     {
         const juce::Colour border = shouldDrawButtonAsHighlighted
-                                        ? juce::Colour (0xff3a4360)
+                                        ? aur::Theme::panelActive()
                                         : aur::Theme::border();
 
         g.setColour (border);
@@ -101,16 +182,16 @@ void aur::CustomLookAndFeel::drawToggleButton (juce::Graphics& g,
         const float pillW = 40.0f;
         const auto pill = juce::Rectangle<float> (8.0f, (h - pillH) * 0.5f, pillW, pillH);
 
-        g.setColour (on ? juce::Colour (0xff2f57b8) : juce::Colour (0xff2a3040));
+        g.setColour (on ? aur::Theme::accent() : aur::Theme::panelActive());
         g.fillRoundedRectangle (pill, pillH * 0.5f);
         g.setColour (on ? aur::Theme::accent() : aur::Theme::border());
         g.drawRoundedRectangle (pill, pillH * 0.5f, 1.0f);
 
         const float knobX = on ? pill.getRight() - pillH : pill.getX();
-        g.setColour (on ? juce::Colours::white : aur::Theme::textDim());
+        g.setColour (on ? aur::Theme::accent2() : aur::Theme::textDim());
         g.fillEllipse (knobX - 4.0f, pill.getCentreY() - 8.0f, 16.0f, 16.0f);
 
-        g.setColour (on ? juce::Colours::white : aur::Theme::textDim());
+        g.setColour (on ? aur::Theme::accent() : aur::Theme::textDim());
         g.setFont (aur::Theme::uiFont (12.0f));
         g.drawText (button.getButtonText(), juce::Rectangle<float> (pill.getRight() + 6.0f, 0, bounds.getWidth() - pill.getRight() - 6.0f, h),
                     juce::Justification::centredLeft);
@@ -131,7 +212,7 @@ void aur::CustomLookAndFeel::drawToggleButton (juce::Graphics& g,
     if (on)
     {
         g.setColour (juce::Colours::white);
-        g.drawText ("\u2713", box, juce::Justification::centred);
+        g.drawText (juce::String (juce::CharPointer_UTF8 ("✓")), box, juce::Justification::centred);
     }
 }
 
@@ -204,7 +285,7 @@ void aur::CustomLookAndFeel::drawPopupMenuBackground (juce::Graphics& g, int wid
 {
     const auto r = juce::Rectangle<int> (width, height).toFloat();
 
-    g.setColour (juce::Colour (0xee20242e));
+    g.setColour (aur::Theme::panel().withAlpha (0.94f));
     g.fillRoundedRectangle (r.reduced (2.0f), 8.0f);
 
     g.setColour (aur::Theme::border());
@@ -262,6 +343,12 @@ void aur::CustomLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y,
     const float trackThickness = 4.0f;
     const float thumbRadius = 6.0f;
 
+    // Animate the thumb size so it grows gently on hover/drag.
+    const float hoverTarget = slider.isMouseOverOrDragging() ? 1.0f : 0.0f;
+    aur::UIAnimator::animate (slider, "thumb", hoverTarget, 120.0);
+    const float thumbAmount = aur::UIAnimator::value (slider, "thumb", 0.0f);
+    const float thumbR = thumbRadius + 2.5f * thumbAmount;
+
     if (style == juce::Slider::LinearVertical)
     {
         const float trackX = x + width * 0.5f - trackThickness * 0.5f;
@@ -274,7 +361,7 @@ void aur::CustomLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y,
         g.setColour (aur::Theme::accent());
         g.fillRoundedRectangle (fill, trackThickness * 0.5f);
 
-        g.setColour (slider.isMouseOverOrDragging() ? juce::Colours::white : aur::Theme::accent());
+        g.setColour (slider.isMouseOverOrDragging() ? aur::Theme::text() : aur::Theme::accent());
         g.fillEllipse (x + width * 0.5f - thumbRadius, thumbY - thumbRadius, thumbRadius * 2, thumbRadius * 2);
     }
     else
@@ -293,9 +380,9 @@ void aur::CustomLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y,
         g.fillRoundedRectangle (fill, trackThickness * 0.5f);
 
         const float thumbX = pos;
-        g.setColour (juce::Colours::white.withAlpha (slider.isMouseOverOrDragging() ? 1.0f : 0.9f));
-        g.fillEllipse (thumbX - thumbRadius, trackY + trackThickness * 0.5f - thumbRadius,
-                       thumbRadius * 2, thumbRadius * 2);
+        g.setColour (aur::Theme::text().withAlpha (slider.isMouseOverOrDragging() ? 1.0f : 0.9f));
+        g.fillEllipse (thumbX - thumbR, trackY + trackThickness * 0.5f - thumbR,
+                       thumbR * 2, thumbR * 2);
     }
 }
 
@@ -344,7 +431,7 @@ void aur::CustomLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y,
     g.setColour (aur::Theme::text());
     g.strokePath (pointer, juce::PathStrokeType (th, juce::PathStrokeType::curved));
 
-    g.setColour (slider.isMouseOverOrDragging() ? juce::Colours::white : aur::Theme::textDim());
+    g.setColour (slider.isMouseOverOrDragging() ? aur::Theme::text() : aur::Theme::textDim());
     g.fillEllipse (centre.getX() - th * 0.5f, centre.getY() - th * 0.5f, th, th);
 }
 

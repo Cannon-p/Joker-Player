@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -139,7 +139,7 @@ public:
         for (auto* s : sources)
         {
             // NB: when doing auto-repeat, we need to force an update of the current position and button state,
-            // because on some OSes the queue can get overloaded with messages so that mouse-events don't get through..
+            // because on some OSes the queue can get overloaded with messages so that mouse-events don't get through.
             if (s->isDragging() && ComponentPeer::getCurrentModifiersRealtime().isAnyMouseButtonDown())
             {
                 s->lastPointerState.position = s->getRawScreenPosition();

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -69,7 +69,7 @@ bool StringPairArray::operator== (const StringPairArray& other) const
         }
         else
         {
-            // if we encounter keys that are in a different order, search remaining items by brute force..
+            // if we encounter keys that are in a different order, search remaining items by brute force
             for (int j = i; j < num; ++j)
             {
                 auto otherIndex = other.keys.indexOf (keys[j], other.ignoreCase);

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -39,9 +39,9 @@
 
     See also SystemStats::getJUCEVersion() for a string version.
 */
-#define JUCE_MAJOR_VERSION      8
+#define JUCE_MAJOR_VERSION      9
 #define JUCE_MINOR_VERSION      0
-#define JUCE_BUILDNUMBER        4
+#define JUCE_BUILDNUMBER        1
 
 /** Current JUCE version number.
 
@@ -53,10 +53,14 @@
 */
 #define JUCE_VERSION   ((JUCE_MAJOR_VERSION << 16) + (JUCE_MINOR_VERSION << 8) + JUCE_BUILDNUMBER)
 
-#if ! DOXYGEN
+/** @cond */
 #define JUCE_VERSION_ID \
     [[maybe_unused]] volatile auto juceVersionId = "juce_version_" JUCE_STRINGIFY(JUCE_MAJOR_VERSION) "_" JUCE_STRINGIFY(JUCE_MINOR_VERSION) "_" JUCE_STRINGIFY(JUCE_BUILDNUMBER);
-#endif
+/** @endcond */
+
+//==============================================================================
+#include "juce_CompilerSupport.h"
+#include "juce_CompilerWarnings.h"
 
 //==============================================================================
 #include <algorithm>
@@ -65,6 +69,17 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstddef>
+
+// There's a template specialisation to std::wstring_convert in
+// wstring_convert.h that triggers a warning on Xcode 26.4.1 when used by the
+// VST3 SDK. It cannot be suppressed at the call site. This file is included
+// in <locale>, and would transitively be included by <functional>.
+#if defined (__apple_build_version__)
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+#include <locale>
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+#endif
+
 #include <functional>
 #include <future>
 #include <iomanip>
@@ -81,6 +96,7 @@
 #include <sstream>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <typeindex>
 #include <unordered_map>
 #include <unordered_set>
@@ -89,12 +105,10 @@
 #include <vector>
 
 //==============================================================================
-#include "juce_CompilerSupport.h"
-#include "juce_CompilerWarnings.h"
 #include "juce_PlatformDefs.h"
 
 //==============================================================================
-// Now we'll include some common OS headers..
+// Now we'll include some common OS headers.
 JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4514 4245 4100)
 
 #if JUCE_MSVC
@@ -133,7 +147,7 @@ JUCE_END_IGNORE_WARNINGS_MSVC
  #include <byteswap.h>
 #endif
 
-// undef symbols that are sometimes set by misguided 3rd-party headers..
+// undef symbols that are sometimes set by misguided 3rd-party headers
 #undef TYPE_BOOL
 #undef max
 #undef min
@@ -160,7 +174,8 @@ JUCE_END_IGNORE_WARNINGS_MSVC
 
 //==============================================================================
 #ifndef JUCE_API
- #define JUCE_API   /**< This macro is added to all JUCE public class declarations. */
+ /** This macro is added to all JUCE public class declarations. */
+ #define JUCE_API
 #endif
 
 #if JUCE_MSVC && JUCE_DLL_BUILD
@@ -172,6 +187,6 @@ JUCE_END_IGNORE_WARNINGS_MSVC
 /** This macro is added to all JUCE public function declarations. */
 #define JUCE_PUBLIC_FUNCTION        JUCE_API JUCE_CALLTYPE
 
-#ifndef DOXYGEN
- #define JUCE_NAMESPACE juce  // This old macro is deprecated: you should just use the juce namespace directly.
-#endif
+/** @cond */
+#define JUCE_NAMESPACE juce  // This old macro is deprecated: you should just use the juce namespace directly.
+/** @endcond */

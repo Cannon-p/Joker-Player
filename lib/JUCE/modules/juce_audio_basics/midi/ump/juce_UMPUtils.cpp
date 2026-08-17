@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -37,7 +37,7 @@ namespace juce::universal_midi_packets
 
 uint32_t Utils::getNumWordsForMessageType (uint32_t mt)
 {
-    switch (Utils::getMessageType (mt))
+    switch ((uint8_t) Utils::getMessageType (mt))
     {
         case 0x0:
         case 0x1:

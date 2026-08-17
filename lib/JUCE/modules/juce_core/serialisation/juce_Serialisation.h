@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -121,7 +121,7 @@ template <typename T> constexpr auto named (std::string_view c, const T& t) { re
 
     @tparam T   the (probably numeric) type of the size value
 
-    @see serialisztionSize()
+    @see serialisationSize()
 
     @tags{Core}
 */
@@ -148,8 +148,7 @@ template <typename T> constexpr auto serialisationSize (const T& t) -> std::enab
     The following are specialisations of SerialisationTraits for commonly-used types.
 */
 
-#ifndef DOXYGEN
-
+/** @cond */
 template <typename... Ts>
 struct SerialisationTraits<std::vector<Ts...>>
 {
@@ -583,6 +582,6 @@ namespace detail
     }
 } // namespace detail
 
-#endif
+/** @endcond */
 
 } // namespace juce

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -38,7 +38,7 @@ namespace juce
 //==============================================================================
 LookAndFeel_V2::LookAndFeel_V2()
 {
-    // initialise the standard set of colours..
+    // initialise the standard set of colours
     const uint32 textButtonColour      = 0xffbbbbff;
     const uint32 textHighlightColour   = 0x401111ee;
     const uint32 standardOutlineColour = 0xb2808080;
@@ -557,7 +557,7 @@ void LookAndFeel_V2::drawProgressBar (Graphics& g, ProgressBar& progressBar,
     }
     else
     {
-        // spinning bar..
+        // spinning bar
         g.setColour (foreground);
 
         const int stripeWidth = height * 2;
@@ -571,7 +571,11 @@ void LookAndFeel_V2::drawProgressBar (Graphics& g, ProgressBar& progressBar,
                                 x, (float) height,
                                 x - (float) stripeWidth * 0.5f, (float) height);
 
-        Image im (Image::ARGB, width, height, true);
+        Image im (Image::ARGB,
+                  width,
+                  height,
+                  true,
+                  *g.getInternalContext().getPreferredImageTypeForTemporaryImages());
 
         {
             Graphics g2 (im);
@@ -899,6 +903,22 @@ void LookAndFeel_V2::getIdealPopupMenuItemSizeWithOptions (const String& text,
                                standardMenuItemHeight,
                                idealWidth,
                                idealHeight);
+}
+
+void LookAndFeel_V2::getIdealPopupMenuSectionHeaderSizeWithOptions (const String& text,
+                                                                    int standardMenuItemHeight,
+                                                                    int& idealWidth,
+                                                                    int& idealHeight,
+                                                                    const PopupMenu::Options& options)
+{
+    getIdealPopupMenuItemSizeWithOptions (text,
+                                          false,
+                                          standardMenuItemHeight,
+                                          idealWidth,
+                                          idealHeight,
+                                          options);
+    idealHeight += idealHeight / 2;
+    idealWidth += idealWidth / 4;
 }
 
 void LookAndFeel_V2::drawPopupMenuBackground (Graphics& g, int width, int height)
@@ -1742,7 +1762,7 @@ void LookAndFeel_V2::drawTooltip (Graphics& g, const String& text, int width, in
 {
     g.fillAll (findColour (TooltipWindow::backgroundColourId));
 
-   #if ! JUCE_MAC // The mac windows already have a non-optional 1 pix outline, so don't double it here..
+   #if ! JUCE_MAC // The mac windows already have a non-optional 1 pix outline, so don't double it here.
     g.setColour (findColour (TooltipWindow::outlineColourId));
     g.drawRect (0, 0, width, height, 1);
    #endif
@@ -2449,14 +2469,14 @@ Button* LookAndFeel_V2::createTabBarExtrasButton()
     dp.setFill (Colour (0x59000000));
 
     DrawableComposite normalImage;
-    normalImage.addAndMakeVisible (ellipse.createCopy().release());
-    normalImage.addAndMakeVisible (dp.createCopy().release());
+    normalImage.addChild (ellipse.createCopy());
+    normalImage.addChild (dp.createCopy());
 
     dp.setFill (Colour (0xcc000000));
 
     DrawableComposite overImage;
-    overImage.addAndMakeVisible (ellipse.createCopy().release());
-    overImage.addAndMakeVisible (dp.createCopy().release());
+    overImage.addChild (ellipse.createCopy());
+    overImage.addChild (dp.createCopy());
 
     auto db = new DrawableButton (TRANS ("Additional Items"), DrawableButton::ImageFitted);
     db->setImages (&normalImage, &overImage, nullptr);
@@ -2626,7 +2646,13 @@ void LookAndFeel_V2::drawCallOutBoxBackground (CallOutBox& box, Graphics& g,
 {
     if (cachedImage.isNull())
     {
-        cachedImage = Image (Image::ARGB, box.getWidth(), box.getHeight(), true);
+        cachedImage = Image (Image::ARGB,
+                             box.getWidth(),
+                             box.getHeight(),
+                             true,
+                             *g.getInternalContext().getPreferredImageTypeForTemporaryImages());
+        cachedImage.setBackupEnabled (false);
+
         Graphics g2 (cachedImage);
 
         DropShadow (Colours::black.withAlpha (0.7f), 8, Point<int> (0, 2)).drawForPath (g2, path);
@@ -2794,9 +2820,7 @@ void LookAndFeel_V2::layoutFileBrowserComponent (FileBrowserComponent& browserCo
 //==============================================================================
 static std::unique_ptr<Drawable> createDrawableFromSVG (const char* data)
 {
-    auto xml = parseXML (data);
-    jassert (xml != nullptr);
-    return Drawable::createFromSVG (*xml);
+    return Drawable::createFromSVGString (data);
 }
 
 const Drawable* LookAndFeel_V2::getDefaultFolderImage()

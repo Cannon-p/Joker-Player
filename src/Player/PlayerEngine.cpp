@@ -511,7 +511,7 @@ juce::String PlayerEngine::addPluginFromDescription (const juce::PluginDescripti
 
     if (instance == nullptr)
         return error.isNotEmpty() ? error
-                                  : juce::String ("鏃犳硶杞藉叆鎻掍欢: ") + description.name;
+                                  : juce::String (juce::CharPointer_UTF8 ("无法载入插件: ")) + description.name;
 
     target.add (std::move (instance), description);
     return {};

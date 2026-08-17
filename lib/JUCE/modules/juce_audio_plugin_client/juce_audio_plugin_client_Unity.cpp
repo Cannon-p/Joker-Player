@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -37,7 +37,7 @@
 #if JucePlugin_Build_Unity
 
 #include <juce_audio_plugin_client/detail/juce_PluginUtilities.h>
-#include <juce_audio_processors/format_types/juce_LegacyAudioParameter.cpp>
+#include <juce_audio_processors_headless/format_types/juce_LegacyAudioParameter.h>
 
 #if JUCE_WINDOWS
  #include <juce_audio_plugin_client/detail/juce_IncludeSystemHeaders.h>
@@ -309,7 +309,7 @@ public:
 
         if (! isTemporary && pluginInstance->hasEditor())
         {
-            pluginInstanceEditor.reset (pluginInstance->createEditorIfNeeded());
+            pluginInstanceEditor.reset (pluginInstance->createEditorAndMakeActive());
             pluginInstanceEditor->setVisible (true);
             detail::PluginUtilities::addToDesktop (*pluginInstanceEditor, nullptr);
         }

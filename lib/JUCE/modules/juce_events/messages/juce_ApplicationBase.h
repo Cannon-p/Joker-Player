@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -288,7 +288,7 @@ public:
 
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     // The following methods are for internal use only...
     static int main();
     static int main (int argc, const char* argv[]);
@@ -305,7 +305,7 @@ public:
     int shutdownApp();
     static void JUCE_CALLTYPE sendUnhandledException (const std::exception*, const char* sourceFile, int lineNumber);
     bool sendCommandLineToPreexistingInstance();
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================

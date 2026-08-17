@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -118,16 +118,18 @@ namespace juce
 struct OpenGLExtensionFunctions
 {
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("A more complete set of GL commands can be found in the juce::gl namespace. "
                   "You should use juce::gl::loadFunctions() to load GL functions.")]]
     static void initialise();
-   #endif
+    /** @endcond */
 
-   #if JUCE_WINDOWS && ! defined (DOXYGEN)
+   #if JUCE_WINDOWS
+    /** @cond */
     typedef char GLchar;
     typedef pointer_sized_int GLsizeiptr;
     typedef pointer_sized_int GLintptr;
+    /** @endcond */
    #endif
 
    #define X(name) static decltype (::juce::gl::name)& name;

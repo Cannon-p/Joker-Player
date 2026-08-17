@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -82,10 +82,10 @@ public:
     enum JobStatus
     {
         jobHasFinished = 0,     /**< indicates that the job has finished and can be
-                                     removed from the pool. */
+                                     removed from the pool */
 
         jobNeedsRunningAgain    /**< indicates that the job would like to be called
-                                     again when a thread is free. */
+                                     again when a thread is free */
     };
 
     /** Performs the actual work that this job needs to do.

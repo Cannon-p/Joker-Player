@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -152,6 +152,9 @@ namespace juce::build_tools
         if (bluetoothPermissionEnabled)
             addPlistDictionaryKey (*dict, "NSBluetoothAlwaysUsageDescription", bluetoothPermissionText);
 
+        if (localNetworkPermissionEnabled)
+            addPlistDictionaryKey (*dict, "NSLocalNetworkUsageDescription", localNetworkPermissionText);
+
         if (iOS)
         {
             if (bluetoothPermissionEnabled)
@@ -162,6 +165,15 @@ namespace juce::build_tools
 
             if (shouldAddStoryboardToProject)
                 addPlistDictionaryKey (*dict, "UILaunchStoryboardName", storyboardName);
+
+            XmlElement sceneManifestKey ("key");
+            sceneManifestKey.addTextElement ("UIApplicationSceneManifest");
+            dict->addChildElement (new XmlElement (sceneManifestKey));
+
+            auto* sceneManifestDict = dict->createNewChildElement ("dict");
+            addPlistDictionaryKey (*sceneManifestDict, "UIApplicationSupportsMultipleScenes", false);
+            addKeyIfNotFound (*sceneManifestDict, "UISceneConfigurations");
+            sceneManifestDict->createNewChildElement ("dict");
         }
         else
         {
@@ -172,7 +184,12 @@ namespace juce::build_tools
         addPlistDictionaryKey (*dict, "CFBundleExecutable",          executableName);
 
         if (! iOS) // (NB: on iOS this causes error ITMS-90032 during publishing)
+        {
             addPlistDictionaryKey (*dict, "CFBundleIconFile", iconFile.exists() ? iconFile.getFileName() : String());
+
+            if (iconComposerIcon.exists())
+                addPlistDictionaryKey (*dict, "CFBundleIconName", iconComposerIcon.getFileNameWithoutExtension());
+        }
 
         addPlistDictionaryKey (*dict, "CFBundleIdentifier",          bundleIdentifier);
         addPlistDictionaryKey (*dict, "CFBundleName",                projectName);
@@ -212,7 +229,7 @@ namespace juce::build_tools
 
                     addPlistDictionaryKey (*dict2, "CFBundleTypeName", ex);
                     addPlistDictionaryKey (*dict2, "CFBundleTypeRole", "Editor");
-                    addPlistDictionaryKey (*dict2, "CFBundleTypeIconFile", "Icon");
+                    addPlistDictionaryKey (*dict2, "CFBundleTypeIconFile", iconFile.getFileNameWithoutExtension());
                     addPlistDictionaryKey (*dict2, "NSPersistentStoreTypeKey", "XML");
                     addPlistDictionaryKey (*dict2, "LSHandlerRank", "Default");
                 }
@@ -357,6 +374,8 @@ namespace juce::build_tools
         plistEntry.createNewChildElement ("key")->addTextElement ("NSExtensionAttributes");
 
         auto* dict = plistEntry.createNewChildElement ("dict");
+        addPlistDictionaryKey (*dict, "AudioComponentBundle", auv3FrameworkBundle);
+
         dict->createNewChildElement ("key")->addTextElement ("AudioComponents");
         auto* componentArray = dict->createNewChildElement ("array");
 

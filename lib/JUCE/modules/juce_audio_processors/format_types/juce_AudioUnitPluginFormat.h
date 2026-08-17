@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,7 +35,7 @@
 namespace juce
 {
 
-#if (JUCE_PLUGINHOST_AU && (JUCE_MAC || JUCE_IOS)) || DOXYGEN
+#if JUCE_INTERNAL_HAS_AU || DOXYGEN
 
 //==============================================================================
 /**
@@ -43,35 +43,9 @@ namespace juce
 
     @tags{Audio}
 */
-class JUCE_API  AudioUnitPluginFormat   : public AudioPluginFormat
+class JUCE_API AudioUnitPluginFormat : public AudioUnitPluginFormatHeadless
 {
-public:
-    //==============================================================================
-    AudioUnitPluginFormat();
-    ~AudioUnitPluginFormat() override;
-
-    //==============================================================================
-    static String getFormatName()                   { return "AudioUnit"; }
-    String getName() const override                 { return getFormatName(); }
-    bool canScanForPlugins() const override         { return true; }
-    bool isTrivialToScan() const override           { return false; }
-
-    void findAllTypesForFile (OwnedArray<PluginDescription>&, const String& fileOrIdentifier) override;
-    bool fileMightContainThisPluginType (const String& fileOrIdentifier) override;
-    String getNameOfPluginFromIdentifier (const String& fileOrIdentifier) override;
-    bool pluginNeedsRescanning (const PluginDescription&) override;
-    StringArray searchPathsForPlugins (const FileSearchPath&, bool recursive, bool) override;
-    bool doesPluginStillExist (const PluginDescription&) override;
-    FileSearchPath getDefaultLocationsToSearch() override;
-    void createARAFactoryAsync (const PluginDescription&, ARAFactoryCreationCallback callback) override;
-
-private:
-    //==============================================================================
-    void createPluginInstance (const PluginDescription&, double initialSampleRate,
-                               int initialBufferSize, PluginCreationCallback) override;
-    bool requiresUnblockedMessageThreadDuringCreation (const PluginDescription&) const override;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioUnitPluginFormat)
+    void createPluginInstance (const PluginDescription&, double, int, PluginCreationCallback) override;
 };
 
 #endif

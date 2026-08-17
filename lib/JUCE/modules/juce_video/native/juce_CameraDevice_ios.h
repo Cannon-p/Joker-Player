@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -560,7 +560,8 @@ private:
         //==============================================================================
         struct SessionDelegateClass    : public ObjCClass<NSObject>
         {
-            SessionDelegateClass()  : ObjCClass<NSObject> ("SessionDelegateClass_")
+            SessionDelegateClass()
+                : ObjCClass ("SessionDelegateClass_")
             {
                 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
                 addMethod (@selector (sessionDidStartRunning:),
@@ -646,7 +647,7 @@ private:
 
                 printImageOutputDebugInfo (captureOutput);
 
-                if (auto* connection = findVideoConnection (captureOutput))
+                if (findVideoConnection (captureOutput) != nullptr)
                 {
                     auto* photoOutput = (AVCapturePhotoOutput*) captureOutput;
                     auto outputConnection = [photoOutput connectionWithMediaType: AVMediaTypeVideo];
@@ -729,7 +730,8 @@ private:
             class PhotoOutputDelegateClass : public ObjCClass<NSObject>
             {
             public:
-                PhotoOutputDelegateClass() : ObjCClass<NSObject> ("PhotoOutputDelegateClass_")
+                PhotoOutputDelegateClass()
+                    : ObjCClass ("PhotoOutputDelegateClass_")
                 {
                     addMethod (@selector (captureOutput:willBeginCaptureForResolvedSettings:),
                                [] (id, SEL, AVCapturePhotoOutput*, AVCaptureResolvedPhotoSettings*)
@@ -977,7 +979,8 @@ private:
             //==============================================================================
             struct FileOutputRecordingDelegateClass    : public ObjCClass<NSObject<AVCaptureFileOutputRecordingDelegate>>
             {
-                FileOutputRecordingDelegateClass()  : ObjCClass<NSObject<AVCaptureFileOutputRecordingDelegate>> ("FileOutputRecordingDelegateClass_")
+                FileOutputRecordingDelegateClass()
+                    : ObjCClass ("FileOutputRecordingDelegateClass_")
                 {
                     addMethod (@selector (captureOutput:didStartRecordingToOutputFileAtURL:fromConnections:),
                                [] (id self, SEL, AVCaptureFileOutput*, NSURL*, NSArray<AVCaptureConnection*>*)
@@ -1156,7 +1159,8 @@ struct CameraDevice::ViewerComponent  : public UIViewComponent
     //==============================================================================
     struct JuceCameraDeviceViewerClass    : public ObjCClass<UIView>
     {
-        JuceCameraDeviceViewerClass()  : ObjCClass ("JuceCameraDeviceViewerClass_")
+        JuceCameraDeviceViewerClass()
+            : ObjCClass ("JuceCameraDeviceViewerClass_")
         {
             addMethod (@selector (layoutSubviews),
                        [] (id self, SEL)
@@ -1176,7 +1180,7 @@ struct CameraDevice::ViewerComponent  : public UIViewComponent
                        {
                            if ([keyPath isEqualToString: @"videoRotationAngleForHorizonLevelPreview"])
                            {
-                               if (auto* previewLayer = getPreviewLayer (self))
+                               if (getPreviewLayer (self) != nullptr)
                                {
                                    auto* viewer = static_cast<ViewerComponent*> (context);
                                    auto& session = viewer->cameraDevice.pimpl->captureSession;
@@ -1202,7 +1206,7 @@ struct CameraDevice::ViewerComponent  : public UIViewComponent
 
         static void updateOrientation (id self)
         {
-            if (@available (ios 17, *))
+            if (@available (iOS 17, *))
                 return;
 
             if (auto* previewLayer = getPreviewLayer (self))

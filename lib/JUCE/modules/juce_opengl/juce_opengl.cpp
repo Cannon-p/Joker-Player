@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -45,6 +45,7 @@
 #define JUCE_CORE_INCLUDE_JNI_HELPERS 1
 #define JUCE_CORE_INCLUDE_NATIVE_HEADERS 1
 #define JUCE_GRAPHICS_INCLUDE_COREGRAPHICS_HELPERS 1
+#define JUCE_GRAPHICS_INCLUDE_RENDERING_HELPERS 1
 #define JUCE_GUI_BASICS_INCLUDE_XHEADERS 1
 #define JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER 1
 
@@ -66,7 +67,7 @@
 #endif
 
 #define JUCE_STATIC_LINK_GL_ES_VERSION_2_0 1
-#if !JUCE_ANDROID || JUCE_ANDROID_GL_ES_VERSION_3_0
+#if ! JUCE_ANDROID || JUCE_ANDROID_GL_ES_VERSION_3_0
 #define JUCE_STATIC_LINK_GL_ES_VERSION_3_0 1
 #endif
 
@@ -92,10 +93,11 @@
 #elif JUCE_LINUX || JUCE_BSD
  /* Got an include error here?
 
-    If you want to install OpenGL support, the packages to get are "mesa-common-dev"
-    and "freeglut3-dev".
+    If you want to install OpenGL support, the packages to get are "mesa-common-dev",
+    "freeglut3-dev", and "libegl-dev".
  */
- #include <GL/glx.h>
+ #include <EGL/egl.h>
+ #include <EGL/eglext.h>
 
 //==============================================================================
 #elif JUCE_MAC
@@ -229,32 +231,32 @@ static void clearGLError() noexcept
 
 struct OpenGLTargetSaver
 {
-    OpenGLTargetSaver (const OpenGLContext& c) noexcept
-        : context (c), oldFramebuffer (OpenGLFrameBuffer::getCurrentFrameBufferTarget())
+    OpenGLTargetSaver() noexcept
+        : oldFramebuffer (OpenGLFrameBuffer::getCurrentFrameBufferTarget())
     {
         glGetIntegerv (GL_VIEWPORT, oldViewport);
     }
 
     ~OpenGLTargetSaver() noexcept
     {
-        context.extensions.glBindFramebuffer (GL_FRAMEBUFFER, oldFramebuffer);
+        gl::glBindFramebuffer (GL_FRAMEBUFFER, oldFramebuffer);
         glViewport (oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
     }
 
+    JUCE_DECLARE_NON_COPYABLE (OpenGLTargetSaver)
+    JUCE_DECLARE_NON_MOVEABLE (OpenGLTargetSaver)
+
 private:
-    const OpenGLContext& context;
     GLuint oldFramebuffer;
     GLint oldViewport[4];
-
-    OpenGLTargetSaver& operator= (const OpenGLTargetSaver&);
 };
 
 } // namespace juce
 
 //==============================================================================
 #include "opengl/juce_OpenGLFrameBuffer.cpp"
-#include "opengl/juce_OpenGLGraphicsContext.cpp"
 #include "opengl/juce_OpenGLHelpers.cpp"
+#include "opengl/juce_OpenGLGraphicsContext.cpp"
 #include "opengl/juce_OpenGLImage.cpp"
 #include "opengl/juce_OpenGLPixelFormat.cpp"
 #include "opengl/juce_OpenGLShaderProgram.cpp"

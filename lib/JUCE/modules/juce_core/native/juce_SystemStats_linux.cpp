@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -32,10 +32,6 @@
   ==============================================================================
 */
 
-#if JUCE_BELA
-extern "C" int cobalt_thread_mode();
-#endif
-
 namespace juce
 {
 
@@ -44,13 +40,16 @@ static String getCpuInfo (const char* key)
 {
     return readPosixConfigFileValue ("/proc/cpuinfo", key);
 }
+#endif
 
+#if defined (__GLIBC__)
 static String getLocaleValue (nl_item key)
 {
-    auto oldLocale = ::setlocale (LC_ALL, "");
-    auto result = String::fromUTF8 (nl_langinfo (key));
-    ::setlocale (LC_ALL, oldLocale);
-    return result;
+    const String oldLocale { ::setlocale (LC_ALL, nullptr) };
+    const ScopeGuard restore { [oldLocale] { ::setlocale (LC_ALL, oldLocale.toRawUTF8()); } };
+
+    ::setlocale (LC_ALL, ""); // restore locale from env
+    return String::fromUTF8 (nl_langinfo (key));
 }
 #endif
 
@@ -76,7 +75,6 @@ bool SystemStats::isOperatingSystem64Bit()
    #if JUCE_64BIT
     return true;
    #else
-    //xxx not sure how to find this out?..
     return false;
    #endif
 }
@@ -210,7 +208,7 @@ String SystemStats::getComputerName()
 
 String SystemStats::getUserLanguage()
 {
-   #if JUCE_BSD
+   #if ! defined (__GLIBC__)
     if (auto langEnv = getenv ("LANG"))
         return String::fromUTF8 (langEnv).upToLastOccurrenceOf (".UTF-8", false, true);
 
@@ -222,7 +220,7 @@ String SystemStats::getUserLanguage()
 
 String SystemStats::getUserRegion()
 {
-   #if JUCE_BSD
+   #if ! defined (__GLIBC__)
     return {};
    #else
     return getLocaleValue (_NL_ADDRESS_COUNTRY_AB2);
@@ -377,28 +375,21 @@ String SystemStats::getUniqueDeviceID()
 //==============================================================================
 uint32 juce_millisecondsSinceStartup() noexcept
 {
-    return (uint32) (Time::getHighResolutionTicks() / 1000);
+    return (uint32) (Time::getHighResolutionTicks() / 1'000);
 }
 
 int64 Time::getHighResolutionTicks() noexcept
 {
     timespec t;
 
-   #if JUCE_BELA
-    if (cobalt_thread_mode() == 0x200 /*XNRELAX*/)
-        clock_gettime (CLOCK_MONOTONIC, &t);
-    else
-        __wrap_clock_gettime (CLOCK_MONOTONIC, &t);
-   #else
     clock_gettime (CLOCK_MONOTONIC, &t);
-   #endif
 
-    return (t.tv_sec * (int64) 1000000) + (t.tv_nsec / 1000);
+    return (t.tv_sec * (int64) 1'000'000) + (t.tv_nsec / 1'000);
 }
 
 int64 Time::getHighResolutionTicksPerSecond() noexcept
 {
-    return 1000000;  // (microseconds)
+    return 1'000'000;  // (microseconds)
 }
 
 double Time::getMillisecondCounterHiRes() noexcept

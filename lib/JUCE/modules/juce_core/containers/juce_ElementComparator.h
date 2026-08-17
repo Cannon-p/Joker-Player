@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -35,8 +35,7 @@
 namespace juce
 {
 
-#ifndef DOXYGEN
-
+/** @cond */
 /** This is an internal helper class which converts a juce ElementComparator style
     class (using a "compareElements" method) into a class that's compatible with
     std::sort (i.e. using an operator() to compare the elements)
@@ -57,8 +56,7 @@ private:
 
     SortFunctionConverter& operator= (const SortFunctionConverter&) = delete;
 };
-
-#endif
+/** @endcond */
 
 
 //==============================================================================
@@ -71,7 +69,7 @@ private:
     int compareElements (ElementType first, ElementType second);
     @endcode
 
-    ..and this method must return:
+    ...and this method must return:
       - a value of < 0 if the first comes before the second
       - a value of 0 if the two objects are equivalent
       - a value of > 0 if the second comes before the first
@@ -121,7 +119,7 @@ static void sortArray (ElementComparator& comparator,
     int compareElements (ElementType first, ElementType second);
     @endcode
 
-    ..and this method must return:
+    ...and this method must return:
       - a value of < 0 if the first comes before the second
       - a value of 0 if the two objects are equivalent
       - a value of > 0 if the second comes before the first

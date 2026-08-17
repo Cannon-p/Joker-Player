@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -127,7 +127,7 @@ void TooltipWindow::displayTipInternal (Point<int> screenPos, const String& tip,
         {
             const auto physicalPos = detail::ScalingHelpers::scaledScreenPosToUnscaled (screenPos);
             const auto scaledPos = detail::ScalingHelpers::unscaledScreenPosToScaled (*this, physicalPos);
-            updatePosition (tip, scaledPos, Desktop::getInstance().getDisplays().getDisplayForPoint (screenPos)->userArea);
+            updatePosition (tip, scaledPos, Desktop::getInstance().getDisplays().getDisplayForPoint (screenPos.toFloat())->userBounds.getLargestIntegerWithin());
 
             addToDesktop (ComponentPeer::windowHasDropShadow
                           | ComponentPeer::windowIsTemporary
@@ -144,7 +144,7 @@ void TooltipWindow::displayTipInternal (Point<int> screenPos, const String& tip,
         {
             if (w != nullptr && w != this && w->tipShowing == tipShowing && w->getParentComponent() == parent)
             {
-                // Looks like you have more than one TooltipWindow showing the same tip..
+                // Looks like you have more than one TooltipWindow showing the same tip.
                 // Be careful not to create more than one instance of this class with the
                 // same parent component!
                 jassertfalse;
@@ -161,7 +161,7 @@ void TooltipWindow::displayTipInternal (Point<int> screenPos, const String& tip,
 String TooltipWindow::getTipFor (Component& c)
 {
     if (detail::WindowingHelpers::isForegroundOrEmbeddedProcess (&c)
-         && ! ModifierKeys::currentModifiers.isAnyMouseButtonDown())
+         && ! ModifierKeys::getCurrentModifiers().isAnyMouseButtonDown())
     {
         if (auto* ttc = dynamic_cast<TooltipClient*> (&c))
             if (! c.isCurrentlyBlockedByAnotherModalComponent())
@@ -242,7 +242,7 @@ void TooltipWindow::timerCallback()
         if (isVisible() || now < lastHideTime + 500)
         {
             // if a tip is currently visible (or has just disappeared), update to a new one
-            // immediately if needed..
+            // immediately if needed
             if (newComp == nullptr || dismissalMouseEventOccurred || newTip.isEmpty())
                 hideTip();
             else if (tipChanged)

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -44,7 +44,7 @@
 
   ID:                 juce_audio_formats
   vendor:             juce
-  version:            8.0.4
+  version:            9.0.1
   name:               JUCE audio file format codecs
   description:        Classes for reading and writing various audio file formats.
   website:            http://www.juce.com/juce
@@ -73,6 +73,24 @@
 */
 #ifndef JUCE_USE_FLAC
  #define JUCE_USE_FLAC 1
+#endif
+
+/** Config: JUCE_INCLUDE_FLAC_CODE
+    This can be used to disable Juce's embedded 3rd-party flaclib code.
+    You might need to tweak this if you're linking to an external flaclib library in your app,
+    but for normal apps, this option should be left alone.
+
+    If you disable this, you might also want to set a value for JUCE_FLAC_INCLUDE_PATH, to
+    specify the path where your flaclib headers live.
+
+    This config option only has an effect with JUCE_USE_FLAC is enabled.
+*/
+#ifndef JUCE_INCLUDE_FLAC_CODE
+ #define JUCE_INCLUDE_FLAC_CODE 1
+#endif
+
+#ifndef JUCE_FLAC_INCLUDE_PATH
+ #define JUCE_FLAC_INCLUDE_PATH <FLAC/all.h>
 #endif
 
 /** Config: JUCE_USE_OGGVORBIS
@@ -121,6 +139,7 @@
 
 //==============================================================================
 #include "format/juce_AudioFormatReader.h"
+#include "format/juce_AudioFormatWriterOptions.h"
 #include "format/juce_AudioFormatWriter.h"
 #include "format/juce_MemoryMappedAudioFormatReader.h"
 #include "format/juce_AudioFormat.h"

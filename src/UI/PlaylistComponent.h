@@ -6,7 +6,8 @@
 /** A skinnable playlist with drag & drop support. */
 class PlaylistComponent : public juce::Component,
                           public juce::ListBoxModel,
-                          public juce::FileDragAndDropTarget
+                          public juce::FileDragAndDropTarget,
+                          private juce::Timer
 {
 public:
     PlaylistComponent();
@@ -40,7 +41,11 @@ public:
     std::function<void ()> onListChanged;
 
     //==========================================================================
+    void paint (juce::Graphics&) override;
     void resized() override;
+
+    /** Re-applies theme colours to labels after a mode switch. */
+    void applyTheme();
 
     //==========================================================================
     // juce::ListBoxModel
@@ -64,16 +69,18 @@ public:
 private:
     static bool isPlausibleAudioFile (const juce::File& file);
     void updateCount();
+    void timerCallback() override;
 
     juce::Array<Track> tracks;
     int playingIndex = -1;
     int lastSelectedRow = -1;
+    float eqPhase = 0.0f;
 
     juce::ListBox listBox { {}, nullptr };
     juce::Label listTitle { {}, {} };
     juce::Label countLabel { {}, {} };
-    juce::TextButton addButton { "添加歌曲" };
-    juce::TextButton clearButton { "清空" };
+    juce::TextButton addButton { juce::String (juce::CharPointer_UTF8 ("添加歌曲")) };
+    juce::TextButton clearButton { juce::String (juce::CharPointer_UTF8 ("清空")) };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlaylistComponent)
 };

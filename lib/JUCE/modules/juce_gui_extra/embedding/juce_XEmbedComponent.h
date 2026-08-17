@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -41,6 +41,74 @@ bool juce_handleXEmbedEvent (ComponentPeer*, void*);
 unsigned long juce_getCurrentFocusWindow (ComponentPeer*);
 
 #if JUCE_LINUX || JUCE_BSD || DOXYGEN
+
+/** Options for constructing an XEmbedComponent.
+
+    @see XEmbedComponent
+*/
+class JUCE_API XEmbedComponentOptions
+{
+public:
+    /** Returns a copy of these options with the client window id specified. This corresponds to
+        the client initiated embedding workflow.
+
+        Omitting this option corresponds to the host initiated embedding workflow.
+    */
+    [[nodiscard]] XEmbedComponentOptions withClientWindow (unsigned long x) const
+    {
+        jassert (x != 0);
+        return withMember (*this, &XEmbedComponentOptions::clientWindow, x);
+    }
+
+    /** Specifies that this Component wants to receive and forward keyboard focus.
+
+        The default value is true.
+    */
+    [[nodiscard]] XEmbedComponentOptions withWantsKeyboardFocus (bool x) const
+    {
+        return withMember (*this, &XEmbedComponentOptions::wantsKeyboardFocus, x);
+    }
+
+    /** Specifies that the embedded window is allowed to resize the Component.
+
+        The default value is false.
+    */
+    [[nodiscard]] XEmbedComponentOptions withAllowForeignWidgetToResizeComponent (bool x = true) const
+    {
+        return withMember (*this, &XEmbedComponentOptions::allowForeignWidgetToResizeComponent, x);
+    }
+
+    /** When this option is enabled the client window will be unconditionally mapped regardless of
+        the value of the XEMBED_MAPPED flag.
+
+        You should generally not use this option. The default value is false.
+
+        It's used internally by JUCE plugin hosting to accommodate some plugins that report
+        XEmbedInfo compatibility, but don't set the flag.
+    */
+    [[nodiscard]] XEmbedComponentOptions withIgnoreXembedMapped (bool x = true) const
+    {
+        return withMember (*this, &XEmbedComponentOptions::ignoreXembedMapped, x);
+    }
+
+    /** @see withClientWindow() */
+    [[nodiscard]] auto getClientWindow()                        const { return clientWindow; }
+
+    /** @see withWantsKeyboardFocus() */
+    [[nodiscard]] bool getWantsKeyboardFocus()                  const { return wantsKeyboardFocus; }
+
+    /** @see withAllowForeignWidgetToResizeComponent() */
+    [[nodiscard]] bool getAllowForeignWidgetToResizeComponent() const { return allowForeignWidgetToResizeComponent; }
+
+    /** @see withIgnoreXembedMapped() */
+    [[nodiscard]] bool getIgnoreXembedMapped()                  const { return ignoreXembedMapped; }
+
+private:
+    unsigned long clientWindow{};
+    bool wantsKeyboardFocus = true;
+    bool allowForeignWidgetToResizeComponent = false;
+    bool ignoreXembedMapped = false;
+};
 
 //==============================================================================
 /**
@@ -75,6 +143,12 @@ class XEmbedComponent : public Component
 {
 public:
     //==============================================================================
+    /** Creates a JUCE component wrapping a foreign widget.
+
+        Depending on the options passed, this constructor can be used for either
+        the host initiated or client initiated version of the XEmbedProtocol.
+    */
+    explicit XEmbedComponent (const XEmbedComponentOptions& options);
 
     /** Creates a JUCE component wrapping a foreign widget
 

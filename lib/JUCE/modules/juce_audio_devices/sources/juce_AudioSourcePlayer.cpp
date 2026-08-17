@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -85,7 +85,7 @@ void AudioSourcePlayer::audioDeviceIOCallbackWithContext (const float* const* in
         int numActiveChans = 0, numInputs = 0, numOutputs = 0;
 
         // messy stuff needed to compact the channels down into an array
-        // of non-zero pointers..
+        // of non-zero pointers
         for (int i = 0; i < totalNumInputChannels; ++i)
         {
             if (inputChannelData[i] != nullptr)

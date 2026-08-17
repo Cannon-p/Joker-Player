@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -34,6 +34,8 @@
 
 namespace juce
 {
+
+#define JUCE_PUSH_NOTIFICATIONS_IMPL 1
 
 struct PushNotificationsDelegateDetails
 {
@@ -301,9 +303,9 @@ bool PushNotifications::Notification::isValid() const noexcept
 }
 
 //==============================================================================
-struct PushNotifications::Pimpl
+struct PushNotifications::Impl
 {
-    Pimpl (PushNotifications& p)
+    explicit Impl (PushNotifications& p)
         : owner (p)
     {
         Class::setThis (delegate.get(), this);
@@ -555,7 +557,7 @@ private:
         Class()
             : ObjCClass ("JucePushNotificationsDelegate_")
         {
-            addIvar<Pimpl*> ("self");
+            addIvar<Impl*> ("self");
 
             addMethod (@selector (application:didRegisterForRemoteNotificationsWithDeviceToken:), [] (id self, SEL, UIApplication*, NSData* data)
             {
@@ -596,8 +598,8 @@ private:
         }
 
         //==============================================================================
-        static Pimpl& getThis (id self)         { return *getIvar<Pimpl*> (self, "self"); }
-        static void setThis (id self, Pimpl* d) { object_setInstanceVariable (self, "self", d); }
+        static Impl& getThis (id self)          { return *getIvar<Impl*> (self, "self"); }
+        static void setThis (id self, Impl* d)  { object_setInstanceVariable (self, "self", d); }
     };
 
     //==============================================================================

@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -418,6 +418,28 @@ String PropertyHost::subscribeIdFromUid (SubscriptionToken uid)
 PropertyHost::SubscriptionToken PropertyHost::findUnusedSubscribeId (const std::map<SubscriptionToken, String>& used)
 {
     return ! used.empty() ? SubscriptionToken { std::prev (used.end())->first.uid + 1 } : SubscriptionToken { 0 };
+}
+
+auto RequestKey::tie() const
+{
+    return std::tuple (m, v);
+}
+
+bool RequestKey::operator== (const RequestKey& other) const
+{
+    return tie() == other.tie();
+}
+
+/** Inequality operator. */
+bool RequestKey::operator!= (const RequestKey& other) const
+{
+    return tie() != other.tie();
+}
+
+/** Less-than operator. */
+bool RequestKey::operator<  (const RequestKey& other) const
+{
+    return tie() <  other.tie();
 }
 
 } // namespace juce::midi_ci

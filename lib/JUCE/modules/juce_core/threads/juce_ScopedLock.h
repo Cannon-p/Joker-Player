@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -54,7 +54,7 @@ namespace juce
 
         ...do some stuff...
 
-        // myCriticalSection gets unlocked here.
+        // myCriticalSection gets unlocked here
     }
     @endcode
 
@@ -111,11 +111,11 @@ private:
         const GenericScopedLock<CriticalSection> myScopedLock (myCriticalSection);
         // myCriticalSection is now locked
 
-        ... do some stuff with it locked ..
+        ... do some stuff with it locked...
 
         while (xyz)
         {
-            ... do some stuff with it locked ..
+            ... do some stuff with it locked...
 
             const GenericScopedUnlock<CriticalSection> unlocker (myCriticalSection);
 
@@ -125,7 +125,7 @@ private:
             ...do some stuff with it unlocked ...
         }
 
-        // myCriticalSection gets unlocked here.
+        // myCriticalSection gets unlocked here
     }
     @endcode
 
@@ -187,14 +187,14 @@ private:
 
         // Unlike using a ScopedLock, this may fail to actually get the lock, so you
         // should test this with the isLocked() method before doing your thread-unsafe
-        // action..
+        // action.
         if (myScopedTryLock.isLocked())
         {
            ...do some stuff...
         }
         else
         {
-            ..our attempt at locking failed because another thread had already locked it..
+            ...our attempt at locking failed because another thread had already locked it...
         }
 
         // myCriticalSection gets unlocked here (if it was locked)

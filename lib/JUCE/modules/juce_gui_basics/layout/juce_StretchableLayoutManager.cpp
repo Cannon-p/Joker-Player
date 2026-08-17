@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -167,7 +167,7 @@ void StretchableLayoutManager::layOutComponents (Component** const components,
             {
                 if (i == numComponents - 1)
                 {
-                    // if it's the last item, crop it to exactly fit the available space..
+                    // if it's the last item, crop it to exactly fit the available space
                     if (resizeOtherDimension)
                     {
                         if (vertically)
@@ -240,7 +240,7 @@ int StretchableLayoutManager::fitComponentsIntoSpace (const int startIndex,
     if (totalIdealSize <= 0)
         totalIdealSize = 1.0;
 
-    // now calc the best sizes..
+    // now calc the best sizes
     int extraSpace = availableSpace - totalMinimums;
 
     while (extraSpace > 0)
@@ -248,7 +248,7 @@ int StretchableLayoutManager::fitComponentsIntoSpace (const int startIndex,
         int numWantingMoreSpace = 0;
         int numHavingTakenExtraSpace = 0;
 
-        // first figure out how many comps want a slice of the extra space..
+        // first figure out how many comps want a slice of the extra space
         for (int i = startIndex; i < endIndex; ++i)
         {
             auto* layout = items.getUnchecked (i);
@@ -264,7 +264,7 @@ int StretchableLayoutManager::fitComponentsIntoSpace (const int startIndex,
                 ++numWantingMoreSpace;
         }
 
-        // ..share out the extra space..
+        // share out the extra space
         for (int i = startIndex; i < endIndex; ++i)
         {
             auto* layout = items.getUnchecked (i);
@@ -297,7 +297,7 @@ int StretchableLayoutManager::fitComponentsIntoSpace (const int startIndex,
             break;
     }
 
-    // ..and calculate the end position
+    // calculate the end position
     for (int i = startIndex; i < endIndex; ++i)
     {
         auto* layout = items.getUnchecked (i);

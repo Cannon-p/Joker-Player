@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -605,7 +605,7 @@ void Path::addArrow (Line<float> line, float lineThickness,
 void Path::addPolygon (Point<float> centre, int numberOfSides,
                        float radius, float startAngle)
 {
-    jassert (numberOfSides > 1); // this would be silly.
+    jassert (numberOfSides > 1); // this would be silly
 
     if (numberOfSides > 1)
     {
@@ -629,7 +629,7 @@ void Path::addPolygon (Point<float> centre, int numberOfSides,
 void Path::addStar (Point<float> centre, int numberOfPoints, float innerRadius,
                     float outerRadius, float startAngle)
 {
-    jassert (numberOfPoints > 1); // this would be silly.
+    jassert (numberOfPoints > 1); // this would be silly
 
     if (numberOfPoints > 1)
     {

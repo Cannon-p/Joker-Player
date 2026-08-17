@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -163,10 +163,10 @@ public:
         This will attempt to open either a default audio device, or one that was
         previously saved as XML.
 
-        @param numInputChannelsNeeded       the maximum number of input channels your app would like to
+        @param maxNumInputChannelsNeeded    the maximum number of input channels your app would like to
                                             use (the actual number of channels opened may be less than
                                             the number requested)
-        @param numOutputChannelsNeeded      the maximum number of output channels your app would like to
+        @param maxNumOutputChannelsNeeded   the maximum number of output channels your app would like to
                                             use (the actual number of channels opened may be less than
                                             the number requested)
         @param savedState                   either a previously-saved state that was produced
@@ -191,8 +191,8 @@ public:
 
         @returns an error message if anything went wrong, or an empty string if it worked ok.
     */
-    String initialise (int numInputChannelsNeeded,
-                       int numOutputChannelsNeeded,
+    String initialise (int maxNumInputChannelsNeeded,
+                       int maxNumOutputChannelsNeeded,
                        const XmlElement* savedState,
                        bool selectDefaultDeviceOnFailure,
                        const String& preferredDefaultDeviceName = String(),
@@ -486,7 +486,7 @@ public:
     int getXRunCount() const noexcept;
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("Use setMidiInputDeviceEnabled instead.")]]
     void setMidiInputEnabled (const String&, bool);
     [[deprecated ("Use isMidiInputDeviceEnabled instead.")]]
@@ -499,7 +499,7 @@ public:
     void setDefaultMidiOutput (const String&);
     [[deprecated ("Use getDefaultMidiOutputIdentifier instead.")]]
     const String& getDefaultMidiOutputName() const noexcept  { return defaultMidiOutputDeviceInfo.name; }
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================

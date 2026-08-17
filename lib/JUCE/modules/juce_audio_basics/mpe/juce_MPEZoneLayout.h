@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -81,26 +81,12 @@ struct MPEZone
 
     bool isUsing (int channel) const noexcept
     {
-        return isUsingChannelAsMemberChannel (channel) || channel == getMasterChannel();
+        return isActive()
+               && (channel == getMasterChannel() || isUsingChannelAsMemberChannel (channel));
     }
 
-    static auto tie (const MPEZone& z)
-    {
-        return std::tie (z.zoneType,
-                         z.numMemberChannels,
-                         z.perNotePitchbendRange,
-                         z.masterPitchbendRange);
-    }
-
-    bool operator== (const MPEZone& other) const
-    {
-        return tie (*this) == tie (other);
-    }
-
-    bool operator!= (const MPEZone& other) const
-    {
-        return tie (*this) != tie (other);
-    }
+    bool operator== (const MPEZone& other) const;
+    bool operator!= (const MPEZone& other) const;
 
     //==============================================================================
     static constexpr int lowerZoneMasterChannel = 1,
@@ -226,9 +212,9 @@ public:
     /** Removes a listener. */
     void removeListener (Listener* const listenerToRemove) noexcept;
 
-   #ifndef DOXYGEN
+    /** @cond */
     using Zone = MPEZone;
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================
