@@ -427,8 +427,13 @@ PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int 
 {
     const bool bus = isBusPath (pathIndex);
 
+    static const juce::String pathNames[] = { "\u63D2\u5165 1", "\u63D2\u5165 2", "\u53D1\u9001" };
+    const juce::String pathName = (pathIndex >= 0 && pathIndex < 3)
+                                      ? pathNames[pathIndex]
+                                      : juce::String();
+
     title.setText (bus ? "\u603B\u7EBF"
-                       : juce::String (pathIndex + 1) + "\u53F7\u8DEF\u5F84",
+                       : pathName,
                    juce::dontSendNotification);
     title.setFont (aur::Theme::uiFont (12.5f).boldened());
     title.setColour (juce::Label::textColourId, aur::Theme::text());

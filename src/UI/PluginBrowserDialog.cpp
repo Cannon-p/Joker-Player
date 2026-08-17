@@ -345,6 +345,10 @@ juce::StringArray PluginBrowserDialog::ContentComponent::getDefaultScanFolders()
 #if JUCE_WINDOWS
     dirs.add ("C:\\Program Files\\Common Files\\VST3");
     dirs.add ("C:\\Program Files\\Steinberg\\Vst3Plugins");
+    dirs.add ("C:\\Program Files\\Common Files\\VST2");
+    dirs.add ("C:\\Program Files\\VstPlugins");
+    dirs.add ("C:\\Program Files (x86)\\VstPlugins");
+    dirs.add ("C:\\Program Files\\Steinberg\\VstPlugins");
 #endif
 
 #if JUCE_MAC

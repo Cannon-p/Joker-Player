@@ -8,6 +8,10 @@ PluginManager::PluginManager()
     formatManager.addFormat (new juce::VST3PluginFormat());
 #endif
 
+#if JUCE_PLUGINHOST_VST
+    formatManager.addFormat (new juce::VSTPluginFormat());
+#endif
+
 #if JUCE_PLUGINHOST_AU
     formatManager.addFormat (new juce::AudioUnitPluginFormat());
 #endif
