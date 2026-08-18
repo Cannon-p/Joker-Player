@@ -105,7 +105,7 @@ struct Theme
     }
     static const juce::Colour& inputBg()
     {
-        static const juce::Colour night (0xff16213c);
+        static const juce::Colour night (0xff0e1220);
         static const juce::Colour day (0xffffffff);
         return (mode == Mode::Day) ? day : night;
     }
@@ -128,12 +128,12 @@ struct Theme
             return g;
         }
 
-        // Night: deep indigo fading into a deep crimson (绛红) glow near the
+        // Night: deep indigo fading into a slightly deeper violet near the
         // bottom-right, blending smoothly so no near-black corners remain.
         juce::ColourGradient g (juce::Colour (0xff2a2154), area.getTopLeft(),
-                                juce::Colour (0xff4a1530), area.getBottomRight(), false);
-        g.addColour (0.45f, juce::Colour (0xff251a4b));
-        g.addColour (0.8f,  juce::Colour (0xff3a1634));
+                                juce::Colour (0xff241243), area.getBottomRight(), false);
+        g.addColour (0.45f, juce::Colour (0xff231a4d));
+        g.addColour (0.8f,  juce::Colour (0xff1e0f3a));
         return g;
     }
 
@@ -148,11 +148,11 @@ struct Theme
             return g;
         }
 
-        // Night: deep blue panels with a smooth vertical gradient, lighter at the
+        // Night: deep purple panels with a smooth vertical gradient, lighter at the
         // top and deepening downward, keeping the surfaces readable.
-        juce::ColourGradient g (juce::Colour (0xff24345e), area.getTopLeft(),
-                                juce::Colour (0xff141f3f), area.getBottomLeft(), false);
-        g.addColour (0.5f, juce::Colour (0xff1c2a4e));
+        juce::ColourGradient g (juce::Colour (0xff241c48), area.getTopLeft(),
+                                juce::Colour (0xff181035), area.getBottomLeft(), false);
+        g.addColour (0.5f, juce::Colour (0xff1d143e));
         return g;
     }
 

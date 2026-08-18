@@ -930,6 +930,8 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
         default:
             break;
     }
+
+    g.fillPath (p);
 }
 
 //==============================================================================
