@@ -635,16 +635,8 @@ void aur::CustomLookAndFeel::drawDocumentWindowTitleBar (juce::DocumentWindow& w
     g.setFont (font);
 
     auto textW = juce::GlyphArrangement::getStringWidthInt (font, window.getName());
-    auto iconW = 0;
-    auto iconH = 0;
 
-    if (icon != nullptr)
-    {
-        iconH = (int) font.getHeight();
-        iconW = icon->getWidth() * iconH / icon->getHeight() + 6;
-    }
-
-    textW = jmin (titleSpaceW, textW + iconW);
+    textW = jmin (titleSpaceW, textW);
     auto textX = drawTitleTextOnLeft ? titleSpaceX
                                      : jmax (titleSpaceX, (w - textW) / 2);
 
@@ -652,15 +644,6 @@ void aur::CustomLookAndFeel::drawDocumentWindowTitleBar (juce::DocumentWindow& w
         textX = titleSpaceX + titleSpaceW - textW;
 
     const bool active = window.isActiveWindow();
-    if (icon != nullptr)
-    {
-        g.setOpacity (active ? 1.0f : 0.55f);
-        g.drawImageWithin (*icon, textX, (h - iconH) / 2, iconW, iconH,
-                           juce::RectanglePlacement::centred, false);
-        textX += iconW;
-        textW -= iconW;
-    }
-
     if (textW > 0)
     {
         g.setColour (aur::Theme::text().withAlpha (active ? 1.0f : 0.55f));

@@ -770,22 +770,38 @@ void MainComponent::ThemeButton::paintButton (juce::Graphics& g,
 
     auto centre = getLocalBounds().toFloat().getCentre();
     const float s = (float) getHeight();
-    const float r = s * 0.16f;
-    const float stroke = juce::jmax (1.3f, s * 0.07f);
 
-    // Full sun: a disc with rays all around it.
-    g.fillEllipse (centre.x - r, centre.y - r, r * 2.0f, r * 2.0f);
-
-    const float rayLen = s * 0.12f;
-    const float rayStart = r + 2.0f;
-    for (int i = 0; i < 8; ++i)
+    if (mode == aur::Theme::Mode::Day)
     {
-        const float angle = juce::MathConstants<float>::halfPi * i * 0.5f;
-        const float cx = std::cos (angle);
-        const float sy = std::sin (angle);
-        g.drawLine (centre.x + cx * rayStart, centre.y + sy * rayStart,
-                    centre.x + cx * (rayStart + rayLen), centre.y + sy * (rayStart + rayLen),
-                    stroke);
+        // Full sun: a disc with rays all around it.
+        const float r = s * 0.16f;
+        const float stroke = juce::jmax (1.3f, s * 0.07f);
+        g.fillEllipse (centre.x - r, centre.y - r, r * 2.0f, r * 2.0f);
+
+        const float rayLen = s * 0.12f;
+        const float rayStart = r + 2.0f;
+        for (int i = 0; i < 8; ++i)
+        {
+            const float angle = juce::MathConstants<float>::halfPi * i * 0.5f;
+            const float cx = std::cos (angle);
+            const float sy = std::sin (angle);
+            g.drawLine (centre.x + cx * rayStart, centre.y + sy * rayStart,
+                        centre.x + cx * (rayStart + rayLen), centre.y + sy * (rayStart + rayLen),
+                        stroke);
+        }
+    }
+    else
+    {
+        // Crescent moon: a filled disc with the title-bar backdrop carved out
+        // of its upper-left so only a smooth crescent remains.
+        const float r = s * 0.20f;
+        const float xc = centre.x;
+        const float yc = centre.y;
+
+        g.fillEllipse (xc - r, yc - r, r * 2.0f, r * 2.0f);
+
+        g.setColour (aur::Theme::bgTop());
+        g.fillEllipse (xc - r * 0.45f, yc - r * 0.45f, r * 2.0f, r * 2.0f);
     }
 }
 
@@ -951,64 +967,71 @@ void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
 
         case PlayMode::Loop:
         {
-            // Two bent arrows forming a closed loop: the lower arrow is
-            // horizontally flipped and both are curved so their tips meet
-            // end-to-end, tracing a circle.
+            // Two bent parallel arrows forming a loop: the upper stroke rides
+            // on a slightly larger radius than the lower one, so they read as
+            // two parallel arrows rather than a single circle, with the head
+            // of each arrow meeting the tail of the other.
             juce::PathStrokeType stroke (1.6f, juce::PathStrokeType::curved,
                                          juce::PathStrokeType::rounded);
-            const float r = s * 0.22f;
+            const float rOuter = s * 0.24f;
+            const float rInner = s * 0.16f;
 
+            // Upper arrow: over the top, from left to right.
             juce::Path upper;
-            upper.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f,
+            upper.addArc (cx - rOuter, cy - rOuter, rOuter * 2.0f, rOuter * 2.0f,
                           juce::MathConstants<float>::pi,
                           juce::MathConstants<float>::twoPi, true);
             g.strokePath (upper, stroke);
 
             juce::Path upperHead;
-            upperHead.addTriangle (cx + r + s * 0.02f, cy,
-                                   cx + r - s * 0.06f, cy - s * 0.07f,
-                                   cx + r - s * 0.06f, cy + s * 0.07f);
+            upperHead.addTriangle (cx + rOuter + s * 0.02f, cy,
+                                   cx + rOuter - s * 0.06f, cy - s * 0.07f,
+                                   cx + rOuter - s * 0.06f, cy + s * 0.07f);
             g.fillPath (upperHead);
 
+            // Lower arrow: under the bottom, from right to left.
             juce::Path lower;
-            lower.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f,
+            lower.addArc (cx - rInner, cy - rInner, rInner * 2.0f, rInner * 2.0f,
                           0.0f, juce::MathConstants<float>::pi, true);
             g.strokePath (lower, stroke);
 
             juce::Path lowerHead;
-            lowerHead.addTriangle (cx - r - s * 0.02f, cy,
-                                   cx - r + s * 0.06f, cy - s * 0.07f,
-                                   cx - r + s * 0.06f, cy + s * 0.07f);
+            lowerHead.addTriangle (cx - rInner - s * 0.02f, cy,
+                                   cx - rInner + s * 0.06f, cy - s * 0.07f,
+                                   cx - rInner + s * 0.06f, cy + s * 0.07f);
             g.fillPath (lowerHead);
             break;
         }
 
         case PlayMode::Shuffle:
         {
-            // Two arrows crossing in the middle: an X formed by the two strokes.
+            // Two arrows that start parallel on the left, cross each other in
+            // the middle, and end on the opposite sides with their heads.
             juce::PathStrokeType stroke (1.6f, juce::PathStrokeType::curved,
                                          juce::PathStrokeType::rounded);
 
+            // Arrow 1: from top-left down to bottom-right.
             juce::Path first;
-            first.startNewSubPath (cx - s * 0.24f, cy - s * 0.20f);
-            first.lineTo (cx + s * 0.10f, cy - s * 0.02f);
+            first.startNewSubPath (cx - s * 0.26f, cy - s * 0.22f);
+            first.lineTo (cx + s * 0.10f, cy + s * 0.06f);
             g.strokePath (first, stroke);
 
             juce::Path firstHead;
-            firstHead.addTriangle (cx + s * 0.18f, cy + s * 0.02f,
-                                   cx + s * 0.08f, cy - s * 0.10f,
-                                   cx + s * 0.04f, cy + s * 0.10f);
+            firstHead.addTriangle (cx + s * 0.24f, cy + s * 0.20f,
+                                   cx + s * 0.05f, cy + s * 0.11f,
+                                   cx + s * 0.15f, cy + s * 0.01f);
             g.fillPath (firstHead);
 
+            // Arrow 2: from bottom-left up to top-right.
             juce::Path second;
-            second.startNewSubPath (cx + s * 0.24f, cy + s * 0.18f);
-            second.lineTo (cx - s * 0.10f, cy - s * 0.04f);
+            second.startNewSubPath (cx - s * 0.26f, cy + s * 0.22f);
+            second.lineTo (cx + s * 0.10f, cy - s * 0.06f);
             g.strokePath (second, stroke);
 
             juce::Path secondHead;
-            secondHead.addTriangle (cx - s * 0.18f, cy - s * 0.06f,
-                                    cx - s * 0.08f, cy + s * 0.06f,
-                                    cx - s * 0.04f, cy - s * 0.14f);
+            secondHead.addTriangle (cx + s * 0.24f, cy - s * 0.20f,
+                                    cx + s * 0.05f, cy - s * 0.11f,
+                                    cx + s * 0.15f, cy - s * 0.01f);
             g.fillPath (secondHead);
             break;
         }

@@ -558,10 +558,10 @@ PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIn
     auto* slot = chain.getSlot (slotIndex);
     jassert (slot != nullptr);
 
-    bypass.setToggleState (slot != nullptr && slot->enabled, juce::dontSendNotification);
+    bypass.setToggleState (slot == nullptr || !slot->enabled, juce::dontSendNotification);
     bypass.onClick = [this]
     {
-        owner.chainFor (pathIndex).setEnabled (slotIndex, bypass.getToggleState());
+        owner.chainFor (pathIndex).setEnabled (slotIndex, ! bypass.getToggleState());
     };
     addAndMakeVisible (bypass);
 
