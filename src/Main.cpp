@@ -55,6 +55,22 @@ private:
 
             setContentOwned (new MainComponent(), true);
             aur::traceStep ("content owned");
+
+            themeButton.setTooltip (juce::String (juce::CharPointer_UTF8 ("切换日间 / 夜间模式")));
+            themeButton.onClick = [this]
+            {
+                aur::Theme::setMode (aur::Theme::getMode() == aur::Theme::Mode::Night
+                                         ? aur::Theme::Mode::Day
+                                         : aur::Theme::Mode::Night);
+                aur::Theme::saveMode();
+                themeButton.setTheme (aur::Theme::getMode());
+                if (auto* mc = dynamic_cast<MainComponent*> (getContentComponent()))
+                    mc->applyTheme();
+                repaint();
+            };
+            themeButton.setTheme (aur::Theme::getMode());
+            addAndMakeVisible (themeButton);
+
             centreWithSize (1180, 760);
             setResizable (true, true);
             setResizeLimits (980, 640, 2560, 1600);
@@ -65,10 +81,27 @@ private:
                 peer->setIcon (iconImage);
         }
 
+        void resized() override
+        {
+            juce::DocumentWindow::resized();
+
+            // Theme toggle sits on the title bar, just left of the window buttons.
+            if (auto* minButton = getMinimiseButton())
+            {
+                const int buttonW = 30;
+                const int gap = 2;
+                themeButton.setBounds (minButton->getX() - buttonW - gap,
+                                       minButton->getY(), buttonW, minButton->getHeight());
+            }
+        }
+
         void closeButtonPressed() override
         {
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
         }
+
+    private:
+        MainComponent::ThemeButton themeButton;
     };
 
     std::unique_ptr<MainWindow> mainWindow;

@@ -128,12 +128,13 @@ struct Theme
             return g;
         }
 
-        // Night: deep indigo fading into a slightly deeper violet near the
-        // bottom-right, blending smoothly so no near-black corners remain.
-        juce::ColourGradient g (juce::Colour (0xff2a2154), area.getTopLeft(),
-                                juce::Colour (0xff241243), area.getBottomRight(), false);
-        g.addColour (0.45f, juce::Colour (0xff231a4d));
-        g.addColour (0.8f,  juce::Colour (0xff1e0f3a));
+        // Night: crimson (绛红) at the top-left, flowing through deep purple (深紫)
+        // in the middle and ending in navy blue (藏青) at the bottom-right,
+        // blended smoothly so the three colours melt into each other.
+        juce::ColourGradient g (juce::Colour (0xff5c1833), area.getTopLeft(),
+                                juce::Colour (0xff14244a), area.getBottomRight(), false);
+        g.addColour (0.45f, juce::Colour (0xff2a2154));
+        g.addColour (0.78f, juce::Colour (0xff1c2852));
         return g;
     }
 

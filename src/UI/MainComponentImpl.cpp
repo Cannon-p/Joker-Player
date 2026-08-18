@@ -124,18 +124,6 @@ MainComponent::MainComponent()
     appTitle.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (appTitle);
 
-    themeButton.setColour (juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    themeButton.setTooltip (juce::String (juce::CharPointer_UTF8 ("切换日间 / 夜间模式")));
-    themeButton.onClick = [this]
-    {
-        aur::Theme::setMode (aur::Theme::getMode() == aur::Theme::Mode::Night
-                                 ? aur::Theme::Mode::Day
-                                 : aur::Theme::Mode::Night);
-        aur::Theme::saveMode();
-        applyTheme();
-    };
-    addAndMakeVisible (themeButton);
-
     deviceLabel.setFont (aur::Theme::uiFont (15.0f));
     deviceLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
     deviceLabel.setJustificationType (juce::Justification::centredLeft);
@@ -307,8 +295,6 @@ void MainComponent::resized()
 
     auto titleArea = header.removeFromLeft (240);
     appTitle.setBounds (titleArea.removeFromBottom (40));
-
-    themeButton.setBounds (header.removeFromLeft (38).withTrimmedTop (20).withHeight (24));
 
     auto right = header.removeFromRight (360);
     deviceLabel.setBounds (right.removeFromLeft (72).withTrimmedTop (22).withHeight (20));
@@ -735,10 +721,6 @@ void MainComponent::updateTransportUi()
 
 void MainComponent::applyTheme()
 {
-    const bool day = (aur::Theme::getMode() == aur::Theme::Mode::Day);
-
-    themeButton.setTheme (aur::Theme::getMode());
-
     aur::CustomLookAndFeel::instance().refreshScheme();
     setLookAndFeel (&aur::CustomLookAndFeel::instance());
     sendLookAndFeelChange();
@@ -779,54 +761,31 @@ void MainComponent::ThemeButton::paintButton (juce::Graphics& g,
                                               bool shouldDrawButtonAsHighlighted,
                                               bool shouldDrawButtonAsDown)
 {
-    // Soft rounded backdrop so the icon reads clearly on both themes.
-    auto bg = getLocalBounds().toFloat().reduced (2.0f);
-    juce::Colour bgCol = shouldDrawButtonAsDown ? aur::Theme::panelActive()
-                        : shouldDrawButtonAsHighlighted ? aur::Theme::panelHover()
-                        : aur::Theme::panel();
-    g.setColour (bgCol);
-    g.fillRoundedRectangle (bg, bg.getHeight() * 0.5f);
-    g.setColour (aur::Theme::border());
-    g.drawRoundedRectangle (bg, bg.getHeight() * 0.5f, 1.0f);
-
+    // No backdrop or border - just a clean icon that sits directly on the
+    // title bar, to the left of the window control buttons.
     juce::Colour icon = shouldDrawButtonAsDown ? aur::Theme::accent()
                        : shouldDrawButtonAsHighlighted ? aur::Theme::accent()
                        : aur::Theme::text();
     g.setColour (icon);
 
-    const auto centre = bg.getCentre();
-    const float stroke = juce::jmax (1.3f, bg.getHeight() * 0.08f);
+    auto centre = getLocalBounds().toFloat().getCentre();
+    const float s = (float) getHeight();
+    const float r = s * 0.16f;
+    const float stroke = juce::jmax (1.3f, s * 0.07f);
 
-    if (mode == aur::Theme::Mode::Day)
+    // Full sun: a disc with rays all around it.
+    g.fillEllipse (centre.x - r, centre.y - r, r * 2.0f, r * 2.0f);
+
+    const float rayLen = s * 0.12f;
+    const float rayStart = r + 2.0f;
+    for (int i = 0; i < 8; ++i)
     {
-        // Sun: small disc + four compact rays.
-        const float r = bg.getWidth() * 0.16f;
-        g.fillEllipse (centre.x - r, centre.y - r, r * 2.0f, r * 2.0f);
-
-        const float rayLen = bg.getWidth() * 0.10f;
-        for (int i = 0; i < 4; ++i)
-        {
-            const float angle = juce::MathConstants<float>::halfPi * i + juce::MathConstants<float>::halfPi * 0.5f;
-            const float cx = std::cos (angle);
-            const float sy = std::sin (angle);
-            g.drawLine (centre.x + cx * (r + 2.0f), centre.y + sy * (r + 2.0f),
-                        centre.x + cx * (r + 2.0f + rayLen), centre.y + sy * (r + 2.0f + rayLen),
-                        stroke);
-        }
-    }
-    else
-    {
-        // Crescent moon: a filled disc with the backdrop colour carved out of
-        // its upper-left so only a smooth crescent remains. The carve is offset
-        // symmetrically so the crescent stays centred in the button.
-        const float r = bg.getHeight() * 0.40f;
-        const float xc = centre.x;
-        const float yc = centre.y;
-
-        g.fillEllipse (xc - r, yc - r, r * 2.0f, r * 2.0f);
-
-        g.setColour (bgCol);
-        g.fillEllipse (xc - r * 0.45f, yc - r * 0.45f, r * 2.0f, r * 2.0f);
+        const float angle = juce::MathConstants<float>::halfPi * i * 0.5f;
+        const float cx = std::cos (angle);
+        const float sy = std::sin (angle);
+        g.drawLine (centre.x + cx * rayStart, centre.y + sy * rayStart,
+                    centre.x + cx * (rayStart + rayLen), centre.y + sy * (rayStart + rayLen),
+                    stroke);
     }
 }
 

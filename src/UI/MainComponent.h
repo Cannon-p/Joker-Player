@@ -21,6 +21,23 @@ public:
     void timerCallback() override;
     bool keyPressed (const juce::KeyPress&, juce::Component*) override;
 
+    void applyTheme();
+
+    /** A small icon-only button that toggles between day and night themes
+        (draws a full sun icon on the title bar). */
+    class ThemeButton : public juce::Button
+    {
+    public:
+        ThemeButton();
+
+        void setTheme (aur::Theme::Mode m) { mode = m; repaint(); }
+
+    private:
+        void paintButton (juce::Graphics&, bool shouldDrawButtonAsHighlighted,
+                          bool shouldDrawButtonAsDown) override;
+        aur::Theme::Mode mode = aur::Theme::Mode::Night;
+    };
+
 private:
     /** A seekable progress bar that renders the audio waveform of the loaded
         track, with the played portion highlighted in the accent colour. */
@@ -44,21 +61,7 @@ private:
         juce::AudioFormatManager formatManager;
         juce::AudioThumbnailCache thumbnailCache { 5 };
         juce::AudioThumbnail thumbnail { 512, formatManager, thumbnailCache };
-        double position = 0.0;    };
-
-    /** A small icon-only button that toggles between day and night themes
-        (draws a sun when in day mode, a crescent moon when in night mode). */
-    class ThemeButton : public juce::Button
-    {
-    public:
-        ThemeButton();
-
-        void setTheme (aur::Theme::Mode m) { mode = m; repaint(); }
-
-    private:
-        void paintButton (juce::Graphics&, bool shouldDrawButtonAsHighlighted,
-                          bool shouldDrawButtonAsDown) override;
-        aur::Theme::Mode mode = aur::Theme::Mode::Night;
+        double position = 0.0;
     };
 
     class TransportButton : public juce::TextButton
@@ -106,13 +109,11 @@ private:
     void setBufferSelection();
     void updateNowPlaying();
     void updateTransportUi();
-    void applyTheme();
 
     PlayerEngine engine;
 
     // --- header ---
     juce::Label appTitle { {}, "Joker Player" };
-    ThemeButton themeButton;
     juce::Label deviceLabel { {}, juce::String (juce::CharPointer_UTF8 ("输出设备")) };
     juce::ComboBox deviceCombo;
     juce::Label bufferLabel { {}, juce::String (juce::CharPointer_UTF8 ("缓冲区")) };
