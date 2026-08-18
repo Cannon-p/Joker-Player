@@ -21,31 +21,31 @@ struct Theme
 
     static const juce::Colour& bg()
     {
-        static const juce::Colour night (0xff101320);
+        static const juce::Colour night (0xff161030);
         static const juce::Colour day (0xfff7f3fb);
         return (mode == Mode::Day) ? day : night;
     }
     static const juce::Colour& bgTop()
     {
-        static const juce::Colour night (0xff20263d);
+        static const juce::Colour night (0xff221a44);
         static const juce::Colour day (0xfff6f8ff);
         return (mode == Mode::Day) ? day : night;
     }
     static const juce::Colour& panel()
     {
-        static const juce::Colour night (0xff1b2034);
+        static const juce::Colour night (0xff1e1640);
         static const juce::Colour day (0xfff2edf9);
         return (mode == Mode::Day) ? day : night;
     }
     static const juce::Colour& panelHover()
     {
-        static const juce::Colour night (0xff2b3350);
+        static const juce::Colour night (0xff2b2050);
         static const juce::Colour day (0xffe8e2f6);
         return (mode == Mode::Day) ? day : night;
     }
     static const juce::Colour& panelActive()
     {
-        static const juce::Colour night (0xff37426a);
+        static const juce::Colour night (0xff382a66);
         static const juce::Colour day (0xffd9cff2);
         return (mode == Mode::Day) ? day : night;
     }
@@ -128,8 +128,13 @@ struct Theme
             return g;
         }
 
-        return juce::ColourGradient (juce::Colour (0xff26304e), area.getTopLeft(),
-                                     juce::Colour (0xff0d0a1e), area.getBottomRight(), false);
+        // Night: deep indigo-purple fading into rich violet, so the corner is a
+        // deep purple rather than near-black, blending smoothly in between.
+        juce::ColourGradient g (juce::Colour (0xff2a2154), area.getTopLeft(),
+                                juce::Colour (0xff241243), area.getBottomRight(), false);
+        g.addColour (0.45f, juce::Colour (0xff231a4d));
+        g.addColour (0.8f,  juce::Colour (0xff1e0f3a));
+        return g;
     }
 
     /** A smooth vertical gradient for panel surfaces (lighter at top, deeper at bottom). */
@@ -143,8 +148,10 @@ struct Theme
             return g;
         }
 
-        return juce::ColourGradient (juce::Colour (0xff232c4c), area.getTopLeft(),
-                                     juce::Colour (0xff12162c), area.getBottomLeft(), false);
+        juce::ColourGradient g (juce::Colour (0xff241c48), area.getTopLeft(),
+                                juce::Colour (0xff181035), area.getBottomLeft(), false);
+        g.addColour (0.5f, juce::Colour (0xff1d143e));
+        return g;
     }
 
     static Mode mode;

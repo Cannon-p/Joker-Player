@@ -44,7 +44,7 @@ private:
         {
             aur::traceStep ("MainWindow ctor body");
             setUsingNativeTitleBar (false);
-            setTitleBarHeight (30);
+            setTitleBarHeight (36);
             aur::traceStep ("custom title bar");
 
             // App icon, embedded as a binary resource (from "Joker Player.png").

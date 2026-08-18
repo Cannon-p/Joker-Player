@@ -531,7 +531,7 @@ public:
         g.setColour (colour);
         g.setOpacity (isDown ? 0.7f : 1.0f);
 
-        const float w = jmin (11.0f, getWidth() * 0.28f);
+        const float w = jmin (8.0f, getWidth() * 0.24f);
         const auto centre = bounds.getCentre();
 
         if (type == juce::DocumentWindow::closeButton)
@@ -585,9 +585,13 @@ void aur::CustomLookAndFeel::positionDocumentWindowButtons (juce::DocumentWindow
                                                      juce::Button* closeButton,
                                                      bool positionTitleBarButtonsOnLeft)
 {
-    const int buttonW = 36;
-    const int gap = 2;
-    const int margin = 2;
+    // Compact buttons: narrower and a bit shorter than the full title bar, so
+    // they read as small window controls rather than huge blocky buttons.
+    const int buttonW = 30;
+    const int buttonH = 26;
+    const int gap = 1;
+    const int margin = 4;
+    const int y = titleBarY + (titleBarH - buttonH) / 2;
 
     auto x = positionTitleBarButtonsOnLeft
                  ? titleBarX + margin
@@ -595,7 +599,7 @@ void aur::CustomLookAndFeel::positionDocumentWindowButtons (juce::DocumentWindow
 
     if (closeButton != nullptr)
     {
-        closeButton->setBounds (x, titleBarY, buttonW, titleBarH);
+        closeButton->setBounds (x, y, buttonW, buttonH);
         x += positionTitleBarButtonsOnLeft ? buttonW + gap : -(buttonW + gap);
     }
 
@@ -604,12 +608,12 @@ void aur::CustomLookAndFeel::positionDocumentWindowButtons (juce::DocumentWindow
 
     if (maximiseButton != nullptr)
     {
-        maximiseButton->setBounds (x, titleBarY, buttonW, titleBarH);
+        maximiseButton->setBounds (x, y, buttonW, buttonH);
         x += positionTitleBarButtonsOnLeft ? buttonW + gap : -(buttonW + gap);
     }
 
     if (minimiseButton != nullptr)
-        minimiseButton->setBounds (x, titleBarY, buttonW, titleBarH);
+        minimiseButton->setBounds (x, y, buttonW, buttonH);
 }
 
 void aur::CustomLookAndFeel::drawDocumentWindowTitleBar (juce::DocumentWindow& window,
