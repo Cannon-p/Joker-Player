@@ -930,8 +930,6 @@ void MainComponent::TransportButton::paintButton (juce::Graphics& g,
         default:
             break;
     }
-
-    g.fillPath (p);
 }
 
 //==============================================================================
@@ -966,76 +964,90 @@ void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
     const float cy = area.getCentreY();
     const float s = area.getWidth();
 
-    juce::Path p;
-
     switch (mode)
     {
         case PlayMode::Sequential:
         {
-            // Three stacked lines (list) with a small arrow.
-            p.addRoundedRectangle (cx - s * 0.24f, cy - s * 0.14f, s * 0.20f, s * 0.07f, 1.0f);
-            p.addRoundedRectangle (cx - s * 0.24f, cy - s * 0.03f, s * 0.20f, s * 0.07f, 1.0f);
-            p.addRoundedRectangle (cx - s * 0.24f, cy + s * 0.08f, s * 0.20f, s * 0.07f, 1.0f);
+            // Two parallel arrows pointing right.
+            juce::PathStrokeType stroke (1.6f, juce::PathStrokeType::curved,
+                                         juce::PathStrokeType::rounded);
 
-            juce::Path arrow;
-            arrow.addTriangle (cx + s * 0.14f, cy - s * 0.14f,
-                               cx + s * 0.14f, cy + s * 0.02f,
-                               cx + s * 0.28f, cy - s * 0.06f);
-            g.fillPath (arrow);
+            for (const float dy : { -0.10f, 0.10f })
+            {
+                juce::Path arrow;
+                arrow.startNewSubPath (cx - s * 0.24f, cy + s * dy);
+                arrow.lineTo (cx + s * 0.10f, cy + s * dy);
+                g.strokePath (arrow, stroke);
+
+                juce::Path head;
+                head.addTriangle (cx + s * 0.18f, cy + s * dy,
+                                  cx + s * 0.06f, cy + s * (dy - 0.09f),
+                                  cx + s * 0.06f, cy + s * (dy + 0.09f));
+                g.fillPath (head);
+            }
             break;
         }
 
         case PlayMode::Loop:
         {
-            // Two bent arrows forming a circular loop.
-            const float r = s * 0.26f;
-            juce::PathStrokeType stroke (1.7f, juce::PathStrokeType::curved,
+            // Two bent arrows forming a closed loop: the lower arrow is
+            // horizontally flipped and both are curved so their tips meet
+            // end-to-end, tracing a circle.
+            juce::PathStrokeType stroke (1.6f, juce::PathStrokeType::curved,
                                          juce::PathStrokeType::rounded);
+            const float r = s * 0.22f;
 
             juce::Path upper;
             upper.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f,
-                          juce::MathConstants<float>::halfPi, juce::MathConstants<float>::pi * 1.9f, true);
+                          juce::MathConstants<float>::pi,
+                          juce::MathConstants<float>::twoPi, true);
             g.strokePath (upper, stroke);
+
+            juce::Path upperHead;
+            upperHead.addTriangle (cx + r + s * 0.02f, cy,
+                                   cx + r - s * 0.06f, cy - s * 0.07f,
+                                   cx + r - s * 0.06f, cy + s * 0.07f);
+            g.fillPath (upperHead);
 
             juce::Path lower;
             lower.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f,
-                          juce::MathConstants<float>::pi * 1.9f, juce::MathConstants<float>::pi * 2.6f, true);
+                          0.0f, juce::MathConstants<float>::pi, true);
             g.strokePath (lower, stroke);
 
-            juce::Path arrowTop;
-            arrowTop.addTriangle (cx - s * 0.04f, cy - r - s * 0.06f,
-                                  cx + s * 0.06f, cy - r - s * 0.06f,
-                                  cx + s * 0.01f, cy - r + s * 0.04f);
-            g.fillPath (arrowTop);
+            juce::Path lowerHead;
+            lowerHead.addTriangle (cx - r - s * 0.02f, cy,
+                                   cx - r + s * 0.06f, cy - s * 0.07f,
+                                   cx - r + s * 0.06f, cy + s * 0.07f);
+            g.fillPath (lowerHead);
             break;
         }
 
         case PlayMode::Shuffle:
         {
-            // Two crossing arrows.
-            juce::PathStrokeType stroke (1.7f, juce::PathStrokeType::curved,
+            // Two arrows crossing in the middle: an X formed by the two strokes.
+            juce::PathStrokeType stroke (1.6f, juce::PathStrokeType::curved,
                                          juce::PathStrokeType::rounded);
 
             juce::Path first;
             first.startNewSubPath (cx - s * 0.24f, cy - s * 0.20f);
-            first.lineTo (cx + s * 0.12f, cy - s * 0.20f);
+            first.lineTo (cx + s * 0.10f, cy - s * 0.02f);
             g.strokePath (first, stroke);
 
             juce::Path firstHead;
-            firstHead.addTriangle (cx + s * 0.16f, cy - s * 0.20f,
-                                   cx + s * 0.08f, cy - s * 0.28f,
-                                   cx + s * 0.08f, cy - s * 0.12f);
+            firstHead.addTriangle (cx + s * 0.18f, cy + s * 0.02f,
+                                   cx + s * 0.08f, cy - s * 0.10f,
+                                   cx + s * 0.04f, cy + s * 0.10f);
             g.fillPath (firstHead);
 
             juce::Path second;
-            second.startNewSubPath (cx + s * 0.16f, cy - s * 0.14f);
-            second.lineTo (cx - s * 0.24f, cy + s * 0.22f);
+            second.startNewSubPath (cx + s * 0.24f, cy + s * 0.18f);
+            second.lineTo (cx - s * 0.10f, cy - s * 0.04f);
             g.strokePath (second, stroke);
 
             juce::Path secondHead;
-            secondHead.addTriangle (cx - s * 0.28f, cy + s * 0.24f,
-                                    cx - s * 0.16f, cy + s * 0.16f,
-                                    cx - s * 0.24f, cy + s * 0.08f);
+            secondHead.addTriangle (cx - s * 0.18f, cy - s * 0.06f,
+                                    cx - s * 0.08f, cy + s * 0.06f,
+                                    cx - s * 0.04f, cy - s * 0.14f);
             g.fillPath (secondHead);
             break;
         }
@@ -1043,6 +1055,4 @@ void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
         default:
             break;
     }
-
-    g.fillPath (p);
 }
