@@ -323,7 +323,7 @@ void MainComponent::resized()
                           bigSize, bigSize);
     nextButton.setBounds (startX + 2 * (btnSize + gap) + bigSize + gap,
                           centreY - btnSize / 2, btnSize, btnSize);
-    playModeButton.setBounds (startX + 3 * (btnSize + gap) + bigSize,
+    playModeButton.setBounds (startX + 3 * (btnSize + gap) + bigSize + gap,
                               centreY - btnSize / 2, btnSize, btnSize);
     volumeSlider.setBounds (playModeButton.getRight() + 20, centreY - 4,
                             footer.getRight() - playModeButton.getRight() - 20 - 18, 8);
@@ -952,14 +952,14 @@ void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
             for (const float dy : { -0.10f, 0.10f })
             {
                 juce::Path arrow;
-                arrow.startNewSubPath (cx - s * 0.24f, cy + s * dy);
-                arrow.lineTo (cx + s * 0.10f, cy + s * dy);
+                arrow.startNewSubPath (cx - s * 0.21f, cy + s * dy);
+                arrow.lineTo (cx + s * 0.13f, cy + s * dy);
                 g.strokePath (arrow, stroke);
 
                 juce::Path head;
-                head.addTriangle (cx + s * 0.18f, cy + s * dy,
-                                  cx + s * 0.06f, cy + s * (dy - 0.09f),
-                                  cx + s * 0.06f, cy + s * (dy + 0.09f));
+                head.addTriangle (cx + s * 0.21f, cy + s * dy,
+                                  cx + s * 0.09f, cy + s * (dy - 0.09f),
+                                  cx + s * 0.09f, cy + s * (dy + 0.09f));
                 g.fillPath (head);
             }
             break;
@@ -1020,26 +1020,26 @@ void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
 
             // Arrow 1: from top-left down to bottom-right.
             juce::Path first;
-            first.startNewSubPath (cx - s * 0.26f, cy - s * 0.22f);
-            first.lineTo (cx + s * 0.10f, cy + s * 0.06f);
+            first.startNewSubPath (cx - s * 0.25f, cy - s * 0.22f);
+            first.lineTo (cx + s * 0.11f, cy + s * 0.06f);
             g.strokePath (first, stroke);
 
             juce::Path firstHead;
-            firstHead.addTriangle (cx + s * 0.24f, cy + s * 0.20f,
-                                   cx + s * 0.05f, cy + s * 0.11f,
-                                   cx + s * 0.15f, cy + s * 0.01f);
+            firstHead.addTriangle (cx + s * 0.25f, cy + s * 0.20f,
+                                   cx + s * 0.06f, cy + s * 0.11f,
+                                   cx + s * 0.16f, cy + s * 0.01f);
             g.fillPath (firstHead);
 
             // Arrow 2: from bottom-left up to top-right.
             juce::Path second;
-            second.startNewSubPath (cx - s * 0.26f, cy + s * 0.22f);
-            second.lineTo (cx + s * 0.10f, cy - s * 0.06f);
+            second.startNewSubPath (cx - s * 0.25f, cy + s * 0.22f);
+            second.lineTo (cx + s * 0.11f, cy - s * 0.06f);
             g.strokePath (second, stroke);
 
             juce::Path secondHead;
-            secondHead.addTriangle (cx + s * 0.24f, cy - s * 0.20f,
-                                    cx + s * 0.05f, cy - s * 0.11f,
-                                    cx + s * 0.15f, cy - s * 0.01f);
+            secondHead.addTriangle (cx + s * 0.25f, cy - s * 0.20f,
+                                    cx + s * 0.06f, cy - s * 0.11f,
+                                    cx + s * 0.16f, cy - s * 0.01f);
             g.fillPath (secondHead);
             break;
         }

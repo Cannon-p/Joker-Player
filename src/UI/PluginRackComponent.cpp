@@ -71,7 +71,7 @@ void PluginRackComponent::AnimatedToggle::paintButton (juce::Graphics& g,
     const bool on = getToggleState();
 
     // Monochrome track: no accent colouring, plain black/white contrast.
-    g.setColour (on ? aur::Theme::text() : aur::Theme::inputBg());
+    g.setColour (on ? aur::Theme::bg() : aur::Theme::inputBg());
     g.fillRoundedRectangle (pill, pillH * 0.5f);
     g.setColour (on ? aur::Theme::text() : aur::Theme::border());
     g.drawRoundedRectangle (pill, pillH * 0.5f, 1.0f);
@@ -79,7 +79,7 @@ void PluginRackComponent::AnimatedToggle::paintButton (juce::Graphics& g,
     const float knobSize = juce::jmin (16.0f, pillH - 4.0f);
     const float knobX = pill.getX() + 2.0f + knob * (pill.getWidth() - knobSize - 4.0f);
 
-    g.setColour (on ? aur::Theme::bg() : aur::Theme::textDim());
+    g.setColour (on ? aur::Theme::text() : aur::Theme::textDim());
     g.fillEllipse (knobX, pill.getCentreY() - knobSize * 0.5f, knobSize, knobSize);
 
     g.setColour (on ? aur::Theme::text() : aur::Theme::textDim());
