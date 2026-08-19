@@ -20,6 +20,77 @@ bool isBusPath (int path)
 } // namespace
 
 //==============================================================================
+PluginRackComponent::AnimatedToggle::AnimatedToggle (const juce::String& text)
+    : juce::ToggleButton (text)
+{
+}
+
+PluginRackComponent::AnimatedToggle::~AnimatedToggle()
+{
+    stopTimer();
+}
+
+void PluginRackComponent::AnimatedToggle::snapKnob()
+{
+    knob = getToggleState() ? 1.0f : 0.0f;
+    target = knob;
+    stopTimer();
+    repaint();
+}
+
+void PluginRackComponent::AnimatedToggle::startAnimation()
+{
+    target = getToggleState() ? 1.0f : 0.0f;
+    startTimerHz (60);
+}
+
+void PluginRackComponent::AnimatedToggle::timerCallback()
+{
+    constexpr float ease = 0.28f;
+
+    knob += (target - knob) * ease;
+
+    if (std::abs (target - knob) < 0.004f)
+    {
+        knob = target;
+        stopTimer();
+    }
+
+    repaint();
+}
+
+void PluginRackComponent::AnimatedToggle::paintButton (juce::Graphics& g,
+                                                       bool /*shouldDrawButtonAsHighlighted*/,
+                                                       bool /*shouldDrawButtonAsDown*/)
+{
+    const auto bounds = getLocalBounds().toFloat();
+    const float h = bounds.getHeight();
+    const float pillH = juce::jmin (20.0f, h - 2.0f);
+    const float pillW = 40.0f;
+    const auto pill = juce::Rectangle<float> (8.0f, (h - pillH) * 0.5f, pillW, pillH);
+    const bool on = getToggleState();
+
+    // Monochrome track: no accent colouring, plain black/white contrast.
+    g.setColour (on ? aur::Theme::text() : aur::Theme::inputBg());
+    g.fillRoundedRectangle (pill, pillH * 0.5f);
+    g.setColour (on ? aur::Theme::text() : aur::Theme::border());
+    g.drawRoundedRectangle (pill, pillH * 0.5f, 1.0f);
+
+    const float knobSize = juce::jmin (16.0f, pillH - 4.0f);
+    const float knobX = pill.getX() + 2.0f + knob * (pill.getWidth() - knobSize - 4.0f);
+
+    g.setColour (on ? aur::Theme::bg() : aur::Theme::textDim());
+    g.fillEllipse (knobX, pill.getCentreY() - knobSize * 0.5f, knobSize, knobSize);
+
+    g.setColour (on ? aur::Theme::text() : aur::Theme::textDim());
+    g.setFont (aur::Theme::uiFont (12.0f));
+    g.drawText (getButtonText(),
+                juce::Rectangle<float> (pill.getRight() + 6.0f, 0,
+                                        bounds.getWidth() - pill.getRight() - 6.0f, h),
+                juce::Justification::centredLeft);
+}
+
+//==============================================================================
 PluginRackComponent::PluginRackComponent (PlayerEngine& engineRef)
     : engine (engineRef)
 {
@@ -225,15 +296,30 @@ void PluginRackComponent::changeListenerCallback (juce::ChangeBroadcaster* sourc
     {
         if (source == &engine.getChain (p))
         {
-            rebuildRows();
+            if (skipEnableRebuildPath == p)
+            {
+                skipEnableRebuildPath = -1;
+                rowContainer.repaint();
+            }
+            else
+            {
+                rebuildRows();
+            }
             return;
         }
     }
 
     if (source == &engine.getBusChain())
     {
-        rebuildRows();
-        return;
+        if (skipEnableRebuildPath == PlayerEngine::busPath)
+        {
+            skipEnableRebuildPath = -1;
+            rowContainer.repaint();
+        }
+        else
+        {
+            rebuildRows();
+        }
     }
 }
 
@@ -421,6 +507,14 @@ void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
     if (slot == nullptr)
         return;
 
+    // Re-show an already-open editor window instead of creating a new one.
+    if (slot->editorWindow != nullptr)
+    {
+        slot->editorWindow->setVisible (true);
+        slot->editorWindow->toFront (true);
+        return;
+    }
+
     auto* editor = slot->instance->createEditorIfNeeded();
 
     if (editor == nullptr)
@@ -431,27 +525,19 @@ void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
         return;
     }
 
-    if (slot->editorWindow == nullptr)
-    {
-        auto* window = new PluginEditorWindow (slot->description.name,
-                                               aur::Theme::bg(),
-                                               juce::DocumentWindow::allButtons);
+    auto* window = new PluginEditorWindow (slot->description.name,
+                                           aur::Theme::bg(),
+                                           juce::DocumentWindow::allButtons);
 
-        window->setUsingNativeTitleBar (true);
-        window->setContentOwned (editor, true);
-        window->setResizable (true, true);
-        window->setResizeLimits (220, 140, 4096, 4096);
-        window->centreWithSize (juce::jmax (editor->getWidth(), 360),
-                                juce::jmax (editor->getHeight(), 220));
-        window->setVisible (true);
+    window->setUsingNativeTitleBar (true);
+    window->setContentOwned (editor, true);
+    window->setResizable (true, true);
+    window->setResizeLimits (220, 140, 4096, 4096);
+    window->centreWithSize (juce::jmax (editor->getWidth(), 360),
+                            juce::jmax (editor->getHeight(), 220));
+    window->setVisible (true);
 
-        slot->editorWindow.reset (window);
-    }
-    else
-    {
-        slot->editorWindow->setVisible (true);
-        slot->editorWindow->toFront (true);
-    }
+    slot->editorWindow.reset (window);
 }
 
 //==============================================================================
@@ -479,12 +565,21 @@ PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int 
     enable.setToggleState (bus ? owner.engine.isBusEnabled()
                                : owner.engine.isPathEnabled (pathIndex),
                            juce::dontSendNotification);
+    enable.snapKnob();
     enable.onClick = [this, bus]
     {
+        const bool newEnabled = enable.getToggleState();
+
+        enable.startAnimation();
+
         if (bus)
-            owner.engine.setBusEnabled (enable.getToggleState());
+            owner.engine.setBusEnabled (newEnabled);
         else
-            owner.engine.setPathEnabled (pathIndex, enable.getToggleState());
+            owner.engine.setPathEnabled (pathIndex, newEnabled);
+
+        // Keep the header's highlight/colouring in sync with the toggle.
+        repaint();
+        owner.rowContainer.repaint();
     };
     addAndMakeVisible (enable);
 
@@ -541,7 +636,7 @@ void PluginRackComponent::PathHeader::resized()
     auto volArea = b.removeFromRight (b.getWidth() * 0.34);
     volume.setBounds (volArea.reduced (0, 6));
 
-    auto toggleArea = b.removeFromRight (54);
+    auto toggleArea = b.removeFromRight (90);
     enable.setBounds (toggleArea.reduced (2, 6));
 
     auto addArea = b.removeFromRight (74);
@@ -558,10 +653,18 @@ PluginRackComponent::RackRow::RackRow (PluginRackComponent& ownerRef, int pathIn
     auto* slot = chain.getSlot (slotIndex);
     jassert (slot != nullptr);
 
-    bypass.setToggleState (slot == nullptr || !slot->enabled, juce::dontSendNotification);
+    bypass.setToggleState (slot != nullptr && slot->enabled, juce::dontSendNotification);
+    bypass.snapKnob();
     bypass.onClick = [this]
     {
-        owner.chainFor (pathIndex).setEnabled (slotIndex, ! bypass.getToggleState());
+        const bool newEnabled = bypass.getToggleState();
+
+        bypass.startAnimation();
+
+        // Mark the next chain change as enable-only so the rows are repainted
+        // in place (letting the knob animation play) instead of rebuilt.
+        owner.skipEnableRebuildPath = pathIndex;
+        owner.chainFor (pathIndex).setEnabled (slotIndex, newEnabled);
     };
     addAndMakeVisible (bypass);
 
@@ -588,7 +691,9 @@ void PluginRackComponent::RackRow::paint (juce::Graphics& g)
     const auto b = getLocalBounds().toFloat().reduced (1.0f);
     const auto* slot = owner.chainFor (pathIndex).getSlot (slotIndex);
 
-    const bool isEnabled = slot != nullptr && slot->enabled;
+    const bool pathOn = isBusPath (pathIndex) ? owner.engine.isBusEnabled()
+                                              : owner.engine.isPathEnabled (pathIndex);
+    const bool isEnabled = slot != nullptr && slot->enabled && pathOn;
 
     // Panel background.
     g.setColour (isEnabled ? aur::Theme::panelHover() : aur::Theme::panel());

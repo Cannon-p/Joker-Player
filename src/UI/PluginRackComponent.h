@@ -40,6 +40,31 @@ public:
     void applyTheme();
 
 private:
+    /** A pill-shaped toggle switch whose knob slides left/right with a short
+        ease-out animation when the state is changed by the user. */
+    class AnimatedToggle : public juce::ToggleButton, public juce::Timer
+    {
+    public:
+        explicit AnimatedToggle (const juce::String& text);
+        ~AnimatedToggle() override;
+
+        void paintButton (juce::Graphics&, bool, bool) override;
+
+        /** Snaps the knob to the current toggle state (used on creation). */
+        void snapKnob();
+
+        /** Animates the knob toward the current toggle state. */
+        void startAnimation();
+
+    private:
+        void timerCallback() override;
+
+        float knob = 0.0f;
+        float target = 0.0f;
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AnimatedToggle)
+    };
+
     class RackRow : public juce::Component
     {
     public:
@@ -58,7 +83,7 @@ private:
         PluginRackComponent& owner;
         int pathIndex;
         int slotIndex;
-        juce::ToggleButton bypass { juce::String (juce::CharPointer_UTF8 ("旁路")) };
+        AnimatedToggle bypass { juce::String (juce::CharPointer_UTF8 ("启用")) };
         juce::TextButton guiButton { juce::String (juce::CharPointer_UTF8 ("界面")) };
         juce::TextButton removeButton { juce::String (juce::CharPointer_UTF8 ("×")) };
     };
@@ -78,7 +103,7 @@ private:
         PluginRackComponent& owner;
         int pathIndex;
         juce::Label title;
-        juce::ToggleButton enable { juce::String (juce::CharPointer_UTF8 ("启用")) };
+        AnimatedToggle enable { juce::String (juce::CharPointer_UTF8 ("启用")) };
         juce::Slider volume { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
         juce::TextButton addButton { juce::String (juce::CharPointer_UTF8 ("添加插件")) };
     };
@@ -113,6 +138,11 @@ private:
     int dragPath = -1;
     int dragSlot = -1;
     int dropSlot = -1;
+
+    // When set to a valid path index, the next change message from exactly
+    // that chain is an enable toggle of a row: the rows are repainted in place
+    // instead of being rebuilt, letting the switch animation play out.
+    int skipEnableRebuildPath = -1;
 
     // Path the next "add plug-in" action targets (set by requestAddPlugin).
     int targetPath = 0;

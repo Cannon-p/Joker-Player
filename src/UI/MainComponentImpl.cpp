@@ -967,39 +967,47 @@ void MainComponent::PlayModeButton::paintButton (juce::Graphics& g,
 
         case PlayMode::Loop:
         {
-            // Two bent parallel arrows forming a loop: the upper stroke rides
-            // on a slightly larger radius than the lower one, so they read as
-            // two parallel arrows rather than a single circle, with the head
-            // of each arrow meeting the tail of the other.
+            // A single ring arrow: one nearly-closed circular arc (head meets
+            // tail to form a closed loop) with a "1" written in the middle,
+            // reading as "repeat this one track".
             juce::PathStrokeType stroke (1.6f, juce::PathStrokeType::curved,
                                          juce::PathStrokeType::rounded);
-            const float rOuter = s * 0.24f;
-            const float rInner = s * 0.16f;
+            constexpr float dtr = juce::MathConstants<float>::pi / 180.0f;
+            const float r = s * 0.25f;
+            const float headLen = s * 0.11f;
+            const float headW = s * 0.07f;
 
-            // Upper arrow: over the top, from left to right.
-            juce::Path upper;
-            upper.addArc (cx - rOuter, cy - rOuter, rOuter * 2.0f, rOuter * 2.0f,
-                          juce::MathConstants<float>::pi,
-                          juce::MathConstants<float>::twoPi, true);
-            g.strokePath (upper, stroke);
+            // Ring: from the lower-right over the top to the upper-right,
+            // leaving a small gap on the right where the arrowhead chases the
+            // tail (head meets tail = closed loop).
+            const float a0 = 30.0f * dtr;
+            const float a1 = 330.0f * dtr;
 
-            juce::Path upperHead;
-            upperHead.addTriangle (cx + rOuter + s * 0.02f, cy,
-                                   cx + rOuter - s * 0.06f, cy - s * 0.07f,
-                                   cx + rOuter - s * 0.06f, cy + s * 0.07f);
-            g.fillPath (upperHead);
+            juce::Path arc;
+            arc.addArc (cx - r, cy - r, r * 2.0f, r * 2.0f, a0, a1, true);
+            g.strokePath (arc, stroke);
 
-            // Lower arrow: under the bottom, from right to left.
-            juce::Path lower;
-            lower.addArc (cx - rInner, cy - rInner, rInner * 2.0f, rInner * 2.0f,
-                          0.0f, juce::MathConstants<float>::pi, true);
-            g.strokePath (lower, stroke);
+            // Head at the upper-right end, tangent to the clockwise flow.
+            const float ex = cx + r * std::cos (a1);
+            const float ey = cy + r * std::sin (a1);
+            const float tx = -std::sin (a1);
+            const float ty = std::cos (a1);
+            const float px = -ty;
+            const float py = tx;
+            juce::Path head;
+            head.addTriangle (ex + tx * headLen, ey + ty * headLen,
+                              ex - tx * headLen * 0.4f + px * headW,
+                              ey - ty * headLen * 0.4f + py * headW,
+                              ex - tx * headLen * 0.4f - px * headW,
+                              ey - ty * headLen * 0.4f - py * headW);
+            g.fillPath (head);
 
-            juce::Path lowerHead;
-            lowerHead.addTriangle (cx - rInner - s * 0.02f, cy,
-                                   cx - rInner + s * 0.06f, cy - s * 0.07f,
-                                   cx - rInner + s * 0.06f, cy + s * 0.07f);
-            g.fillPath (lowerHead);
+            // "1" in the middle.
+            g.setFont (aur::Theme::uiFont (s * 0.32f).boldened());
+            g.drawText (juce::String ("1"),
+                        juce::Rectangle<float> (cx - r * 0.85f, cy - r * 0.85f,
+                                                r * 1.7f, r * 1.7f),
+                        juce::Justification::centred);
             break;
         }
 
