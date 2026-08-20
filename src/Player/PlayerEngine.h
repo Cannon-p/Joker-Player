@@ -93,6 +93,26 @@ public:
     }
 
     //==============================================================================
+    // Solo / mute (insert and send channels only; the bus is unaffected)
+    static constexpr int channelStateNormal = 0;
+    static constexpr int channelStateMuted  = 1;
+    static constexpr int channelStateSolo   = 2;
+
+    int getChannelRouteState (int path) const { return channelRouteStates[(size_t) path].load(); }
+    void setChannelRouteState (int path, int state)
+    {
+        channelRouteStates[(size_t) path].store (state);
+    }
+
+    /** The state the channel was in before it was soloed, so that toggling S
+        off can return to it instead of always landing on "muted". */
+    int getPreSoloState (int path) const { return preSoloStates[(size_t) path].load(); }
+    void setPreSoloState (int path, int state)
+    {
+        preSoloStates[(size_t) path].store (state);
+    }
+
+    //==============================================================================
     // Mix / latency / volume
     float getMix() const          { return mix.load(); }
     void  setMix (float newMix)   { mix.store (juce::jlimit (0.0f, 1.0f, newMix)); }
@@ -163,6 +183,8 @@ private:
     std::atomic<float> volume { 1.0f };
     std::atomic<bool> pathEnabled[(size_t) numPaths];
     std::atomic<float> pathVolume[(size_t) numPaths];
+    std::atomic<int> channelRouteStates[(size_t) numPaths];
+    std::atomic<int> preSoloStates[(size_t) numPaths];
     std::atomic<bool> busEnabled { true };
     std::atomic<float> busVolume { 1.0f };
 

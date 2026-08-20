@@ -66,14 +66,15 @@ private:
                 themeButton.setTheme (aur::Theme::getMode());
                 if (auto* mc = dynamic_cast<MainComponent*> (getContentComponent()))
                     mc->applyTheme();
+                applyTheme();
                 repaint();
             };
             themeButton.setTheme (aur::Theme::getMode());
             addAndMakeVisible (themeButton);
 
-            centreWithSize (1180, 760);
+            centreWithSize (1500, 760);
             setResizable (true, true);
-            setResizeLimits (980, 640, 2560, 1600);
+            setResizeLimits (1040, 640, 2560, 1600);
             setVisible (true);
 
             // Also apply the icon to the OS window / taskbar.
@@ -98,6 +99,21 @@ private:
         void closeButtonPressed() override
         {
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
+        }
+
+        /** Keeps the window background in sync with the active theme, so the
+            title bar / edges don't stay a stale colour after a mode switch. */
+        void applyTheme()
+        {
+            setBackgroundColour (aur::Theme::bg());
+            repaint();
+        }
+
+        /** No visible resizable frame around the content: the content fills the
+            window, so the theme background never shows as a coloured ring. */
+        juce::BorderSize<int> getContentComponentBorder() const override
+        {
+            return { getTitleBarHeight(), 0, 0, 0 };
         }
 
     private:

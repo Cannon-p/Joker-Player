@@ -91,6 +91,12 @@ struct Theme
         static const juce::Colour day (0xff2fb877);
         return (mode == Mode::Day) ? day : night;
     }
+    static const juce::Colour& danger()
+    {
+        static const juce::Colour night (0xffe5484d);
+        static const juce::Colour day (0xffd63a40);
+        return (mode == Mode::Day) ? day : night;
+    }
     static const juce::Colour& warn()
     {
         static const juce::Colour night (0xffffb15c);

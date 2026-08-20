@@ -118,6 +118,8 @@ PlayerEngine::PlayerEngine()
         midiBuffers.emplace_back ();
         pathEnabled[p] = (p == 0);
         pathVolume[p] = (p == 0) ? 1.0f : 0.0f;
+        channelRouteStates[p] = channelStateNormal;
+        preSoloStates[p] = channelStateNormal;
     }
 
     deviceManager.addChangeListener (this);
@@ -226,6 +228,18 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
     {
         enabled[(size_t) p] = pathEnabled[(size_t) p].load();
         volumes[(size_t) p] = pathVolume[(size_t) p].load();
+    }
+
+    // --- 0b) solo/mute gating --------------------------------------------------
+    // If any channel is soloed, only soloed channels contribute to the mix. A
+    // muted channel never contributes. The master bus is unaffected.
+    bool anySolo = false;
+    int routeStates[(size_t) numPaths];
+    for (int p = 0; p < numPaths; ++p)
+    {
+        routeStates[(size_t) p] = channelRouteStates[(size_t) p].load();
+        if (routeStates[(size_t) p] == channelStateSolo)
+            anySolo = true;
     }
 
     // --- 1) ensure working buffers are large enough ---------------------------
@@ -349,11 +363,16 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
                                          numChannels,
                                          numSamples);
 
+        // Apply the channel volume together with the solo/mute gate.
+        const bool audible = anySolo ? (routeStates[(size_t) p] == channelStateSolo)
+                                     : (routeStates[(size_t) p] != channelStateMuted);
+        const float gain = audible ? volumes[(size_t) p] : 0.0f;
+
         for (int ch = 0; ch < numChannels; ++ch)
         {
             juce::FloatVectorOperations::addWithMultiply (alignedSum.getWritePointer (ch),
                                                           pathBuffers[(size_t) p].getReadPointer (ch),
-                                                          volumes[(size_t) p],
+                                                          gain,
                                                           numSamples);
         }
     }

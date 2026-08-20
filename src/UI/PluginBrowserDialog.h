@@ -13,7 +13,7 @@ class FilteredPluginTableModel;
     is only ever scanned once; on later launches the cache is loaded instantly
     and nothing needs to be re-scanned.
 */
-class PluginBrowserDialog : public juce::DocumentWindow
+class PluginBrowserDialog : public juce::DocumentWindow, private juce::Timer
 {
 public:
     PluginBrowserDialog (PlayerEngine& engine,
@@ -26,9 +26,15 @@ public:
     /** Re-applies theme colours after a mode switch. */
     void applyTheme();
 
+    /** Re-raises this window shortly after a plug-in is added, so it stays in
+        front of the freshly opened plug-in editor windows. */
+    void bringToFrontSoon();
+
     std::function<void()> onClose;
 
 private:
+    void timerCallback() override;
+
     class ContentComponent : public juce::Component
     {
     public:

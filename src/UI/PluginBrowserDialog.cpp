@@ -177,6 +177,7 @@ PluginBrowserDialog::PluginBrowserDialog (PlayerEngine& engineRef,
 
     setResizable (true, true);
     setResizeLimits (460, 520, 960, 960);
+    setAlwaysOnTop (true);
     centreWithSize (720, 640);
     setVisible (true);
 }
@@ -187,6 +188,7 @@ void PluginBrowserDialog::applyTheme()
 {
     aur::CustomLookAndFeel::instance().refreshScheme();
     setLookAndFeel (&aur::CustomLookAndFeel::instance());
+    setBackgroundColour (aur::Theme::bg());
 
     if (auto* content = dynamic_cast<ContentComponent*> (getContentComponent()))
         content->applyTheme();
@@ -201,6 +203,17 @@ void PluginBrowserDialog::closeButtonPressed()
 
     if (onClose)
         onClose();
+}
+
+void PluginBrowserDialog::bringToFrontSoon()
+{
+    startTimer (250);
+}
+
+void PluginBrowserDialog::timerCallback()
+{
+    stopTimer();
+    toFront (true);
 }
 
 //==============================================================================
@@ -349,6 +362,9 @@ void PluginBrowserDialog::ContentComponent::addPlugin (const juce::PluginDescrip
 
         if (onAdd)
             onAdd (desc);
+
+        // Keep the browser above the plug-in GUI window that was just opened.
+        owner.bringToFrontSoon();
     }
     else
     {

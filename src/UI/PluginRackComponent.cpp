@@ -170,6 +170,15 @@ PluginChain& PluginRackComponent::chainFor (int pathIndex) const
                                                 : engine.getChain (pathIndex);
 }
 
+void PluginRackComponent::openEditorForLastSlot (int path)
+{
+    auto& chain = chainFor (path);
+    const int slot = chain.getNumSlots() - 1;
+
+    if (slot >= 0)
+        openEditor (path, slot);
+}
+
 //==============================================================================
 void PluginRackComponent::applyTheme()
 {
@@ -232,11 +241,11 @@ void PluginRackComponent::resized()
     int total = 0;
     for (int p = 0; p < PlayerEngine::numPaths; ++p)
     {
-        total += 34;                              // path header
+        total += 44;                              // path header
         total += engine.getChain (p).getNumSlots() * 70;   // plugin rows
     }
 
-    total += 34;                                  // bus header
+    total += 44;                                  // bus header
     total += engine.getBusChain().getNumSlots() * 70;
 
     auto containerBounds = juce::Rectangle<int> (0, 0, viewport.getWidth() - 8,
@@ -247,7 +256,7 @@ void PluginRackComponent::resized()
 
     for (auto* child : rowContainer.getChildren())
     {
-        const int h = (dynamic_cast<PathHeader*> (child) != nullptr) ? 30 : 62;
+        const int h = (dynamic_cast<PathHeader*> (child) != nullptr) ? 40 : 62;
         child->setBounds (4, y, containerBounds.getWidth() - 8, h);
         y += h + 4;
     }
@@ -429,7 +438,7 @@ int PluginRackComponent::getDropSlotForY (int mouseY) const
 
     for (auto* child : rowContainer.getChildren())
     {
-        const int h = (dynamic_cast<const PathHeader*> (child) != nullptr) ? 30 : 62;
+        const int h = (dynamic_cast<const PathHeader*> (child) != nullptr) ? 40 : 62;
 
         if (auto* row = dynamic_cast<RackRow*> (child))
         {
@@ -463,7 +472,7 @@ void PluginRackComponent::updateDropIndicator()
 
     for (auto* child : rowContainer.getChildren())
     {
-        const int h = (dynamic_cast<const PathHeader*> (child) != nullptr) ? 30 : 62;
+        const int h = (dynamic_cast<const PathHeader*> (child) != nullptr) ? 40 : 62;
 
         if (auto* row = dynamic_cast<RackRow*> (child))
         {
@@ -604,6 +613,19 @@ PluginRackComponent::PathHeader::PathHeader (PluginRackComponent& ownerRef, int 
     };
     addAndMakeVisible (addButton);
 
+    // M (mute) / S (solo) buttons: insert and send channels only.
+    if (! bus)
+    {
+        muteButton.setTooltip (juce::String (juce::CharPointer_UTF8 ("静音（M）")));
+        soloButton.setTooltip (juce::String (juce::CharPointer_UTF8 ("独奏（S），Alt+左键独占")));
+        muteButton.onPress = [this] (bool) { pressMute(); };
+        soloButton.onPress = [this] (bool altDown) { pressSolo (altDown); };
+        addAndMakeVisible (muteButton);
+        addAndMakeVisible (soloButton);
+    }
+
+    syncSoloMute();
+
     setInterceptsMouseClicks (true, true);
 }
 
@@ -611,6 +633,75 @@ void PluginRackComponent::PathHeader::applyTheme()
 {
     title.setColour (juce::Label::textColourId, aur::Theme::text());
     repaint();
+}
+
+void PluginRackComponent::PathHeader::syncSoloMute()
+{
+    if (isBusPath (pathIndex))
+        return;
+
+    const int state = owner.engine.getChannelRouteState (pathIndex);
+    muteButton.setActive (state == PlayerEngine::channelStateMuted);
+    soloButton.setActive (state == PlayerEngine::channelStateSolo);
+}
+
+void PluginRackComponent::PathHeader::pressMute()
+{
+    using E = PlayerEngine;
+    const int current = owner.engine.getChannelRouteState (pathIndex);
+
+    // M toggle: Normal -> Muted, Muted -> Normal, Solo -> Muted.
+    const int next = (current == E::channelStateMuted) ? E::channelStateNormal
+                    : (current == E::channelStateSolo)  ? E::channelStateMuted
+                                                        : E::channelStateMuted;
+    owner.engine.setChannelRouteState (pathIndex, next);
+    owner.refreshSoloMute();
+}
+
+void PluginRackComponent::PathHeader::pressSolo (bool altDown)
+{
+    using E = PlayerEngine;
+
+    if (altDown)
+    {
+        // Exclusive solo: this channel solos (remembering where it came from)
+        // and every other channel's solo is cancelled, returning to normal.
+        owner.engine.setPreSoloState (pathIndex, owner.engine.getChannelRouteState (pathIndex));
+        owner.engine.setChannelRouteState (pathIndex, E::channelStateSolo);
+
+        for (int p = 0; p < E::numPaths; ++p)
+            if (p != pathIndex)
+            {
+                owner.engine.setChannelRouteState (p, E::channelStateNormal);
+                owner.engine.setPreSoloState (p, E::channelStateNormal);
+            }
+    }
+    else
+    {
+        // S toggle: Normal/Muted -> Solo (remembering the previous state),
+        // Solo -> back to the state before solo (not always "muted").
+        const int current = owner.engine.getChannelRouteState (pathIndex);
+
+        if (current == E::channelStateSolo)
+        {
+            owner.engine.setChannelRouteState (pathIndex, owner.engine.getPreSoloState (pathIndex));
+            owner.engine.setPreSoloState (pathIndex, E::channelStateNormal);
+        }
+        else
+        {
+            owner.engine.setPreSoloState (pathIndex, current);
+            owner.engine.setChannelRouteState (pathIndex, E::channelStateSolo);
+        }
+    }
+
+    owner.refreshSoloMute();
+}
+
+void PluginRackComponent::refreshSoloMute()
+{
+    for (auto* child : rowContainer.getChildren())
+        if (auto* header = dynamic_cast<PathHeader*> (child))
+            header->syncSoloMute();
 }
 
 void PluginRackComponent::PathHeader::paint (juce::Graphics& g)
@@ -632,6 +723,15 @@ void PluginRackComponent::PathHeader::resized()
 {
     auto b = getLocalBounds().reduced (8, 4);
     b.removeFromLeft (2);
+
+    // M / S solo-mute buttons (insert and send channels only), far right of
+    // the volume slider so they sit at the very edge of the channel row.
+    if (! isBusPath (pathIndex))
+    {
+        auto msArea = b.removeFromRight (80);
+        muteButton.setBounds (msArea.removeFromLeft (38).reduced (2, 6));
+        soloButton.setBounds (msArea.reduced (2, 6));
+    }
 
     auto volArea = b.removeFromRight (b.getWidth() * 0.34);
     volume.setBounds (volArea.reduced (0, 6));

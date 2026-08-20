@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "CustomLookAndFeel.h"
 
 class PlayerEngine;
 class PluginChain;
@@ -32,6 +33,10 @@ public:
 
     /** Sets the target-path combo to `path` (0..2) and opens the add dialog. */
     void requestAddPlugin (int path);
+
+    /** Opens the editor window of the most recently added plug-in on `path`
+        (the last slot of that chain). Used to auto-show a GUI on add. */
+    void openEditorForLastSlot (int path);
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -82,6 +87,77 @@ private:
         }
     };
 
+    /** A small M / S solo-mute button. Painted entirely by this class (red for
+        M, yellow for S) so the colour is independent of the global look-and-feel.
+        Left-click calls onPress(false); alt+left-click calls onPress(true). */
+    class MsButton : public juce::Component, public juce::SettableTooltipClient
+    {
+    public:
+        MsButton (const juce::String& letter, std::function<juce::Colour()> activeColourProvider)
+            : letter (letter), colourProvider (std::move (activeColourProvider))
+        {
+            setMouseCursor (juce::MouseCursor::PointingHandCursor);
+        }
+
+        std::function<void (bool altDown)> onPress;
+
+        void setActive (bool active_)
+        {
+            if (active != active_)
+            {
+                active = active_;
+                repaint();
+            }
+        }
+
+        void paint (juce::Graphics& g) override
+        {
+            const auto b = getLocalBounds().toFloat().reduced (1.0f);
+            const float corner = juce::jmin (8.0f, b.getHeight() * 0.5f);
+
+            if (active)
+            {
+                g.setColour (colourProvider());
+                g.fillRoundedRectangle (b, corner);
+                g.setColour (juce::Colours::black);
+            }
+            else
+            {
+                g.setColour (isMouseOver() ? aur::Theme::panelHover() : aur::Theme::panel());
+                g.fillRoundedRectangle (b, corner);
+                g.setColour (aur::Theme::border());
+                g.drawRoundedRectangle (b, corner, 1.0f);
+                g.setColour (aur::Theme::textDim());
+            }
+
+            g.setFont (aur::Theme::uiFont (b.getHeight() * 0.55f).boldened());
+            g.drawText (letter, b, juce::Justification::centred, false);
+        }
+
+        void mouseEnter (const juce::MouseEvent&) override { repaint(); }
+        void mouseExit  (const juce::MouseEvent&) override { repaint(); }
+
+        void mouseDown (const juce::MouseEvent& e) override
+        {
+            if (e.mods.isLeftButtonDown())
+                mouseDownInside = contains (e.getPosition());
+        }
+
+        void mouseUp (const juce::MouseEvent& e) override
+        {
+            if (mouseDownInside && contains (e.getPosition()) && onPress != nullptr)
+                onPress (e.mods.isAltDown());
+
+            mouseDownInside = false;
+        }
+
+    private:
+        juce::String letter;
+        std::function<juce::Colour()> colourProvider;
+        bool active = false;
+        bool mouseDownInside = false;
+    };
+
     class RackRow : public juce::Component
     {
     public:
@@ -116,6 +192,9 @@ private:
 
         int getPathIndex() const { return pathIndex; }
 
+        /** Re-reads the engine's solo/mute state into the M/S buttons. */
+        void syncSoloMute();
+
     private:
         PluginRackComponent& owner;
         int pathIndex;
@@ -123,6 +202,11 @@ private:
         AnimatedToggle enable { juce::String (juce::CharPointer_UTF8 ("启用")) };
         VolumeSlider volume;
         juce::TextButton addButton { juce::String (juce::CharPointer_UTF8 ("添加插件")) };
+        MsButton muteButton { "M", [] { return aur::Theme::danger(); } };
+        MsButton soloButton { "S", [] { return aur::Theme::warn(); } };
+
+        void pressMute();
+        void pressSolo (bool altDown);
     };
 
     /** A thin accent line shown between rows during a drag, marking where the
@@ -138,6 +222,9 @@ private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void timerCallback() override;
     void openEditor (int pathIndex, int slotIndex);
+
+    /** Re-syncs every PathHeader's M/S buttons with the engine's solo/mute state. */
+    void refreshSoloMute();
 
     /** Returns the chain for a path index; PlayerEngine::busPath -> master bus. */
     PluginChain& chainFor (int pathIndex) const;

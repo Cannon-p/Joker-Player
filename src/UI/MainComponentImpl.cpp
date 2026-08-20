@@ -112,7 +112,7 @@ MainComponent::MainComponent()
     : rack (engine)
 {
     aur::traceStep ("MainComponent ctor start");
-    setSize (1180, 760);
+    setSize (1500, 760);
 
     setLookAndFeel (&aur::CustomLookAndFeel::instance());
     setWantsKeyboardFocus (true);
@@ -335,7 +335,7 @@ void MainComponent::resized()
     auto mainArea = b.reduced (18, 8);
     mainArea.removeFromTop (6);       // breathing room below the header
 
-    auto rightColumn = mainArea.removeFromRight (juce::jmax (280, mainArea.getWidth() / 3));
+    auto rightColumn = mainArea.removeFromRight (juce::jmax (380, mainArea.getWidth() / 3));
     rightColumn.removeFromLeft (14);  // gap between the two columns
 
     auto leftColumn = mainArea;
@@ -640,7 +640,12 @@ void MainComponent::openPluginBrowser()
         [this] (const juce::PluginDescription&)
         {
             // The engine already added the plug-in; the rack refreshes itself
-            // via the chain's change notifications.
+            // via the chain's change notifications. Auto-show its editor GUI,
+            // then keep the browser on top so it is not hidden by the GUI.
+            rack.openEditorForLastSlot (rack.getTargetPathIndex());
+
+            if (pluginBrowser != nullptr)
+                pluginBrowser->toFront (true);
         },
         [this] { return rack.getTargetPathIndex(); });
 
