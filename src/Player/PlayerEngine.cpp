@@ -254,6 +254,15 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
     lat[1] = chains[1].getTotalLatencySamples();
     lat[2] = lat[0] + chains[2].getTotalLatencySamples();
 
+    // Effective latency of each path's mixed content: an enabled path processes
+    // its plug-ins; a disabled path passes its input dry (no plug-in latency).
+    // The send is fed by path 1's output, so it inherits path 1's effective
+    // latency when the send itself is disabled.
+    int effLat[(size_t) numPaths];
+    effLat[0] = enabled[0] ? lat[0] : 0;
+    effLat[1] = enabled[1] ? lat[1] : 0;
+    effLat[2] = enabled[2] ? lat[2] : effLat[0];
+
     int maxLat = 0;
     for (int p = 0; p < numPaths; ++p)
         if (enabled[(size_t) p])
@@ -282,7 +291,8 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
     // --- 4) run the two parallel paths (1 and 2) on the dry input --------------
     // All processing happens synchronously on the audio thread. There is no
     // other thread involved (no worker round-trip per block), which keeps the
-    // callback latency minimal.
+    // callback latency minimal. A disabled path still fills its buffer with the
+    // dry input so it can be mixed unprocessed below.
     if (enabled[0])
     {
         for (int ch = 0; ch < numChannels; ++ch)
@@ -290,6 +300,12 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
 
         midiBuffers[0].clear();
         chains[0].processBlock (pathBuffers[0], midiBuffers[0]);
+    }
+    else
+    {
+        // disabled: pass the dry input through untouched
+        for (int ch = 0; ch < numChannels; ++ch)
+            pathBuffers[0].copyFrom (ch, 0, *bufferToFill.buffer, ch, startSample, numSamples);
     }
 
     if (enabled[1])
@@ -300,36 +316,34 @@ void PlayerEngine::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffer
         midiBuffers[1].clear();
         chains[1].processBlock (pathBuffers[1], midiBuffers[1]);
     }
-
-    // --- 5) path 3 is fed by path 1's OUTPUT -----------------------------------
-    if (enabled[2])
+    else
     {
-        if (enabled[0])
-        {
-            // path 1's processed output is path 3's input
-            for (int ch = 0; ch < numChannels; ++ch)
-                pathBuffers[2].copyFrom (ch, 0, pathBuffers[0], ch, 0, numSamples);
-        }
-        else
-        {
-            // path 1 disabled: path 3 sees the dry input (passthrough behaviour)
-            for (int ch = 0; ch < numChannels; ++ch)
-                pathBuffers[2].copyFrom (ch, 0, *bufferToFill.buffer, ch, startSample, numSamples);
-        }
-
-        midiBuffers[2].clear();
-        chains[2].processBlock (pathBuffers[2], midiBuffers[2]);
+        // disabled: pass the dry input through untouched
+        for (int ch = 0; ch < numChannels; ++ch)
+            pathBuffers[1].copyFrom (ch, 0, *bufferToFill.buffer, ch, startSample, numSamples);
     }
 
-    // --- 6) align every enabled path and sum with per-path volume ---------------
+    // --- 5) path 3 is fed by path 1's OUTPUT -----------------------------------
+    // When path 1 is disabled its buffer already holds the dry input. When the
+    // send itself is disabled it copies that input without processing, so the
+    // send channel still contributes its (unprocessed) sound to the mix.
+    {
+        for (int ch = 0; ch < numChannels; ++ch)
+            pathBuffers[2].copyFrom (ch, 0, pathBuffers[0], ch, 0, numSamples);
+
+        if (enabled[2])
+        {
+            midiBuffers[2].clear();
+            chains[2].processBlock (pathBuffers[2], midiBuffers[2]);
+        }
+    }
+
+    // --- 6) align every path and sum with per-path volume -----------------------
     alignedSum.clear();
 
     for (int p = 0; p < numPaths; ++p)
     {
-        if (! enabled[(size_t) p])
-            continue;
-
-        alignComps[(size_t) p]->setTargetDelay (maxLat - lat[(size_t) p]);
+        alignComps[(size_t) p]->setTargetDelay (maxLat - effLat[(size_t) p]);
         alignComps[(size_t) p]->process (pathBuffers[(size_t) p].getArrayOfReadPointers(),
                                          pathBuffers[(size_t) p].getArrayOfWritePointers(),
                                          numChannels,
