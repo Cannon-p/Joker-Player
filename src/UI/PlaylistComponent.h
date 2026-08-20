@@ -53,6 +53,7 @@ public:
     void paintListBoxItem (int rowNumber, juce::Graphics& g,
                            int width, int height, bool rowIsSelected) override;
     void listBoxItemDoubleClicked (int rowNumber, const juce::MouseEvent&) override;
+    void listBoxItemClicked (int rowNumber, const juce::MouseEvent&) override;
     void deleteKeyPressed (int lastRowSelected) override;
     void selectedRowsChanged (int lastRowSelected) override;
 

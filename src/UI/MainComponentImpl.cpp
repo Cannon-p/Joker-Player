@@ -221,6 +221,9 @@ MainComponent::MainComponent()
     playlist.loadFromFile (engine.getPluginManager().getDataDirectory()
                                .getChildFile ("playlist.xml"));
 
+    // --- restore play mode from last session ---
+    loadPlayMode();
+
     refreshDeviceList();
     updateTransportUi();
 
@@ -329,7 +332,7 @@ void MainComponent::resized()
                             footer.getRight() - playModeButton.getRight() - 20 - 18, 8);
 
     // --- main content ---
-    auto mainArea = b.reduced (18, 14);
+    auto mainArea = b.reduced (18, 8);
     mainArea.removeFromTop (6);       // breathing room below the header
 
     auto rightColumn = mainArea.removeFromRight (juce::jmax (280, mainArea.getWidth() / 3));
@@ -337,21 +340,23 @@ void MainComponent::resized()
 
     auto leftColumn = mainArea;
 
-    // now playing card
-    auto card = leftColumn.removeFromTop (118);
+    // now playing card: taller so the waveform has room to breathe
+    const auto contentTop = leftColumn.getY();
+    auto card = leftColumn.removeFromTop (160);
     nowPlayingBounds = card;
-    trackName.setBounds (card.removeFromTop (48).reduced (8, 4));
+    trackName.setBounds (card.removeFromTop (50).reduced (8, 4));
     trackMeta.setBounds (card.removeFromTop (26).reduced (8, 2));
 
-    auto timeArea = card.removeFromTop (24);
+    // the rest of the card is the waveform area (stretched vertically)
+    auto timeArea = card;
     timeLabel.setBounds (timeArea.removeFromRight (70).reduced (0, 2));
     waveformBar.setBounds (timeArea.reduced (2, 4));
 
     // playlist fills the rest of the left column
-    playlist.setBounds (leftColumn.reduced (0, 14));
+    playlist.setBounds (leftColumn.reduced (0, 2));
 
-    // effect rack fills the right column, top-aligned with the now-playing card
-    rack.setBounds (rightColumn.reduced (0, 14));
+    // effect rack: top level with the now-playing card, bottom level with the playlist
+    rack.setBounds (rightColumn.reduced (0, 2).withY (contentTop));
 }
 
 //==============================================================================
@@ -365,7 +370,15 @@ void MainComponent::timerCallback()
     {
         if (playMode == PlayMode::Loop)
         {
-            playTrack ((playingIndex + 1) % playlist.getNumTracks());
+            // Single-track repeat: replay the current track from the start.
+            if (playingIndex >= 0 && engine.hasTrack())
+            {
+                engine.restartFromStart();
+            }
+            else
+            {
+                playTrack ((playingIndex + 1) % playlist.getNumTracks());
+            }
         }
         else if (playMode == PlayMode::Shuffle)
         {
@@ -469,6 +482,21 @@ void MainComponent::playNext()
         return;
     }
 
+    if (playMode == PlayMode::Loop)
+    {
+        // Single-track repeat: replay the current track from the start.
+        if (playingIndex >= 0 && engine.hasTrack())
+        {
+            engine.restartFromStart();
+            updateTransportUi();
+        }
+        else
+        {
+            playTrack (0);
+        }
+        return;
+    }
+
     playTrack ((playingIndex + 1) % playlist.getNumTracks());
 }
 
@@ -477,10 +505,32 @@ void MainComponent::playPrevious()
     if (playlist.getNumTracks() == 0)
         return;
 
-    // If we're more than a few seconds in, restart the current track instead.
+    if (playMode == PlayMode::Shuffle)
+    {
+        playTrack (getRandomTrackIndex());
+        return;
+    }
+
+    if (playMode == PlayMode::Loop)
+    {
+        // Single-track repeat: replay the current track from the start.
+        if (playingIndex >= 0 && engine.hasTrack())
+        {
+            engine.restartFromStart();
+            updateTransportUi();
+        }
+        else
+        {
+            playTrack (0);
+        }
+        return;
+    }
+
+    // Sequential: restart the current track if we're more than a few seconds in.
     if (playingIndex >= 0 && engine.hasTrack() && engine.getPositionInSeconds() > 3.0)
     {
         engine.restartFromStart();
+        updateTransportUi();
         return;
     }
 
@@ -497,12 +547,53 @@ void MainComponent::cyclePlayMode()
         case PlayMode::Shuffle:    playMode = PlayMode::Sequential; break;
     }
 
+    applyPlayModeToUi();
+    savePlayMode();
+}
+
+void MainComponent::applyPlayModeToUi()
+{
     playModeButton.setMode (playMode);
 
     const char* tip = (playMode == PlayMode::Sequential) ? "顺序播放"
                     : (playMode == PlayMode::Loop)        ? "循环播放"
                                                           : "随机播放";
     playModeButton.setTooltip (juce::String (juce::CharPointer_UTF8 (tip)));
+}
+
+void MainComponent::loadPlayMode()
+{
+    const auto modeFile = engine.getPluginManager().getDataDirectory()
+                              .getChildFile ("play_mode_settings.xml");
+
+    if (auto xml = juce::XmlDocument::parse (modeFile))
+        if (auto* modeTag = xml->getChildByName ("playMode"))
+        {
+            const auto value = modeTag->getStringAttribute ("value");
+
+            if (value == "loop")
+                playMode = PlayMode::Loop;
+            else if (value == "shuffle")
+                playMode = PlayMode::Shuffle;
+            else
+                playMode = PlayMode::Sequential;
+        }
+
+    applyPlayModeToUi();
+}
+
+void MainComponent::savePlayMode()
+{
+    const auto dir = engine.getPluginManager().getDataDirectory();
+
+    juce::XmlElement xml ("settings");
+    auto* modeTag = new juce::XmlElement ("playMode");
+    modeTag->setAttribute ("value",
+                           (playMode == PlayMode::Sequential) ? "sequential"
+                           : (playMode == PlayMode::Loop)     ? "loop"
+                                                              : "shuffle");
+    xml.addChildElement (modeTag);
+    xml.writeTo (dir.getChildFile ("play_mode_settings.xml"));
 }
 
 int MainComponent::getRandomTrackIndex() const

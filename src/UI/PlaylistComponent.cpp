@@ -326,6 +326,35 @@ void PlaylistComponent::listBoxItemDoubleClicked (int rowNumber, const juce::Mou
         onTrackDoubleClicked (rowNumber);
 }
 
+void PlaylistComponent::listBoxItemClicked (int rowNumber, const juce::MouseEvent& e)
+{
+    if (! e.mods.isRightButtonDown())
+        return;
+
+    if (! isPositiveAndBelow (rowNumber, tracks.size()))
+        return;
+
+    listBox.selectRow (rowNumber);
+
+    juce::PopupMenu menu;
+    menu.addItem (1, juce::String (juce::CharPointer_UTF8 ("删除该歌曲")));
+    menu.addItem (2, juce::String (juce::CharPointer_UTF8 ("打开所在文件夹")));
+
+    switch (menu.show())
+    {
+        case 1:
+            removeTrack (rowNumber);
+            break;
+
+        case 2:
+            tracks.getReference (rowNumber).file.getParentDirectory().startAsProcess();
+            break;
+
+        default:
+            break;
+    }
+}
+
 void PlaylistComponent::deleteKeyPressed (int lastRowSelected)
 {
     if (isPositiveAndBelow (lastRowSelected, tracks.size()))

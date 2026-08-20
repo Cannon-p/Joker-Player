@@ -691,9 +691,9 @@ void PluginRackComponent::RackRow::paint (juce::Graphics& g)
     const auto b = getLocalBounds().toFloat().reduced (1.0f);
     const auto* slot = owner.chainFor (pathIndex).getSlot (slotIndex);
 
-    const bool pathOn = isBusPath (pathIndex) ? owner.engine.isBusEnabled()
-                                              : owner.engine.isPathEnabled (pathIndex);
-    const bool isEnabled = slot != nullptr && slot->enabled && pathOn;
+    // The row is enabled purely by whether the plug-in is bypassed, not by
+    // whether the channel currently has signal routed through it.
+    const bool isEnabled = slot != nullptr && slot->enabled;
 
     // Panel background.
     g.setColour (isEnabled ? aur::Theme::panelHover() : aur::Theme::panel());

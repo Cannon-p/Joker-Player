@@ -65,6 +65,23 @@ private:
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AnimatedToggle)
     };
 
+    class VolumeSlider : public juce::Slider
+    {
+    public:
+        VolumeSlider() : juce::Slider (juce::Slider::LinearHorizontal, juce::Slider::NoTextBox) {}
+
+        void mouseDown (const juce::MouseEvent& e) override
+        {
+            if (e.mods.isCtrlDown() && e.mods.isLeftButtonDown())
+            {
+                setValue (1.0);
+                return;
+            }
+
+            juce::Slider::mouseDown (e);
+        }
+    };
+
     class RackRow : public juce::Component
     {
     public:
@@ -104,7 +121,7 @@ private:
         int pathIndex;
         juce::Label title;
         AnimatedToggle enable { juce::String (juce::CharPointer_UTF8 ("启用")) };
-        juce::Slider volume { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
+        VolumeSlider volume;
         juce::TextButton addButton { juce::String (juce::CharPointer_UTF8 ("添加插件")) };
     };
 

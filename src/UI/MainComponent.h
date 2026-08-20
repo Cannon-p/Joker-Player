@@ -101,6 +101,9 @@ private:
     void togglePlayPause();
     void openPluginBrowser();
     void cyclePlayMode();
+    void applyPlayModeToUi();
+    void loadPlayMode();
+    void savePlayMode();
     int getRandomTrackIndex() const;
 
     void refreshDeviceList();

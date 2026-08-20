@@ -117,7 +117,7 @@ PlayerEngine::PlayerEngine()
         alignComps.emplace_back (std::make_unique<LatencyCompensator>());
         midiBuffers.emplace_back ();
         pathEnabled[p] = (p == 0);
-        pathVolume[p] = 1.0f;
+        pathVolume[p] = (p == 0) ? 1.0f : 0.0f;
     }
 
     deviceManager.addChangeListener (this);
