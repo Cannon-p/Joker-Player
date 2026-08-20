@@ -5,6 +5,8 @@
 #include "../Player/PlayerEngine.h"
 #include "../Trace.h"
 
+#include <algorithm>
+
 namespace
 {
 juce::String formatClock (double seconds)
@@ -667,24 +669,62 @@ void MainComponent::refreshDeviceList()
                                            ? dm.getCurrentAudioDevice()->getName()
                                            : juce::String();
 
+    // Windows reports the same physical device once per audio API (WASAPI
+    // shared / event / exclusive, DirectSound, ASIO), so each device would
+    // appear several times. Deduplicate by name, preferring the most reliable
+    // API so every device shows up exactly once.
+    auto priorityOf = [] (const juce::String& type)
+    {
+        if (type == "Windows Audio")           return 0;  // WASAPI shared
+        if (type == "Windows Audio (exclusive)") return 1;
+        if (type == "Windows Audio (event)")   return 2;
+        if (type == "DirectSound")             return 3;
+        if (type == "ASIO")                    return 4;
+        return 5;
+    };
+
+    juce::Array<juce::AudioIODeviceType*> types;
+    for (auto* type : dm.getAvailableDeviceTypes())
+        if (type != nullptr)
+            types.add (type);
+
+    std::stable_sort (types.begin(), types.end(),
+                      [&] (const juce::AudioIODeviceType* a, const juce::AudioIODeviceType* b)
+    {
+        const int pa = priorityOf (a->getTypeName());
+        const int pb = priorityOf (b->getTypeName());
+        if (pa != pb) return pa < pb;
+        return a->getTypeName() < b->getTypeName();
+    });
+
+    juce::StringArray seenNames;
     int selected = -1;
 
-    for (auto* type : dm.getAvailableDeviceTypes())
+    for (auto* type : types)
     {
-        if (type == nullptr)
-            continue;
-
         for (auto& name : type->getDeviceNames (false))
         {
-            if (name.isEmpty())
+            if (name.isEmpty() || seenNames.contains (name))
                 continue;
 
+            seenNames.add (name);
             deviceEntries.add ({ type->getTypeName(), name });
             deviceCombo.addItem (name, deviceEntries.size());
 
             if (type->getTypeName() == currentType && name == currentDevice)
                 selected = deviceEntries.size() - 1;
         }
+    }
+
+    // If the active device uses a lower-priority API, select it by name anyway.
+    if (selected < 0 && currentDevice.isNotEmpty())
+    {
+        for (int i = 0; i < deviceEntries.size(); ++i)
+            if (deviceEntries[i].name == currentDevice)
+            {
+                selected = i;
+                break;
+            }
     }
 
     if (selected >= 0)
