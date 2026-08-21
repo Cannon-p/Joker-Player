@@ -23,6 +23,10 @@ public:
 
     void applyTheme();
 
+    /** Access to the effect rack (used by the main window to raise editor
+        windows above itself when the app is brought to front). */
+    PluginRackComponent& getRack() { return rack; }
+
     /** A small icon-only button that toggles between day and night themes
         (draws a full sun icon on the title bar). */
     class ThemeButton : public juce::Button

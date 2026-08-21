@@ -179,6 +179,22 @@ void PluginRackComponent::openEditorForLastSlot (int path)
         openEditor (path, slot);
 }
 
+void PluginRackComponent::raiseAllEditors()
+{
+    auto raise = [] (PluginChain& chain)
+    {
+        for (int i = 0; i < chain.getNumSlots(); ++i)
+            if (auto* slot = chain.getSlot (i))
+                if (slot->editorWindow != nullptr)
+                    slot->editorWindow->toFront (false);
+    };
+
+    for (int p = 0; p < PlayerEngine::numPaths; ++p)
+        raise (engine.getChain (p));
+
+    raise (engine.getBusChain());
+}
+
 //==============================================================================
 void PluginRackComponent::applyTheme()
 {
@@ -545,6 +561,7 @@ void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
     window->centreWithSize (juce::jmax (editor->getWidth(), 360),
                             juce::jmax (editor->getHeight(), 220));
     window->setVisible (true);
+    window->toFront (false);
 
     slot->editorWindow.reset (window);
 }

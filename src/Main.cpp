@@ -101,6 +101,30 @@ private:
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
         }
 
+        /** When the main window is activated, lift every open plug-in editor
+            just above it (without stealing focus) so plug-in GUIs stay in front
+            of the main window but fall behind other applications.
+
+            The raise is deferred: Windows re-stacks the activating main window
+            during WM_ACTIVATE, which would otherwise undo an immediate raise. */
+        void broughtToFront() override
+        {
+            juce::DocumentWindow::broughtToFront();
+
+            auto* mc = dynamic_cast<MainComponent*> (getContentComponent());
+
+            if (mc == nullptr)
+                return;
+
+            auto safe = juce::Component::SafePointer<PluginRackComponent> (&mc->getRack());
+
+            juce::MessageManager::callAsync ([safe]
+            {
+                if (safe != nullptr)
+                    safe->raiseAllEditors();
+            });
+        }
+
         /** Keeps the window background in sync with the active theme, so the
             title bar / edges don't stay a stale colour after a mode switch. */
         void applyTheme()

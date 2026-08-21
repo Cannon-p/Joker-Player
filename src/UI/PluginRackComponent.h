@@ -38,6 +38,11 @@ public:
         (the last slot of that chain). Used to auto-show a GUI on add. */
     void openEditorForLastSlot (int path);
 
+    /** Raises every open plug-in editor window just above the main window
+        (without activating it), so plug-in GUIs stay in front of the main
+        window but never in front of other applications. */
+    void raiseAllEditors();
+
     void paint (juce::Graphics&) override;
     void resized() override;
 
