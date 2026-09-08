@@ -4,7 +4,7 @@
 
 能稳定加载插件进行处理，能调用 ASIO。
 
-![Joker Player](Joker%20Player.png)
+<img src="Joker%20Player.png" width="400" alt="Joker Player">
 
 ## 功能
 
