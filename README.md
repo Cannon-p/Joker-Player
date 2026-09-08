@@ -1,10 +1,13 @@
-# Joker-Player
+<table>
+  <tr>
+    <td><h1>Joker-Player</h1></td>
+    <td><img src="Joker%20Player.png" width="240" alt="Joker Player"></td>
+  </tr>
+</table>
 
 一款能添加 VST 插件的播放器，旨在不打开 DAW 就能快速测试插件。
 
 能稳定加载插件进行处理，能调用 ASIO。
-
-<img src="Joker%20Player.png" width="400" alt="Joker Player">
 
 ## 功能
 
