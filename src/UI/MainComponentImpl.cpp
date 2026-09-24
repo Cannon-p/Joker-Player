@@ -180,6 +180,7 @@ MainComponent::MainComponent()
 
     // --- effect rack ---
     rack.onAddPluginClicked = [this] (int) { openPluginBrowser(); };
+    rack.onSpacePressed = [this] { togglePlayPause(); };
     addAndMakeVisible (rack);
 
     // --- transport bar ---

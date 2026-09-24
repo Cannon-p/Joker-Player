@@ -25,9 +25,13 @@ public:
     explicit PluginRackComponent (PlayerEngine& engine);
     ~PluginRackComponent() override;
 
-    /** Invoked with the currently selected target path (0..2) when the user
-        clicks "add". */
+/** Invoked with the currently selected target path (0..2) when the user
+    clicks "add". */
     std::function<void (int path)> onAddPluginClicked;
+
+    /** Invoked when the space bar is pressed while a plug-in editor window has
+        keyboard focus, so transport shortcuts still work with the GUI open. */
+    std::function<void()> onSpacePressed;
 
     int getTargetPathIndex() const { return targetPath; }
 
@@ -37,11 +41,6 @@ public:
     /** Opens the editor window of the most recently added plug-in on `path`
         (the last slot of that chain). Used to auto-show a GUI on add. */
     void openEditorForLastSlot (int path);
-
-    /** Raises every open plug-in editor window just above the main window
-        (without activating it), so plug-in GUIs stay in front of the main
-        window but never in front of other applications. */
-    void raiseAllEditors();
 
     void paint (juce::Graphics&) override;
     void resized() override;

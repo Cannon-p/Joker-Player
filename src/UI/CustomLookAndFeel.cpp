@@ -501,7 +501,9 @@ void aur::CustomLookAndFeel::drawAlertBox (juce::Graphics& g, juce::AlertWindow&
     g.setColour (aur::Theme::border());
     g.drawRoundedRectangle (bounds, 8.0f, 1.0f);
 
-    juce::ignoreUnused (textArea, textLayout);
+    // The text (e.g. the plug-in being scanned) is only visible if the
+    // prepared layout is actually drawn here.
+    textLayout.draw (g, textArea.toFloat());
 }
 
 //==============================================================================

@@ -3,6 +3,10 @@
 #include "../Player/PlayerEngine.h"
 #include "../Trace.h"
 
+#if JUCE_WINDOWS
+ #include <windows.h>
+#endif
+
 namespace
 {
 juce::String shorten (const juce::String& text, int maxChars)
@@ -179,22 +183,6 @@ void PluginRackComponent::openEditorForLastSlot (int path)
         openEditor (path, slot);
 }
 
-void PluginRackComponent::raiseAllEditors()
-{
-    auto raise = [] (PluginChain& chain)
-    {
-        for (int i = 0; i < chain.getNumSlots(); ++i)
-            if (auto* slot = chain.getSlot (i))
-                if (slot->editorWindow != nullptr)
-                    slot->editorWindow->toFront (false);
-    };
-
-    for (int p = 0; p < PlayerEngine::numPaths; ++p)
-        raise (engine.getChain (p));
-
-    raise (engine.getBusChain());
-}
-
 //==============================================================================
 void PluginRackComponent::applyTheme()
 {
@@ -361,18 +349,39 @@ void PluginRackComponent::timerCallback()
 //==============================================================================
 // A window hosting a plug-in's own editor. Closing it hides (not destroys) the
 // window so that the editor state is preserved for when it is reopened.
-class PluginEditorWindow : public juce::DocumentWindow
+class PluginEditorWindow : public juce::DocumentWindow, private juce::KeyListener
 {
 public:
     PluginEditorWindow (const juce::String& name, juce::Colour backgroundColour, int requiredButtons)
         : juce::DocumentWindow (name, backgroundColour, requiredButtons)
     {
+        setWantsKeyboardFocus (true);
+        addKeyListener (this);
     }
 
     void closeButtonPressed() override
     {
         setVisible (false);
     }
+
+    bool keyPressed (const juce::KeyPress& key, juce::Component*) override
+    {
+        if (key == juce::KeyPress::spaceKey && onSpacePressed)
+        {
+            // Don't hijack space while typing in a text field (e.g. a search
+            // box inside the plug-in GUI).
+            if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
+                if (dynamic_cast<juce::TextEditor*> (focused) != nullptr)
+                    return false;
+
+            onSpacePressed();
+            return true;
+        }
+
+        return false;
+    }
+
+    std::function<void()> onSpacePressed;
 };
 
 void PluginRackComponent::RackRow::mouseDown (const juce::MouseEvent& e)
@@ -550,9 +559,11 @@ void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
         return;
     }
 
-    auto* window = new PluginEditorWindow (slot->description.name,
-                                           aur::Theme::bg(),
-                                           juce::DocumentWindow::allButtons);
+auto* window = new PluginEditorWindow (slot->description.name,
+                                       aur::Theme::bg(),
+                                       juce::DocumentWindow::allButtons);
+
+    window->onSpacePressed = [this] { if (onSpacePressed) onSpacePressed(); };
 
     window->setUsingNativeTitleBar (true);
     window->setContentOwned (editor, true);
@@ -561,7 +572,21 @@ void PluginRackComponent::openEditor (int pathIndex, int slotIndex)
     window->centreWithSize (juce::jmax (editor->getWidth(), 360),
                             juce::jmax (editor->getHeight(), 220));
     window->setVisible (true);
-    window->toFront (false);
+
+    // Make the editor window an owned popup of the main window: it floats
+    // above the main window automatically (even when the main window is
+    // clicked) but never above other applications. GWLP_HWNDPARENT sets the
+    // owner without turning it into a WS_CHILD (which would clip it).
+    if (auto* top = getTopLevelComponent())
+    {
+        if (void* mainHandle = top->getWindowHandle())
+        {
+            HWND editorHandle = (HWND) window->getWindowHandle();
+
+            if (editorHandle != nullptr)
+                ::SetWindowLongPtr (editorHandle, GWLP_HWNDPARENT, (LONG_PTR) mainHandle);
+        }
+    }
 
     slot->editorWindow.reset (window);
 }

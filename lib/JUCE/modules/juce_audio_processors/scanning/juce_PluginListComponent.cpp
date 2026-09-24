@@ -401,7 +401,13 @@ private:
         if ((flags & finished) != 0)
             finishedScan();
         else
-            progressWindow.setMessage (TRANS ("Testing") + ":\n\n" + pluginBeingScanned);
+        {
+            // Show the plug-in currently being scanned (just the file name),
+            // alongside the percentage progress bar.
+            const auto pluginName = File (pluginBeingScanned).getFileNameWithoutExtension();
+            progressWindow.setMessage (String (CharPointer_UTF8 ("正在扫描：")) + "\n\n"
+                                       + (pluginName.isNotEmpty() ? pluginName : pluginBeingScanned));
+        }
     }
 
     bool doNextScan()
