@@ -421,25 +421,12 @@ void aur::CustomLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y,
                      rotaryStartAngle, angle, true);
 
     juce::ColourGradient grad (aur::Theme::accent(), centre.translated (-radius, 0.0f),
-                               aur::Theme::accent2(), centre.translated (radius, 0.0f), false);
+                                aur::Theme::accent2(), centre.translated (radius, 0.0f), false);
     g.setGradientFill (grad);
     g.strokePath (valueArc, juce::PathStrokeType (4.0f));
 
-    // Pointer.
-    const float angle2 = slider.getProperties().contains ("pointerAngle")
-                             ? (float) slider.getProperties() ["pointerAngle"]
-                             : angle;
-    juce::ignoreUnused (angle2);
-
-    juce::Path pointer;
-    pointer.startNewSubPath (centre);
-    pointer.lineTo (centre.translated (std::cos (angle), std::sin (angle)) * (float) (radius * 0.65));
-    pointer.closeSubPath();
-
+    // Centre dot (no pointer line).
     const float th = juce::jmax (1.0f, radius * 0.10f);
-    g.setColour (aur::Theme::text());
-    g.strokePath (pointer, juce::PathStrokeType (th, juce::PathStrokeType::curved));
-
     g.setColour (slider.isMouseOverOrDragging() ? aur::Theme::text() : aur::Theme::textDim());
     g.fillEllipse (centre.getX() - th * 0.5f, centre.getY() - th * 0.5f, th, th);
 }

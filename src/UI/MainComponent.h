@@ -108,8 +108,10 @@ private:
 
     void refreshDeviceList();
     void refreshBufferList();
+    void refreshSampleRateList();
     void setDeviceSelection();
     void setBufferSelection();
+    void setSampleRateSelection();
     void updateNowPlaying();
     void updateTransportUi();
 
@@ -119,9 +121,12 @@ private:
     juce::Label appTitle { {}, "Joker Player" };
     juce::Label deviceLabel { {}, juce::String (juce::CharPointer_UTF8 ("输出设备")) };
     juce::ComboBox deviceCombo;
+    juce::Label sampleRateLabel { {}, juce::String (juce::CharPointer_UTF8 ("采样率")) };
+    juce::ComboBox sampleRateCombo;
     juce::Label bufferLabel { {}, juce::String (juce::CharPointer_UTF8 ("缓冲区")) };
     juce::ComboBox bufferCombo;
     juce::Slider volumeSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
+    juce::Array<double> sampleRates;
 
     // --- now playing card ---
     juce::Label trackName { {}, juce::String (juce::CharPointer_UTF8 ("未加载曲目")) };

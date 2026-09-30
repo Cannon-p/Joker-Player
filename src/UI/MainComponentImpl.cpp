@@ -134,6 +134,14 @@ MainComponent::MainComponent()
     deviceCombo.onChange = [this] { setDeviceSelection(); };
     addAndMakeVisible (deviceCombo);
 
+    sampleRateLabel.setFont (aur::Theme::uiFont (13.0f));
+    sampleRateLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    sampleRateLabel.setJustificationType (juce::Justification::centredLeft);
+    addAndMakeVisible (sampleRateLabel);
+
+    sampleRateCombo.onChange = [this] { setSampleRateSelection(); };
+    addAndMakeVisible (sampleRateCombo);
+
     bufferLabel.setFont (aur::Theme::uiFont (13.0f));
     bufferLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
     bufferLabel.setJustificationType (juce::Justification::centredLeft);
@@ -302,12 +310,17 @@ void MainComponent::resized()
     auto titleArea = header.removeFromLeft (240);
     appTitle.setBounds (titleArea.removeFromBottom (40));
 
-    auto right = header.removeFromRight (360);
+    auto right = header.removeFromRight (460);
     deviceLabel.setBounds (right.removeFromLeft (72).withTrimmedTop (22).withHeight (20));
+    deviceCombo.setBounds (right.removeFromLeft (130).reduced (0, 16));
+
+    auto sampleRateArea = right.removeFromLeft (120);
+    sampleRateLabel.setBounds (sampleRateArea.removeFromLeft (50).withTrimmedTop (22).withHeight (20));
+    sampleRateCombo.setBounds (sampleRateArea.reduced (0, 16));
+
     auto bufferArea = right.removeFromRight (150);
     bufferLabel.setBounds (bufferArea.removeFromLeft (50).withTrimmedTop (22).withHeight (20));
     bufferCombo.setBounds (bufferArea.reduced (0, 16));
-    deviceCombo.setBounds (right.reduced (0, 16));
 
     // --- footer / transport ---
     auto footer = b.removeFromBottom (64);
@@ -731,6 +744,62 @@ void MainComponent::refreshDeviceList()
     if (selected >= 0)
         deviceCombo.setSelectedItemIndex (selected, juce::dontSendNotification);
 
+    refreshSampleRateList();
+    refreshBufferList();
+}
+
+void MainComponent::refreshSampleRateList()
+{
+    sampleRateCombo.clear (juce::dontSendNotification);
+    sampleRates.clear();
+
+    auto& dm = engine.getDeviceManager();
+    auto* device = dm.getCurrentAudioDevice();
+
+    if (device == nullptr)
+        return;
+
+    const double current = dm.getAudioDeviceSetup().sampleRate;
+    auto rates = device->getAvailableSampleRates();
+
+    if (rates.isEmpty())
+    {
+        for (double r : { 44100.0, 48000.0, 88200.0, 96000.0 })
+            rates.add (r);
+    }
+
+    for (double rate : rates)
+    {
+        sampleRates.add (rate);
+
+        juce::String label;
+        if (rate >= 1000.0)
+            label = juce::String (juce::roundToInt (rate / 1000.0)) + "k";
+        else
+            label = juce::String (juce::roundToInt (rate));
+
+        sampleRateCombo.addItem (label, sampleRates.size());
+    }
+
+    const int index = sampleRates.indexOf (current);
+
+    if (index >= 0)
+        sampleRateCombo.setSelectedItemIndex (index, juce::dontSendNotification);
+}
+
+void MainComponent::setSampleRateSelection()
+{
+    const int idx = sampleRateCombo.getSelectedItemIndex();
+
+    if (idx < 0 || idx >= sampleRates.size())
+        return;
+
+    auto& dm = engine.getDeviceManager();
+    auto setup = dm.getAudioDeviceSetup();
+    setup.sampleRate = sampleRates[idx];
+    dm.setAudioDeviceSetup (setup, true);
+
+    refreshSampleRateList();
     refreshBufferList();
 }
 
@@ -865,6 +934,7 @@ void MainComponent::applyTheme()
     // Header labels.
     appTitle.setColour (juce::Label::textColourId, aur::Theme::text());
     deviceLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
+    sampleRateLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
     bufferLabel.setColour (juce::Label::textColourId, aur::Theme::textDim());
 
     // Now-playing card labels.
